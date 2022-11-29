@@ -9,13 +9,14 @@ public class UftRunAsUser {
     private String domain;
     private String pwd;
 
+    private final String ARG_IS_REQUIRED = "%s is required";
     public UftRunAsUser(String username, String domain, String pwd) {
         if (StringUtils.isBlank(username) ) {
-            throw new IllegalArgumentException(String.format("%s is required", UFT_RUN_AS_USER));
+            throw new IllegalArgumentException(String.format(ARG_IS_REQUIRED, UFT_RUN_AS_USER));
         } else if (StringUtils.isBlank(domain)) {
-            throw new IllegalArgumentException(String.format("%s is required", UFT_RUN_AS_DOMAIN));
-        } if (StringUtils.isBlank(pwd)) {
-            throw new IllegalArgumentException(String.format("%s is required", UFT_RUN_AS_PWD));
+            throw new IllegalArgumentException(String.format(ARG_IS_REQUIRED, UFT_RUN_AS_DOMAIN));
+        } else if (StringUtils.isBlank(pwd)) {
+            throw new IllegalArgumentException(String.format(ARG_IS_REQUIRED, UFT_RUN_AS_PWD));
         }
         this.username = username;
         this.domain = domain;

@@ -380,7 +380,7 @@ public class UftToolUtils {
                 listener.getLogger().println(msg);
             } else {
                 isUftPrintTestParams = (boolean) uftPrintTestParams.getValue();
-                listener.getLogger().println(String.format("UFT_PRINT_TEST_PARAMS = %s", isUftPrintTestParams ? "Yes" : "No")) ;
+                listener.getLogger().println(String.format(KEY_VALUE_FORMAT, UFT_PRINT_TEST_PARAMS, isUftPrintTestParams ? "Yes" : "No")) ;
             }
         }
         return isUftPrintTestParams;
@@ -393,16 +393,16 @@ public class UftToolUtils {
             if (paramValuePair != null) {
                 String username, domain = null, pwd = null;
                 username = (String) paramValuePair.getValue();
-                listener.getLogger().println(String.format("%s = %s", UFT_RUN_AS_USER, username)) ;
+                listener.getLogger().println(String.format(KEY_VALUE_FORMAT, UFT_RUN_AS_USER, username)) ;
                 paramValuePair = parameterAction.getParameter(UFT_RUN_AS_DOMAIN);
                 if (paramValuePair != null) {
                     domain = (String) paramValuePair.getValue();
-                    listener.getLogger().println(String.format("%s = %s", UFT_RUN_AS_DOMAIN, domain)) ;
+                    listener.getLogger().println(String.format(KEY_VALUE_FORMAT, UFT_RUN_AS_DOMAIN, domain)) ;
                 }
                 paramValuePair = parameterAction.getParameter(UFT_RUN_AS_PWD);
                 if (paramValuePair != null) {
                     pwd = (String) paramValuePair.getValue();
-                    listener.getLogger().println(String.format("%s = %s", UFT_RUN_AS_PWD, pwd)) ;
+                    listener.getLogger().println(String.format(KEY_VALUE_FORMAT, UFT_RUN_AS_PWD, pwd)) ;
                 }
                 uftRunAsUser = new UftRunAsUser(username, domain, pwd);
             }
