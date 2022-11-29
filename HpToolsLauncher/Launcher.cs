@@ -29,6 +29,7 @@
 using HpToolsLauncher.Properties;
 using HpToolsLauncher.RTS;
 using HpToolsLauncher.TestRunners;
+using HpToolsLauncher.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -682,17 +683,30 @@ namespace HpToolsLauncher
                         }
                     }
 
+                    RunAsUser uftRunAsUser = null;
+                    if (_ciParams.ContainsKey("uftRunAsUser") && _ciParams.ContainsKey("uftRunAsDomain") && _ciParams.ContainsKey("uftRunAsPassword"))
+                    {
+                        string username = _ciParams["uftRunAsUser"];
+                        string domain = _ciParams["uftRunAsDomain"];
+                        string encryptedPwd = _ciParams["uftRunAsPassword"];
+                        if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(domain) && !string.IsNullOrEmpty(encryptedPwd))
+                        {
+                            string pwd = EncryptionUtils.Decrypt(encryptedPwd);
+                            uftRunAsUser = new RunAsUser(_ciParams["uftRunAsUser"], _ciParams["uftRunAsDomain"], pwd);
+                        }
+                    }
+
                     SummaryDataLogger summaryDataLogger = GetSummaryDataLogger();
                     List<ScriptRTSModel> scriptRTSSet = GetScriptRtsSet();
                     string resultsFilename = _ciParams["resultsFilename"];
                     if (_ciParams.ContainsKey("fsUftRunMode"))
                     {
                         string uftRunMode = _ciParams["fsUftRunMode"];
-                        runner = new FileSystemTestsRunner(validTests, @params, printInputParams, timeout, uftRunMode, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVariables, mcConnectionInfo, mobileinfo, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding);
+                        runner = new FileSystemTestsRunner(validTests, @params, printInputParams, timeout, uftRunMode, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVariables, mcConnectionInfo, mobileinfo, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding, uftRunAsUser);
                     }
                     else
                     {
-                        runner = new FileSystemTestsRunner(validTests, @params, printInputParams, timeout, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVariables, mcConnectionInfo, mobileinfo, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding);
+                        runner = new FileSystemTestsRunner(validTests, @params, printInputParams, timeout, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVariables, mcConnectionInfo, mobileinfo, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding, uftRunAsUser);
                     }
 
                     break;

@@ -27,14 +27,20 @@
  */
 
 using HpToolsLauncher.TestRunners;
+using HpToolsLauncher.Utils;
 using Microsoft.Win32;
 using QTObjectModelLib;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.Permissions;
+using System.Security.Principal;
 using System.Threading;
+using System.Xml.Linq;
 using Resources = HpToolsLauncher.Properties.Resources;
 
 namespace HpToolsLauncher
@@ -72,6 +78,7 @@ namespace HpToolsLauncher
         private McConnectionInfo _mcConnection;
         private string _mobileInfo;
         private bool _printInputParams;
+        private RunAsUser _uftRunAsUser;
 
         /// <summary>
         /// constructor
@@ -79,7 +86,7 @@ namespace HpToolsLauncher
         /// <param name="runNotifier"></param>
         /// <param name="useUftLicense"></param>
         /// <param name="timeLeftUntilTimeout"></param>
-        public GuiTestRunner(IAssetRunner runNotifier, bool useUftLicense, TimeSpan timeLeftUntilTimeout, string uftRunMode, McConnectionInfo mcConnectionInfo, string mobileInfo, bool printInputParams)
+        public GuiTestRunner(IAssetRunner runNotifier, bool useUftLicense, TimeSpan timeLeftUntilTimeout, string uftRunMode, McConnectionInfo mcConnectionInfo, string mobileInfo, bool printInputParams, RunAsUser uftRunAsUser)
         {
             _timeLeftUntilTimeout = timeLeftUntilTimeout;
             _uftRunMode = uftRunMode;
@@ -89,6 +96,7 @@ namespace HpToolsLauncher
             _mcConnection = mcConnectionInfo;
             _mobileInfo = mobileInfo;
             _printInputParams = printInputParams;
+            _uftRunAsUser = uftRunAsUser;
         }
 
         #region QTP
@@ -113,7 +121,7 @@ namespace HpToolsLauncher
             // default report location is the test path
             runDesc.ReportLocation = testPath;
             // check if the report path has been defined
-            if (!String.IsNullOrEmpty(testinf.ReportPath))
+            if (!string.IsNullOrEmpty(testinf.ReportPath))
             {
                 if (!Helper.TrySetTestReportPath(runDesc, testinf, ref errorReason))
                 {
@@ -146,7 +154,6 @@ namespace HpToolsLauncher
 
             try
             {
-                ChangeDCOMSettingToInteractiveUser();
                 var type = Type.GetTypeFromProgID("Quicktest.Application");
 
                 lock (_lockObject)
@@ -157,7 +164,7 @@ namespace HpToolsLauncher
                     if (qtpVersion.Equals(new Version(11, 0)))
                     {
                         // use the defined report path if provided
-                        if (!String.IsNullOrEmpty(testinf.ReportPath))
+                        if (!string.IsNullOrEmpty(testinf.ReportPath))
                         {
                             runDesc.ReportLocation = Path.Combine(testinf.ReportPath, "Report");
                         }
@@ -175,7 +182,6 @@ namespace HpToolsLauncher
                             Directory.CreateDirectory(runDesc.ReportLocation);
                         }
                     }
-
 
                     // Check for required Addins
                     LoadNeededAddins(testPath);
@@ -297,7 +303,8 @@ namespace HpToolsLauncher
             try
             {
                 paramDict = testinf.GetParameterDictionaryForQTP();
-            } catch (ArgumentException)
+            }
+            catch (ArgumentException)
             {
                 ConsoleWriter.WriteErrLine(string.Format(Resources.FsDuplicateParamNames));
                 throw;
@@ -412,7 +419,6 @@ namespace HpToolsLauncher
                         _qtpApplication.Quit();
                     _qtpApplication.SetActiveAddins(ref testAddinsObj, out erroDescription);
                 }
-
             }
             catch (Exception)
             {
@@ -527,7 +533,7 @@ namespace HpToolsLauncher
                 string lastError = _qtpApplication.Test.LastRunResults.LastError;
 
                 //read the lastError
-                if (!String.IsNullOrEmpty(lastError))
+                if (!string.IsNullOrEmpty(lastError))
                 {
                     testResults.TestState = TestState.Error;
                     testResults.ErrorDesc = lastError;
@@ -584,7 +590,6 @@ namespace HpToolsLauncher
                 result.IsSuccess = false;
                 return result;
             }
-
 
             return result;
         }
@@ -722,7 +727,8 @@ namespace HpToolsLauncher
                                     else
                                         ConsoleWriter.WriteLine(string.Format(Resources.GeneralParameterUsage, paramName, type != qtParameterType.qtParamTypeDate ? paramValue : ((DateTime)paramValue).ToShortDateString()));
                                 }
-                            } catch (Exception)
+                            }
+                            catch (Exception)
                             {
                                 ConsoleWriter.WriteErrLine(string.Format(Resources.GeneralParameterTypeMismatchWith1Type, paramName));
                             }
@@ -745,14 +751,14 @@ namespace HpToolsLauncher
                         IterationInfo ii = testInfo.IterationInfo;
                         if (!IterationInfo.AvailableTypes.Contains(ii.IterationMode))
                         {
-                            throw new ArgumentException(String.Format("Illegal iteration mode '{0}'. Available modes are : {1}", ii.IterationMode, string.Join(", ", IterationInfo.AvailableTypes)));
+                            throw new ArgumentException(string.Format("Illegal iteration mode '{0}'. Available modes are : {1}", ii.IterationMode, string.Join(", ", IterationInfo.AvailableTypes)));
                         }
 
                         bool rangeMode = IterationInfo.RANGE_ITERATION_MODE.Equals(ii.IterationMode);
                         if (rangeMode)
                         {
-                            int start = Int32.Parse(ii.StartIteration);
-                            int end = Int32.Parse(ii.EndIteration);
+                            int start = int.Parse(ii.StartIteration);
+                            int end = int.Parse(ii.EndIteration);
 
                             _qtpApplication.Test.Settings.Run.StartIteration = start;
                             _qtpApplication.Test.Settings.Run.EndIteration = end;
@@ -761,11 +767,11 @@ namespace HpToolsLauncher
                         _qtpApplication.Test.Settings.Run.IterationMode = testInfo.IterationInfo.IterationMode;
 
                         ConsoleWriter.WriteLine("Using iteration mode: " + testInfo.IterationInfo.IterationMode +
-                       (rangeMode ? " " + testInfo.IterationInfo.StartIteration + "-" + testInfo.IterationInfo.EndIteration : ""));
+                       (rangeMode ? " " + testInfo.IterationInfo.StartIteration + "-" + testInfo.IterationInfo.EndIteration : string.Empty));
                     }
                     catch (Exception e)
                     {
-                        String msg = "Failed to parse 'Iterations' element . Using default iteration settings. Error : " + e.Message;
+                        string msg = "Failed to parse 'Iterations' element . Using default iteration settings. Error : " + e.Message;
                         ConsoleWriter.WriteLine(msg);
                     }
                 }
@@ -776,7 +782,6 @@ namespace HpToolsLauncher
                 return false;
             }
             return true;
-
         }
 
         /// <summary>
@@ -802,7 +807,7 @@ namespace HpToolsLauncher
                             _qtpApplication.Test.Close();
                         }
                         catch (Exception)
-                        {}
+                        { }
                     }
                 }
             }
@@ -815,58 +820,7 @@ namespace HpToolsLauncher
             _qtpApplication = null;
         }
 
-
-        /// <summary>
-        /// Why we need this? If we run jenkins in a master slave node where there is a jenkins service installed in the slave machine, we need to change the DCOM settings as follow:
-        /// dcomcnfg.exe -> My Computer -> DCOM Config -> QuickTest Professional Automation -> Identity -> and select The Interactive User
-        /// </summary>
-        private void ChangeDCOMSettingToInteractiveUser()
-        {
-            string errorMsg = "Unable to change DCOM settings. To change it manually: " +
-                              "run dcomcnfg.exe -> My Computer -> DCOM Config -> QuickTest Professional Automation -> Identity -> and select The Interactive User. ";
-
-            string interactiveUser = "Interactive User";
-            string runAs = "RunAs";
-
-            try
-            {
-                var regKey = GetQuickTestProfessionalAutomationRegKey(RegistryView.Registry32);
-
-                if (regKey == null)
-                {
-                    regKey = GetQuickTestProfessionalAutomationRegKey(RegistryView.Registry64);
-                }
-
-                if (regKey == null)
-                    throw new Exception(@"Unable to find in registry SOFTWARE\Classes\AppID\{A67EB23A-1B8F-487D-8E38-A6A3DD150F0B");
-
-                object runAsKey = regKey.GetValue(runAs);
-
-                if (runAsKey == null || !runAsKey.ToString().Equals(interactiveUser))
-                {
-                    regKey.SetValue(runAs, interactiveUser);
-                }
-
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(errorMsg + "detailed error is : " + ex.Message);
-            }
-
-
-        }
-
-        private RegistryKey GetQuickTestProfessionalAutomationRegKey(RegistryView registryView)
-        {
-            RegistryKey localKey = RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, RegistryView.Registry64);
-            localKey = localKey.OpenSubKey(@"SOFTWARE\Classes\AppID\{A67EB23A-1B8F-487D-8E38-A6A3DD150F0B}", true);
-
-            return localKey;
-        }
-
-
         #endregion
-
 
         /// <summary>
         /// holds the resutls for a GUI test
@@ -875,7 +829,7 @@ namespace HpToolsLauncher
         {
             public GuiTestRunResult()
             {
-                ReportPath = "";
+                ReportPath = string.Empty;
             }
 
             public bool IsSuccess { get; set; }

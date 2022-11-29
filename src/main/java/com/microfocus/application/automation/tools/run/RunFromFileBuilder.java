@@ -39,6 +39,7 @@ import com.microfocus.application.automation.tools.mc.JobConfigurationProxy;
 import com.microfocus.application.automation.tools.model.*;
 import com.microfocus.application.automation.tools.settings.MCServerSettingsGlobalConfiguration;
 import com.microfocus.application.automation.tools.uft.model.SpecifyParametersModel;
+import com.microfocus.application.automation.tools.uft.model.UftRunAsUser;
 import com.microfocus.application.automation.tools.uft.model.UftSettingsModel;
 import com.microfocus.application.automation.tools.uft.utils.UftToolUtils;
 import hudson.*;
@@ -718,6 +719,17 @@ public class RunFromFileBuilder extends Builder implements SimpleBuildStep {
         }
         boolean isPrintTestParams = UftToolUtils.isPrintTestParams(build, listener);
         mergedProperties.put("printTestParams", isPrintTestParams ? "1" : "0");
+
+        try {
+            UftRunAsUser uftRunAsUser = UftToolUtils.getRunAsUser(build, listener);
+            mergedProperties.put("uftRunAsUser", uftRunAsUser.getUsername());
+            mergedProperties.put("uftRunAsDomain", uftRunAsUser.getDomain());
+            mergedProperties.put("uftRunAsPassword", EncryptionUtils.encrypt(uftRunAsUser.getPassword(), currNode));
+        } catch(IllegalArgumentException | EncryptionUtils.EncryptionException e) {
+            build.setResult(Result.FAILURE);
+            listener.fatalError(String.format("Error occurred while checking build parameters: %s.", e.getMessage()));
+            return;
+        }
 
         int idx = 0;
         for (Iterator<String> iterator = env.keySet().iterator(); iterator.hasNext(); ) {

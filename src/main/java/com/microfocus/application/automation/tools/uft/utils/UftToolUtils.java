@@ -28,7 +28,8 @@
 
 package com.microfocus.application.automation.tools.uft.utils;
 
-import com.microfocus.application.automation.tools.octane.executor.UftConstants;
+import com.microfocus.application.automation.tools.uft.model.UftRunAsUser;
+
 import com.microfocus.application.automation.tools.results.projectparser.performance.XmlParserUtil;
 import com.microfocus.application.automation.tools.uft.model.RerunSettingsModel;
 import hudson.FilePath;
@@ -52,6 +53,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Logger;
+
+import static com.microfocus.application.automation.tools.uft.utils.Constants.*;
 
 public class UftToolUtils {
 
@@ -372,7 +375,7 @@ public class UftToolUtils {
         if (parameterAction == null) {
             listener.getLogger().println(msg);
         } else {
-            ParameterValue uftPrintTestParams = parameterAction.getParameter(UftConstants.UFT_PRINT_TEST_PARAMS);
+            ParameterValue uftPrintTestParams = parameterAction.getParameter(UFT_PRINT_TEST_PARAMS);
             if (uftPrintTestParams == null) {
                 listener.getLogger().println(msg);
             } else {
@@ -381,5 +384,29 @@ public class UftToolUtils {
             }
         }
         return isUftPrintTestParams;
+    }
+    public static UftRunAsUser getRunAsUser(@Nonnull Run<?, ?> build, @Nonnull TaskListener listener) {
+        ParametersAction parameterAction = build.getAction(ParametersAction.class);
+        UftRunAsUser uftRunAsUser = null;
+        if (parameterAction != null) {
+            ParameterValue paramValuePair = parameterAction.getParameter(UFT_RUN_AS_USER);
+            if (paramValuePair != null) {
+                String username, domain = null, pwd = null;
+                username = (String) paramValuePair.getValue();
+                listener.getLogger().println(String.format("%s = %s", UFT_RUN_AS_USER, username)) ;
+                paramValuePair = parameterAction.getParameter(UFT_RUN_AS_DOMAIN);
+                if (paramValuePair != null) {
+                    domain = (String) paramValuePair.getValue();
+                    listener.getLogger().println(String.format("%s = %s", UFT_RUN_AS_DOMAIN, domain)) ;
+                }
+                paramValuePair = parameterAction.getParameter(UFT_RUN_AS_PWD);
+                if (paramValuePair != null) {
+                    pwd = (String) paramValuePair.getValue();
+                    listener.getLogger().println(String.format("%s = %s", UFT_RUN_AS_PWD, pwd)) ;
+                }
+                uftRunAsUser = new UftRunAsUser(username, domain, pwd);
+            }
+        }
+        return uftRunAsUser;
     }
 }

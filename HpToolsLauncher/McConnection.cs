@@ -139,10 +139,12 @@ namespace HpToolsLauncher
                 if ("client".Equals(key, StringComparison.OrdinalIgnoreCase))
                 {
                     ret.ClientId = value;
-                } else if ("secret".Equals(key, StringComparison.OrdinalIgnoreCase))
+                }
+                else if ("secret".Equals(key, StringComparison.OrdinalIgnoreCase))
                 {
                     ret.SecretKey = value;
-                } else if ("tenant".Equals(key, StringComparison.OrdinalIgnoreCase))
+                }
+                else if ("tenant".Equals(key, StringComparison.OrdinalIgnoreCase))
                 {
                     MobileTenantId = value;
                 }
