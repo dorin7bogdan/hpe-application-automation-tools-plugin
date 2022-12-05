@@ -324,7 +324,7 @@ namespace HpToolsLauncher
             {
                 ConsoleWriter.WriteLineWithTime(string.Format("Before impersonation, user: {0}", WindowsIdentity.GetCurrent().Name));
                 SafeAccessTokenHandle safeAccessTokenHandle = _uftRunAsUser.LogonUser();
-                results = WindowsIdentity.RunImpersonated(safeAccessTokenHandle, DoRun);
+                results = WindowsIdentity.RunImpersonated<TestSuiteRunResults>(safeAccessTokenHandle, DoRun);
                 ConsoleWriter.WriteLineWithTime(string.Format("After impersonation, user: {0}", WindowsIdentity.GetCurrent().Name));
             }
             return results;
