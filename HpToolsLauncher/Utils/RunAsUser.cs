@@ -1,4 +1,5 @@
 ﻿
+using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
@@ -11,7 +12,7 @@ namespace HpToolsLauncher.Utils
         private string _domain;
 
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern bool LogonUser(string lpszUsername, string lpszDomain, string lpszPassword, int dwLogonType, int dwLogonProvider, out SafeTokenHandle phToken);
+        private static extern bool LogonUser(string lpszUsername, string lpszDomain, string lpszPassword, int dwLogonType, int dwLogonProvider, out SafeAccessTokenHandle phToken);
         public RunAsUser(string username, string domain, string pwd)
         {
             _username = username;
@@ -31,9 +32,9 @@ namespace HpToolsLauncher.Utils
             get { return _domain; }
         }
 
-        public SafeTokenHandle LogonUser()
+        public SafeAccessTokenHandle LogonUser()
         {
-            SafeTokenHandle safeTokenHandle;
+            SafeAccessTokenHandle safeTokenHandle;
             const int LOGON32_PROVIDER_DEFAULT = 0;
             //This parameter causes LogonUser to create a primary token.
             const int LOGON32_LOGON_INTERACTIVE = 2;

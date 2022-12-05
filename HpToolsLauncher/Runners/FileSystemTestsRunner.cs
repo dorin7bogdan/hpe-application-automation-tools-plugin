@@ -35,8 +35,8 @@ using HpToolsLauncher.Properties;
 using HpToolsLauncher.TestRunners;
 using HpToolsLauncher.RTS;
 using HpToolsLauncher.Utils;
-using System.Security.Permissions;
 using System.Security.Principal;
+using Microsoft.Win32.SafeHandles;
 
 namespace HpToolsLauncher
 {
@@ -315,6 +315,24 @@ namespace HpToolsLauncher
         /// <returns>The rest run results for each test</returns>
         public override TestSuiteRunResults Run()
         {
+            TestSuiteRunResults results;
+            if (_uftRunAsUser == null)
+            {
+                results = DoRun();
+            }
+            else
+            {
+                ConsoleWriter.WriteLineWithTime(string.Format("Before impersonation, user: {0}", WindowsIdentity.GetCurrent().Name));
+                SafeAccessTokenHandle safeAccessTokenHandle = _uftRunAsUser.LogonUser();
+                results = WindowsIdentity.RunImpersonated(safeAccessTokenHandle, DoRun);
+                ConsoleWriter.WriteLineWithTime(string.Format("After impersonation, user: {0}", WindowsIdentity.GetCurrent().Name));
+            }
+            return results;
+        }
+
+        private TestSuiteRunResults DoRun()
+        {
+            ConsoleWriter.WriteLineWithTime(string.Format("Current user: {0}", WindowsIdentity.GetCurrent().Name));
             //create a new Run Results object
             TestSuiteRunResults activeRunDesc = new TestSuiteRunResults();
             bool isNewTestSuite;
@@ -595,35 +613,7 @@ namespace HpToolsLauncher
         /// <param name="testInfo"></param>
         /// <param name="errorReason"></param>
         /// <returns></returns>
-        [PermissionSet(SecurityAction.Demand, Name = "FullTrust")]
         private TestRunResults RunHpToolsTest(TestInfo testInfo, TestType type, ref string errorReason, out Dictionary<string, string> outParams)
-        {
-            TestRunResults results;
-            ConsoleWriter.WriteLineWithTime(string.Format("Current user: {0}", WindowsIdentity.GetCurrent().Name));
-            if (_uftRunAsUser == null)
-            {
-                results = DoRunHpToolsTest(testInfo, type, ref errorReason, out outParams);
-            }
-            else
-            {
-                // Call LogonUser to obtain a handle to an access token.
-                SafeTokenHandle safeTokenHandle = _uftRunAsUser.LogonUser();
-                using (safeTokenHandle)
-                {
-                    using (var newId = new WindowsIdentity(safeTokenHandle.DangerousGetHandle()))
-                    {
-                        using (var impersonatedUser = newId.Impersonate())
-                        {
-                            ConsoleWriter.WriteLine(string.Format("After impersonation, the current user is: {0}", WindowsIdentity.GetCurrent().Name));
-                            results = DoRunHpToolsTest(testInfo, type, ref errorReason, out outParams);
-                        }
-                    }
-                    ConsoleWriter.WriteLine(string.Format("After closing the context, the current user is: {0}", WindowsIdentity.GetCurrent().Name));
-                }
-            }
-            return results;
-        }
-        private TestRunResults DoRunHpToolsTest(TestInfo testInfo, TestType type, ref string errorReason, out Dictionary<string, string> outParams)
         {
             outParams = new Dictionary<string, string>();
 
