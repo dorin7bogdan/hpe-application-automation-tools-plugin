@@ -35,6 +35,7 @@ import com.microfocus.application.automation.tools.uft.model.RerunSettingsModel;
 import hudson.FilePath;
 import hudson.model.*;
 import hudson.util.FormValidation;
+import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.w3c.dom.Document;
@@ -391,7 +392,7 @@ public class UftToolUtils {
         if (parameterAction != null) {
             ParameterValue paramValuePair = parameterAction.getParameter(UFT_RUN_AS_USER);
             if (paramValuePair != null) {
-                String username, domain = null, pwd = null;
+                String username, domain = null; Secret pwd = null;
                 username = (String) paramValuePair.getValue();
                 listener.getLogger().println(String.format(KEY_VALUE_FORMAT, UFT_RUN_AS_USER, username)) ;
                 paramValuePair = parameterAction.getParameter(UFT_RUN_AS_DOMAIN);
@@ -401,8 +402,8 @@ public class UftToolUtils {
                 }
                 paramValuePair = parameterAction.getParameter(UFT_RUN_AS_PWD);
                 if (paramValuePair != null) {
-                    pwd = (String) paramValuePair.getValue();
-                    listener.getLogger().println(String.format(KEY_VALUE_FORMAT, UFT_RUN_AS_PWD, pwd)) ;
+                    pwd = (Secret) paramValuePair.getValue();
+                    listener.getLogger().println(String.format(KEY_VALUE_FORMAT, UFT_RUN_AS_PWD, "*********")) ;
                 }
                 uftRunAsUser = new UftRunAsUser(username, domain, pwd);
             }
