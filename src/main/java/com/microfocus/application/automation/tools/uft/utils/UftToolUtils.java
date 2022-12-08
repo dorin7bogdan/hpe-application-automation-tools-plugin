@@ -28,6 +28,7 @@
 
 package com.microfocus.application.automation.tools.uft.utils;
 
+import com.microfocus.application.automation.tools.EncryptionUtils;
 import com.microfocus.application.automation.tools.uft.model.UftRunAsUser;
 
 import com.microfocus.application.automation.tools.results.projectparser.performance.XmlParserUtil;
@@ -386,13 +387,13 @@ public class UftToolUtils {
         }
         return isUftPrintTestParams;
     }
-    public static UftRunAsUser getRunAsUser(@Nonnull Run<?, ?> build, @Nonnull TaskListener listener) {
+    public static UftRunAsUser getRunAsUser(@Nonnull Run<?, ?> build, @Nonnull TaskListener listener, Node node) throws EncryptionUtils.EncryptionException {
         ParametersAction parameterAction = build.getAction(ParametersAction.class);
         UftRunAsUser uftRunAsUser = null;
         if (parameterAction != null) {
             ParameterValue paramValuePair = parameterAction.getParameter(UFT_RUN_AS_USER);
             if (paramValuePair != null) {
-                String username, domain = null; Secret pwd = null;
+                String username, domain = null; Secret password = null;
                 username = (String) paramValuePair.getValue();
                 listener.getLogger().println(String.format(KEY_VALUE_FORMAT, UFT_RUN_AS_USER, username)) ;
                 paramValuePair = parameterAction.getParameter(UFT_RUN_AS_DOMAIN);
@@ -402,10 +403,10 @@ public class UftToolUtils {
                 }
                 paramValuePair = parameterAction.getParameter(UFT_RUN_AS_PWD);
                 if (paramValuePair != null) {
-                    pwd = (Secret) paramValuePair.getValue();
+                    password = (Secret) paramValuePair.getValue();
                     listener.getLogger().println(String.format(KEY_VALUE_FORMAT, UFT_RUN_AS_PWD, "*********")) ;
                 }
-                uftRunAsUser = new UftRunAsUser(username, domain, pwd);
+                uftRunAsUser = new UftRunAsUser(username, domain, password, node);
             }
         }
         return uftRunAsUser;

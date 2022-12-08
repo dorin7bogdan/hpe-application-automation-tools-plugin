@@ -34,9 +34,7 @@ using System.Reflection;
 using HpToolsLauncher.Properties;
 using HpToolsLauncher.TestRunners;
 using HpToolsLauncher.RTS;
-using HpToolsLauncher.Utils;
 using System.Security.Principal;
-using Microsoft.Win32.SafeHandles;
 
 namespace HpToolsLauncher
 {
@@ -67,7 +65,6 @@ namespace HpToolsLauncher
 
         // parallel runner related information
         private Dictionary<string, List<string>> _parallelRunnerEnvironments;
-        private RunAsUser _uftRunAsUser;
 
         //saves runners for cleaning up at the end.
         private Dictionary<TestType, IFileSysTestRunner> _colRunnersForCleanup = new Dictionary<TestType, IFileSysTestRunner>();
@@ -117,9 +114,8 @@ namespace HpToolsLauncher
                                     string reportPath,
                                     string xmlResultsFullFileName,
                                     string encoding,
-                                    RunAsUser uftRunAsUser,
                                     bool useUftLicense = false)
-            : this(sources, @params, printInputParams, timeout, controllerPollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVariables, mcConnection, mobileInfo, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRtsSet, reportPath, xmlResultsFullFileName, encoding, uftRunAsUser, useUftLicense)
+            : this(sources, @params, printInputParams, timeout, controllerPollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVariables, mcConnection, mobileInfo, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRtsSet, reportPath, xmlResultsFullFileName, encoding, useUftLicense)
         {
             _uftRunMode = uftRunMode;
         }
@@ -160,7 +156,6 @@ namespace HpToolsLauncher
                                     string reportPath,
                                     string xmlResultsFullFileName,
                                     string encoding,
-                                    RunAsUser uftRunAsUser,
                                     bool useUftLicense = false)
         {
             _jenkinsEnvVariables = jenkinsEnvVariables;
@@ -194,7 +189,6 @@ namespace HpToolsLauncher
             _parallelRunnerEnvironments = parallelRunnerEnvironments;
             _xmlBuilder.XmlName = xmlResultsFullFileName;
             _encoding = encoding;
-            _uftRunAsUser = uftRunAsUser;
 
             ConsoleWriter.WriteLine("UFT Mobile connection info is - " + _mcConnection.ToString());
 
@@ -314,23 +308,6 @@ namespace HpToolsLauncher
         /// </summary>
         /// <returns>The rest run results for each test</returns>
         public override TestSuiteRunResults Run()
-        {
-            TestSuiteRunResults results;
-            if (_uftRunAsUser == null)
-            {
-                results = DoRun();
-            }
-            else
-            {
-                ConsoleWriter.WriteLineWithTime(string.Format("Before impersonation, user: {0}", WindowsIdentity.GetCurrent().Name));
-                SafeAccessTokenHandle safeAccessTokenHandle = _uftRunAsUser.LogonUser();
-                results = WindowsIdentity.RunImpersonated<TestSuiteRunResults>(safeAccessTokenHandle, DoRun);
-                ConsoleWriter.WriteLineWithTime(string.Format("After impersonation, user: {0}", WindowsIdentity.GetCurrent().Name));
-            }
-            return results;
-        }
-
-        private TestSuiteRunResults DoRun()
         {
             ConsoleWriter.WriteLineWithTime(string.Format("Current user: {0}", WindowsIdentity.GetCurrent().Name));
             //create a new Run Results object
@@ -629,7 +606,7 @@ namespace HpToolsLauncher
                     _runner = new ApiTestRunner(this, _timeout - _stopwatch.Elapsed, _encoding);
                     break;
                 case TestType.QTP:
-                    _runner = new GuiTestRunner(this, _useUFTLicense, _timeout - _stopwatch.Elapsed, _uftRunMode, _mcConnection, _mobileInfoForAllGuiTests, _printInputParams, _uftRunAsUser);
+                    _runner = new GuiTestRunner(this, _useUFTLicense, _timeout - _stopwatch.Elapsed, _uftRunMode, _mcConnection, _mobileInfoForAllGuiTests, _printInputParams);
                     break;
                 case TestType.LoadRunner:
                     AppDomain.CurrentDomain.AssemblyResolve += Helper.HPToolsAssemblyResolver;

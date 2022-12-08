@@ -29,7 +29,9 @@
 using HpToolsLauncher.Properties;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace HpToolsLauncher
@@ -91,9 +93,45 @@ namespace HpToolsLauncher
                     Console.WriteLine("Unsupported encoding {0}. In this case UTF-8 will be used.", outEncoding);
                 }
             }
-            var apiRunner = new Launcher(failOnTestFailed, paramFileName, enmRuntype, outEncoding);
 
-            apiRunner.Run();
+            argsDictionary.TryGetValue("username", out string username);
+            argsDictionary.TryGetValue("domain", out string domain);
+            argsDictionary.TryGetValue("password", out string password);
+            bool runAsDifferentUser = !(string.IsNullOrWhiteSpace(username) && string.IsNullOrWhiteSpace(domain) && string.IsNullOrWhiteSpace(password));
+            
+            if (runAsDifferentUser)
+            {
+                try
+                {
+                    string launcherPath = Assembly.GetExecutingAssembly().Location;
+                    ProcessStartInfo psi = new ProcessStartInfo(launcherPath, $"-paramfile {paramFileName} -encoding {outEncoding} -runtype {runtype}")
+                    {
+                        UserName = username,
+                        Domain = domain,
+                        PasswordInClearText = EncryptionUtils.Decrypt(password),
+                        UseShellExecute = false
+                    };
+                    var p = Process.Start(psi);
+                    if (p.WaitForExit(-1))
+                    {
+                        Environment.Exit(p.ExitCode);
+                    }
+                    if (!p.HasExited)
+                    {
+                        p.CloseMainWindow();
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    ConsoleWriter.WriteLine(ex.ToString());
+                }
+                return;
+            }
+
+            var launcher = new Launcher(failOnTestFailed, paramFileName, enmRuntype, outEncoding);
+
+            launcher.Run();
         }
 
         private static void ShowHelp()

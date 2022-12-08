@@ -720,11 +720,9 @@ public class RunFromFileBuilder extends Builder implements SimpleBuildStep {
         boolean isPrintTestParams = UftToolUtils.isPrintTestParams(build, listener);
         mergedProperties.put("printTestParams", isPrintTestParams ? "1" : "0");
 
+        UftRunAsUser runAsUser = null;
         try {
-            UftRunAsUser uftRunAsUser = UftToolUtils.getRunAsUser(build, listener);
-            mergedProperties.put("uftRunAsUser", uftRunAsUser.getUsername());
-            mergedProperties.put("uftRunAsDomain", uftRunAsUser.getDomain());
-            mergedProperties.put("uftRunAsPassword", EncryptionUtils.encrypt(uftRunAsUser.getPassword().getPlainText(), currNode));
+            runAsUser = UftToolUtils.getRunAsUser(build, listener, currNode);
         } catch(IllegalArgumentException | EncryptionUtils.EncryptionException e) {
             build.setResult(Result.FAILURE);
             listener.fatalError(String.format("Error occurred while checking build parameters: %s.", e.getMessage()));
@@ -882,7 +880,7 @@ public class RunFromFileBuilder extends Builder implements SimpleBuildStep {
 
         try {
             // Run the HpToolsLauncher.exe
-            AlmToolsUtils.runOnBuildEnv(build, launcher, listener, CmdLineExe, ParamFileName, currNode, runFromFileModel.getOutEncoding());
+            AlmToolsUtils.runOnBuildEnv(build, launcher, listener, CmdLineExe, ParamFileName, currNode, runFromFileModel.getOutEncoding(), runAsUser);
             // Has the report been successfully generated?
         } catch (IOException ioe) {
             Util.displayIOException(ioe, listener);

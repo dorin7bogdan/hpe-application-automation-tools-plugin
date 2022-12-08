@@ -29,6 +29,7 @@
 package com.microfocus.application.automation.tools;
 
 import com.microfocus.application.automation.tools.settings.UFTEncryptionGlobalConfiguration;
+import com.microfocus.application.automation.tools.uft.model.UftRunAsUser;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
@@ -59,7 +60,7 @@ public final class AlmToolsUtils {
             FilePath file,
             String paramFileName,
             Node node) throws IOException, InterruptedException {
-        runOnBuildEnv(build, launcher, listener, file, paramFileName, node, "UTF-8");
+        runOnBuildEnv(build, launcher, listener, file, paramFileName, node, "UTF-8", null);
     }
 	public static void runOnBuildEnv(
             Run<?, ?> build,
@@ -68,7 +69,8 @@ public final class AlmToolsUtils {
             FilePath file,
             String paramFileName,
             Node node,
-            String encoding) throws IOException, InterruptedException {
+            String encoding,
+            UftRunAsUser runAsUser) throws IOException, InterruptedException {
 
             ArgumentListBuilder args = new ArgumentListBuilder();
             PrintStream out = listener.getLogger();
@@ -80,6 +82,15 @@ public final class AlmToolsUtils {
             if (StringUtils.isNotBlank(encoding)) {
                 args.add("-encoding");
                 args.add(encoding);
+            }
+            if (runAsUser != null)
+            {
+                args.add("-username");
+                args.add(runAsUser.getUsername());
+                args.add("-domain");
+                args.add(runAsUser.getDomain());
+                args.add("-password");
+                args.add(runAsUser.getEncryptedPassword());
             }
 
             // for encryption

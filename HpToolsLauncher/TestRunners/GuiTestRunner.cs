@@ -27,20 +27,13 @@
  */
 
 using HpToolsLauncher.TestRunners;
-using HpToolsLauncher.Utils;
-using Microsoft.Win32;
 using QTObjectModelLib;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Security.Permissions;
-using System.Security.Principal;
 using System.Threading;
-using System.Xml.Linq;
 using Resources = HpToolsLauncher.Properties.Resources;
 
 namespace HpToolsLauncher
@@ -78,7 +71,6 @@ namespace HpToolsLauncher
         private McConnectionInfo _mcConnection;
         private string _mobileInfo;
         private bool _printInputParams;
-        private RunAsUser _uftRunAsUser;
 
         /// <summary>
         /// constructor
@@ -86,7 +78,7 @@ namespace HpToolsLauncher
         /// <param name="runNotifier"></param>
         /// <param name="useUftLicense"></param>
         /// <param name="timeLeftUntilTimeout"></param>
-        public GuiTestRunner(IAssetRunner runNotifier, bool useUftLicense, TimeSpan timeLeftUntilTimeout, string uftRunMode, McConnectionInfo mcConnectionInfo, string mobileInfo, bool printInputParams, RunAsUser uftRunAsUser)
+        public GuiTestRunner(IAssetRunner runNotifier, bool useUftLicense, TimeSpan timeLeftUntilTimeout, string uftRunMode, McConnectionInfo mcConnectionInfo, string mobileInfo, bool printInputParams)
         {
             _timeLeftUntilTimeout = timeLeftUntilTimeout;
             _uftRunMode = uftRunMode;
@@ -96,7 +88,6 @@ namespace HpToolsLauncher
             _mcConnection = mcConnectionInfo;
             _mobileInfo = mobileInfo;
             _printInputParams = printInputParams;
-            _uftRunAsUser = uftRunAsUser;
         }
 
         #region QTP
