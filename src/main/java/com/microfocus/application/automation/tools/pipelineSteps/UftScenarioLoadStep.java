@@ -109,6 +109,11 @@ public class UftScenarioLoadStep extends Step {
         runFromFileBuilder.setFsTimeout(fsTimeout);
     }
 
+    public String getOutEncoding() { return runFromFileBuilder.getOutEncoding(); }
+
+    @DataBoundSetter
+    public void setOutEncoding(String encoding) { runFromFileBuilder.setOutEncoding(encoding); }
+
     @DataBoundSetter
     public void setFsReportPath(String fsReportPath) {
         runFromFileBuilder.setFsReportPath(fsReportPath);
@@ -271,6 +276,7 @@ public class UftScenarioLoadStep extends Step {
             return FormValidation.ok();
         }
 
+        public List<String> getEncodings() { return RunFromFileSystemModel.encodings; }
     }
 
 }
