@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2018
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33717.318
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HpToolsLauncher", "HpToolsLauncher.csproj", "{11BC441C-87A6-41B9-82AE-1F2F606AF45E}"
 EndProject
@@ -13,14 +13,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HpToolsLauncherTests", "HpToolsLauncherTests\HpToolsLauncherTests.csproj", "{A1DAB8E0-DAB0-40F8-AA44-B5B4C2913301}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LRAnalysisLauncher", "..\LRAnalysisLauncher\LRAnalysisLauncher.csproj", "{49496A5D-3FD7-437E-9649-1E2CE2BA6838}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HpToolsAborter", "..\HpToolsAborter\HpToolsAborter.csproj", "{2DFF94C6-A748-4749-B716-6D8DFB936D43}"
-	ProjectSection(ProjectDependencies) = postProject
-		{11BC441C-87A6-41B9-82AE-1F2F606AF45E} = {11BC441C-87A6-41B9-82AE-1F2F606AF45E}
-		{49496A5D-3FD7-437E-9649-1E2CE2BA6838} = {49496A5D-3FD7-437E-9649-1E2CE2BA6838}
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -60,30 +52,6 @@ Global
 		{A1DAB8E0-DAB0-40F8-AA44-B5B4C2913301}.Release|x64.ActiveCfg = Release|Any CPU
 		{A1DAB8E0-DAB0-40F8-AA44-B5B4C2913301}.Release|x64.Build.0 = Release|Any CPU
 		{A1DAB8E0-DAB0-40F8-AA44-B5B4C2913301}.Release|x86.ActiveCfg = Release|Any CPU
-		{49496A5D-3FD7-437E-9649-1E2CE2BA6838}.Debug|Any CPU.ActiveCfg = Debug|x86
-		{49496A5D-3FD7-437E-9649-1E2CE2BA6838}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
-		{49496A5D-3FD7-437E-9649-1E2CE2BA6838}.Debug|Mixed Platforms.Build.0 = Debug|x86
-		{49496A5D-3FD7-437E-9649-1E2CE2BA6838}.Debug|x64.ActiveCfg = Debug|x86
-		{49496A5D-3FD7-437E-9649-1E2CE2BA6838}.Debug|x86.ActiveCfg = Debug|x86
-		{49496A5D-3FD7-437E-9649-1E2CE2BA6838}.Debug|x86.Build.0 = Debug|x86
-		{49496A5D-3FD7-437E-9649-1E2CE2BA6838}.Release|Any CPU.ActiveCfg = Release|x86
-		{49496A5D-3FD7-437E-9649-1E2CE2BA6838}.Release|Mixed Platforms.ActiveCfg = Release|x86
-		{49496A5D-3FD7-437E-9649-1E2CE2BA6838}.Release|Mixed Platforms.Build.0 = Release|x86
-		{49496A5D-3FD7-437E-9649-1E2CE2BA6838}.Release|x64.ActiveCfg = Release|x86
-		{49496A5D-3FD7-437E-9649-1E2CE2BA6838}.Release|x86.ActiveCfg = Release|x86
-		{49496A5D-3FD7-437E-9649-1E2CE2BA6838}.Release|x86.Build.0 = Release|x86
-		{2DFF94C6-A748-4749-B716-6D8DFB936D43}.Debug|Any CPU.ActiveCfg = Debug|x86
-		{2DFF94C6-A748-4749-B716-6D8DFB936D43}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
-		{2DFF94C6-A748-4749-B716-6D8DFB936D43}.Debug|Mixed Platforms.Build.0 = Debug|x86
-		{2DFF94C6-A748-4749-B716-6D8DFB936D43}.Debug|x64.ActiveCfg = Debug|x86
-		{2DFF94C6-A748-4749-B716-6D8DFB936D43}.Debug|x86.ActiveCfg = Debug|x86
-		{2DFF94C6-A748-4749-B716-6D8DFB936D43}.Debug|x86.Build.0 = Debug|x86
-		{2DFF94C6-A748-4749-B716-6D8DFB936D43}.Release|Any CPU.ActiveCfg = Release|x86
-		{2DFF94C6-A748-4749-B716-6D8DFB936D43}.Release|Mixed Platforms.ActiveCfg = Release|x86
-		{2DFF94C6-A748-4749-B716-6D8DFB936D43}.Release|Mixed Platforms.Build.0 = Release|x86
-		{2DFF94C6-A748-4749-B716-6D8DFB936D43}.Release|x64.ActiveCfg = Release|x86
-		{2DFF94C6-A748-4749-B716-6D8DFB936D43}.Release|x86.ActiveCfg = Release|x86
-		{2DFF94C6-A748-4749-B716-6D8DFB936D43}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

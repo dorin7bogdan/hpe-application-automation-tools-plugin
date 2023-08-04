@@ -28,7 +28,9 @@
 
 using HpToolsLauncher.Properties;
 using HpToolsLauncher.TestRunners;
+using HpToolsLauncher.Utils;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -114,26 +116,9 @@ namespace HpToolsLauncher
             return sb.ToString();
         }
 
-        public static List<TestInfo> LoadMtbx(string xmlContent, Dictionary<string, string> jankinsEnvVars, string testGroupName)
+        public static List<TestInfo> LoadMtbx(string xmlContent, IDictionary<string, string> jenkinsEnvVars, string testGroupName)
         {
-            var localEnv = Environment.GetEnvironmentVariables();
-
-            foreach (string varName in localEnv.Keys)
-            {
-                string value = (string)localEnv[varName];
-                xmlContent = ReplaceString(xmlContent, "%" + varName + "%", value, StringComparison.OrdinalIgnoreCase);
-                xmlContent = ReplaceString(xmlContent, "${" + varName + "}", value, StringComparison.OrdinalIgnoreCase);
-            }
-
-            if (jankinsEnvVars != null)
-            {
-                foreach (string varName in jankinsEnvVars.Keys)
-                {
-                    string value = jankinsEnvVars[varName];
-                    xmlContent = ReplaceString(xmlContent, "%" + varName + "%", value, StringComparison.OrdinalIgnoreCase);
-                    xmlContent = ReplaceString(xmlContent, "${" + varName + "}", value, StringComparison.OrdinalIgnoreCase);
-                }
-            }
+            xmlContent = xmlContent.ParseEnvVars(jenkinsEnvVars);
 
             List<TestInfo> retval = new List<TestInfo>();
             XDocument doc = XDocument.Parse(xmlContent);

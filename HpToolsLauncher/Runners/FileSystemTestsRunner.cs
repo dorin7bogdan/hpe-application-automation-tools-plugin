@@ -218,7 +218,6 @@ namespace HpToolsLauncher
                                     int controllerPollingInterval,
                                     TimeSpan perScenarioTimeOutMinutes,
                                     List<string> ignoreErrMsgs,
-                                    Dictionary<string, string> jenkinsEnvVars,
                                     McConnectionInfo mcConnection,
                                     string mobileInfo,
                                     Dictionary<string, List<string>> parallelRunnerEnvs,

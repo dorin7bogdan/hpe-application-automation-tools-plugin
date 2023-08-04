@@ -189,7 +189,8 @@ namespace HpToolsLauncher
                         runDesc.ReportLocation = GetReportLocation(testinf, testPath);
                     }
                     // Check for required Addins
-                    LoadNeededAddins(testPath);
+                    if (!_qtpApplication.Launched)
+                        LoadNeededAddins(testPath, qtpVersion);
 
                     // set Mc connection and other mobile info into rack if neccesary
                     SetMobileInfo();
@@ -199,7 +200,7 @@ namespace HpToolsLauncher
                         if (_runCancelled())
                         {
                             QTPTestCleanup();
-                            CleanUpAndKillQtp();
+                            CloseUftAndKillAgent();
                             runDesc.TestState = TestState.Error;
                             return runDesc;
                         }
@@ -211,6 +212,7 @@ namespace HpToolsLauncher
             }
             catch (Exception e)
             {
+                ConsoleWriter.WriteLine(string.Format(Resources.GeneralErrorWithStack, e.Message, e.StackTrace));
                 if (string.IsNullOrEmpty(errorReason))
                 {
                     errorReason = Resources.QtpNotLaunchedError;
@@ -252,7 +254,7 @@ namespace HpToolsLauncher
             if (!HandleInputParameters(testPath, ref errorReason, paramDict, testinf))
             {
                 runDesc.TestState = TestState.Error;
-                runDesc.ErrorDesc = errorReason;
+                runDesc.ErrorDesc = errorReason == string.Empty ? Resources.QtpRunError : errorReason;
                 return runDesc;
             }
 
@@ -280,7 +282,7 @@ namespace HpToolsLauncher
         private string GetReportLocation(TestInfo testinf, string testPath)
         {
             // use the defined report path if provided
-            string rptLocation = string.IsNullOrEmpty(testinf.ReportPath) ? 
+            string rptLocation = string.IsNullOrEmpty(testinf.ReportPath) ?
                             Path.Combine(testPath, REPORT) :
                             Path.Combine(testinf.ReportPath, REPORT);
 
@@ -373,7 +375,6 @@ namespace HpToolsLauncher
             {
                 _qtpApplication.TDPierToTulip.SetTestOptionsVal(MOBILE_INFO, _mobileInfo);
             }
-
             #endregion
         }
 
@@ -381,6 +382,11 @@ namespace HpToolsLauncher
         /// performs global cleanup code for this type of runner
         /// </summary>
         public void CleanUp()
+        {
+            CloseUft(true);
+        }
+
+        private void CloseUft(bool skipIfVisible = false)
         {
             try
             {
@@ -392,6 +398,10 @@ namespace HpToolsLauncher
                         _qtpApplication = Activator.CreateInstance(_qtType) as Application;
                     }
 
+                    if (skipIfVisible && _qtpApplication.Launched && _qtpApplication.Visible)
+                    {
+                        return;
+                    }
                     _qtpApplication.Quit();
                 }
             }
@@ -406,7 +416,7 @@ namespace HpToolsLauncher
             _isCancelledByUser = true;
             ConsoleWriter.WriteLine(Resources.GeneralStopAborted);
             QTPTestCleanup();
-            CleanUpAndKillQtp();
+            CloseUftAndKillAgent();
             ConsoleWriter.WriteLine(Resources.GeneralAbortedByUser);
         }
 
@@ -414,7 +424,7 @@ namespace HpToolsLauncher
         /// <summary>
         /// Set the test Addins 
         /// </summary>
-        private void LoadNeededAddins(string fileName)
+        private void LoadNeededAddins(string fileName, Version qtpVersion)
         {
             bool blnNeedToLoadAddins = false;
 
@@ -465,7 +475,16 @@ namespace HpToolsLauncher
                 if (blnNeedToLoadAddins)
                 {
                     if (_qtpApplication.Launched && _uftRunAsUser == null)
-                        _qtpApplication.Quit();
+                    {
+                        if (qtpVersion < new Version(15, 0))
+                        {
+                            _qtpApplication.Quit();
+                        }
+                        else if (_qtpApplication.Visible)
+                        {
+                            QTPTestCleanup();
+                        }
+                    }
                     _qtpApplication.SetActiveAddins(ref testAddinsObj, out erroDescription);
                 }
             }
@@ -531,7 +550,7 @@ namespace HpToolsLauncher
                 if (_runCancelled())
                 {
                     QTPTestCleanup();
-                    CleanUpAndKillQtp();
+                    CloseUftAndKillAgent(true);
                     testResults.TestState = TestState.Error;
                     testResults.ErrorDesc = Resources.GeneralTestCanceled;
                     ConsoleWriter.WriteLine(Resources.GeneralTestCanceled);
@@ -545,19 +564,19 @@ namespace HpToolsLauncher
 
                 result.ReportPath = Path.Combine(testResults.ReportLocation, REPORT);
                 int slept = 0;
-                while ((slept < 20000 && _qtpApplication.GetStatus() == READY) || _qtpApplication.GetStatus() == WAITING)
+                while (slept < 20000 && _qtpApplication.GetStatus().In(READY, WAITING))
                 {
                     Thread.Sleep(50);
                     slept += 50;
                 }
 
-                while (!_runCancelled() && (_qtpApplication.GetStatus() == RUNNING || _qtpApplication.GetStatus() == BUSY))
+                while (!_runCancelled() && _qtpApplication.GetStatus().In(RUNNING, BUSY))
                 {
                     Thread.Sleep(200);
                     if (_timeLeftUntilTimeout - _stopwatch.Elapsed <= TimeSpan.Zero)
                     {
                         QTPTestCleanup();
-                        CleanUpAndKillQtp();
+                        CloseUftAndKillAgent(true);
                         testResults.TestState = TestState.Error;
                         testResults.ErrorDesc = Resources.GeneralTimeoutExpired;
                         ConsoleWriter.WriteLine(Resources.GeneralTimeoutExpired);
@@ -570,7 +589,7 @@ namespace HpToolsLauncher
                 if (_runCancelled())
                 {
                     QTPTestCleanup();
-                    CleanUpAndKillQtp();
+                    CloseUftAndKillAgent(true);
                     testResults.TestState = TestState.Error;
                     testResults.ErrorDesc = Resources.GeneralTestCanceled;
                     ConsoleWriter.WriteLine(Resources.GeneralTestCanceled);
@@ -619,7 +638,7 @@ namespace HpToolsLauncher
             }
             catch (SystemException e)
             {
-                CleanUpAndKillQtp();
+                CloseUftAndKillAgent(true);
                 ConsoleWriter.WriteLine(string.Format(Resources.GeneralErrorWithStack, e.Message, e.StackTrace));
                 testResults.TestState = TestState.Error;
                 testResults.ErrorDesc = Resources.QtpRunError;
@@ -648,11 +667,15 @@ namespace HpToolsLauncher
             return result;
         }
 
-        private void CleanUpAndKillQtp()
+        private void CloseUftAndKillAgent(bool skipIfVisible = false)
         {
             //error during run, process may have crashed (need to cleanup, close QTP and qtpRemote for next test to run correctly)
-            CleanUp();
+            CloseUft(skipIfVisible);
+            KillQtpAutomationAgent();
+        }
 
+        private void KillQtpAutomationAgent()
+        {
             //kill the qtp automation, to make sure it will run correctly next time
             Process[] processes = Process.GetProcessesByName("qtpAutomationAgent");
             Process qtpAuto = processes.Where(p => p.SessionId == Process.GetCurrentProcess().SessionId).FirstOrDefault();
@@ -735,7 +758,7 @@ namespace HpToolsLauncher
                 if (_runCancelled())
                 {
                     QTPTestCleanup();
-                    CleanUpAndKillQtp();
+                    CloseUftAndKillAgent(true);
                     return false;
                 }
 
@@ -746,6 +769,7 @@ namespace HpToolsLauncher
                 // handle all parameters (index starts with 1 !!!)
                 for (int i = 1; i <= _qtpParamDefs.Count; i++)
                 {
+                    ConsoleWriter.WriteLine(string.Format("Parameter {0} {1} {2}", _qtpParamDefs[i].InOut, _qtpParamDefs[i].Name, _qtpParamDefs[i].Type));
                     // input parameters
                     if (_qtpParamDefs[i].InOut == qtParameterDirection.qtParamDirIn)
                     {
@@ -830,9 +854,17 @@ namespace HpToolsLauncher
                     }
                 }
             }
-            catch (Exception)
+            catch (COMException e)
+            {
+                errorReason = string.Empty; // retry
+                ConsoleWriter.WriteLine("HandleInputParameters COMException " + + e.ErrorCode + ": " + e.Message);
+                return false;
+            }
+            catch (Exception ex)
             {
                 errorReason = Resources.QtpRunError;
+                ConsoleWriter.WriteLine("HandleInputParameters err " + ex.Message);
+                ConsoleWriter.WriteLine(ex.StackTrace);
                 return false;
             }
             return true;
@@ -851,26 +883,39 @@ namespace HpToolsLauncher
                     {
                         return;
                     }
-
                     var qtpTest = _qtpApplication.Test;
                     if (qtpTest != null)
                     {
-                        try
+                        string status = _qtpApplication.GetStatus();
+                        if (_qtpApplication.GetStatus().In(READY, RUNNING, BUSY))
                         {
-                            _qtpApplication.Test.Stop();
-                            _qtpApplication.Test.Close();
+                            try
+                            {
+                                if (qtpTest.IsRunning)
+                                {
+                                    qtpTest.Stop();
+                                }
+                                qtpTest.Close();
+                            }
+                            catch (Exception e) 
+                            {
+                                ConsoleWriter.WriteLine("QTPTestCleanup: " + e.Message);
+                                ConsoleWriter.WriteLine(e.StackTrace);
+                            }
                         }
-                        catch (Exception)
-                        { }
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                ConsoleWriter.WriteLine("QTPTestCleanup 2: " + e.Message);
+                ConsoleWriter.WriteLine(e.StackTrace);
             }
-
-            _qtpParameters = null;
-            _qtpParamDefs = null;
+            finally
+            {
+                _qtpParameters = null;
+                _qtpParamDefs = null;
+            }
         }
 
         private RegistryKey GetQuickTestProfessionalAutomationRegKey(RegistryView registryView)
@@ -881,7 +926,7 @@ namespace HpToolsLauncher
             return localKey;
         }
 
-        #endregion
+#endregion
 
         /// <summary>
         /// holds the resutls for a GUI test

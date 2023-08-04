@@ -31,6 +31,7 @@ using HpToolsLauncher.RTS;
 using HpToolsLauncher.TestRunners;
 using HpToolsLauncher.Utils;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -51,6 +52,7 @@ namespace HpToolsLauncher
         private IXmlBuilder _xmlBuilder;
         private bool _ciRun = false;
         private readonly JavaProperties _ciParams = new JavaProperties();
+        private readonly Dictionary<string, string> _jenkinsEnvVars = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private TestStorageType _runType;
         private static ExitCodeEnum _exitCode = ExitCodeEnum.Passed;
         private const string _dateFormat = "dd'/'MM'/'yyyy HH':'mm':'ss";
@@ -155,9 +157,10 @@ namespace HpToolsLauncher
                 WriteToConsole(Resources.LauncherNoResFilenameFound);
                 return;
             }
-            string resultsFilename = _ciParams["resultsFilename"];
 
-            UniqueTimeStamp = _ciParams.GetOrDefault("uniqueTimeStamp", resultsFilename.ToLower().Replace("results", string.Empty).Replace(".xml", string.Empty));
+            string resultsFilename = _ciParams["resultsFilename"].ParseEnvVars(_jenkinsEnvVars);
+            string timestamp = new string(resultsFilename.Where(char.IsDigit).ToArray());
+            UniqueTimeStamp = _ciParams.GetOrDefault("uniqueTimeStamp", string.IsNullOrEmpty(timestamp) ? DateTime.Now.Ticks.ToString() : timestamp);
 
             //run the entire set of test once
             //create the runner according to type
@@ -340,11 +343,10 @@ namespace HpToolsLauncher
 
                     bool printInputParams = !_ciParams.ContainsKey("printTestParams") || _ciParams["printTestParams"] == ONE;
                     IEnumerable<string> jenkinsEnvVarsWithCommas = GetParamsWithPrefix("JenkinsEnv");
-                    Dictionary<string, string> jenkinsEnvVars = new Dictionary<string, string>();
                     foreach (string var in jenkinsEnvVarsWithCommas)
                     {
                         string[] nameVal = var.Split(",;".ToCharArray());
-                        jenkinsEnvVars.Add(nameVal[0], nameVal[1]);
+                        _jenkinsEnvVars.Add(nameVal[0], nameVal[1]);
                     }
 
                     //add build tests and cleanup tests in correct order
@@ -402,7 +404,7 @@ namespace HpToolsLauncher
                                     {
                                         if (validCleanupTests.Count > 0)
                                         {
-                                            var cleanupTest = FileSystemTestsRunner.GetFirstTestInfo(validCleanupTests[i], jenkinsEnvVars);
+                                            var cleanupTest = FileSystemTestsRunner.GetFirstTestInfo(validCleanupTests[i], _jenkinsEnvVars);
                                             if (cleanupTest != null)
                                                 cleanupAndRerunTests.Add(cleanupTest);
                                         }
@@ -426,7 +428,7 @@ namespace HpToolsLauncher
                                     {
                                         if (validCleanupTests.Count > 0)
                                         {
-                                            var cleanupTest = FileSystemTestsRunner.GetFirstTestInfo(validCleanupTests[i], jenkinsEnvVars);
+                                            var cleanupTest = FileSystemTestsRunner.GetFirstTestInfo(validCleanupTests[i], _jenkinsEnvVars);
                                             if (cleanupTest != null)
                                                 cleanupAndRerunTests.Add(cleanupTest);
                                         }
@@ -532,30 +534,13 @@ namespace HpToolsLauncher
                     string reportPath = null;
                     if (_ciParams.ContainsKey("fsReportPath"))
                     {
-                        if (Directory.Exists(_ciParams["fsReportPath"]))
-                        {   //path is not parameterized
-                            reportPath = _ciParams["fsReportPath"];
-                        }
-                        else
-                        {   //path is parameterized
-                            string fsReportPath = _ciParams["fsReportPath"];
-
-                            //get parameter name
-                            fsReportPath = fsReportPath.Trim(new char[] { ' ', '$', '{', '}' });
-
-                            //get parameter value
-                            fsReportPath = fsReportPath.Trim(new char[] { ' ', '\t' });
-                            try
-                            {
-                                reportPath = jenkinsEnvVars[fsReportPath];
-                            }
-                            catch (KeyNotFoundException)
-                            {
-                                Console.WriteLine("============================================================================");
-                                Console.WriteLine("The provided results folder path {0} does not exist.", fsReportPath);
-                                Console.WriteLine("============================================================================");
-                                Environment.Exit((int)ExitCodeEnum.Failed);
-                            }
+                        reportPath = _ciParams["fsReportPath"].ParseEnvVars(_jenkinsEnvVars, true);
+                        if (!Directory.Exists(reportPath))
+                        {
+                            Console.WriteLine("============================================================================");
+                            Console.WriteLine("The provided results folder path {0} does not exist.", reportPath);
+                            Console.WriteLine("============================================================================");
+                            Environment.Exit((int)ExitCodeEnum.Failed);
                         }
                     }
 
@@ -579,15 +564,15 @@ namespace HpToolsLauncher
 
                     SummaryDataLogger summaryDataLogger = GetSummaryDataLogger();
                     List<ScriptRTSModel> scriptRTSSet = GetScriptRtsSet();
-                    string resultsFilename = _ciParams["resultsFilename"];
+                    string resultsFilename = _ciParams["resultsFilename"].ParseEnvVars(_jenkinsEnvVars);
                     string uftRunMode = _ciParams.GetOrDefault("fsUftRunMode", "Fast");
                     if (validTests.Count > 0)
                     {
-                        runner = new FileSystemTestsRunner(validTests, GetValidParams(), printInputParams, timeout, uftRunMode, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVars, mcConnectionInfo, mobileinfo, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding, uftRunAsUser);
+                        runner = new FileSystemTestsRunner(validTests, GetValidParams(), printInputParams, timeout, uftRunMode, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, _jenkinsEnvVars, mcConnectionInfo, mobileinfo, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding, uftRunAsUser);
                     }
                     else if (cleanupAndRerunTests.Count > 0)
                     {
-                        runner = new FileSystemTestsRunner(cleanupAndRerunTests, printInputParams, timeout, uftRunMode, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVars, mcConnectionInfo, mobileinfo, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding, uftRunAsUser);
+                        runner = new FileSystemTestsRunner(cleanupAndRerunTests, printInputParams, timeout, uftRunMode, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, mcConnectionInfo, mobileinfo, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding, uftRunAsUser);
                     }
                     else
                     {
@@ -916,7 +901,9 @@ namespace HpToolsLauncher
 
                 foreach (var item in testsKeyValue)
                 {
-                    tests.Add(new TestData(item.Value, item.Key));
+                    string testPath = item.Value.ParseEnvVars(_jenkinsEnvVars, true);
+                    ConsoleWriter.WriteLine(testPath);
+                    tests.Add(new TestData(testPath, item.Key));
                 }
 
                 if (tests.Count == 0)
