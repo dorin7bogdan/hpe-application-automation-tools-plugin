@@ -8,4 +8,5 @@ public final class Constants {
     public static final String UFT_RUN_AS_USER_ENCODED_PWD = "UFT_RUN_AS_USER_ENCODED_PASSWORD";
     public static final String UFT_RUN_AS_USER_PWD = "UFT_RUN_AS_USER_PASSWORD";
     public static final String KEY_VALUE_FORMAT = "%s = %s";
+    public static final String SKIP_MARKING_BUILD_UNSTABLE_OR_FAILURE = "SKIP_MARKING_BUILD_UNSTABLE_OR_FAILURE";
 }

@@ -29,6 +29,7 @@
 package com.microfocus.application.automation.tools;
 
 import com.microfocus.application.automation.tools.settings.UFTEncryptionGlobalConfiguration;
+import com.microfocus.application.automation.tools.uft.model.UftRunAsUser;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
@@ -37,6 +38,7 @@ import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
@@ -44,6 +46,8 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+
+import static com.microfocus.application.automation.tools.uft.utils.Constants.*;
 
 @SuppressWarnings("squid:S1160")
 public final class AlmToolsUtils {
@@ -112,11 +116,15 @@ public final class AlmToolsUtils {
 
             if (returnCode != 0) {
                 if (returnCode == -1) {
-                    throw new RuntimeException("FAILURE");
-                    //build.setResult(Result.FAILURE);
+                    if (skipMarkingBuildUnstableOrFailure(build, listener)) {
+                        throw new RuntimeException("FAILURE");
+                    }
+                    build.setResult(Result.FAILURE);
                 } else if (returnCode == -2) {
-                    throw new RuntimeException("UNSTABLE");
-                    //build.setResult(Result.UNSTABLE);
+                    if (skipMarkingBuildUnstableOrFailure(build, listener)) {
+                        throw new RuntimeException("UNSTABLE");
+                    }
+                    build.setResult(Result.UNSTABLE);
                 } else if (returnCode == -3) {
                     build.setResult(Result.ABORTED);
                     // throwing this exception ensures we enter into the respective catch branch in the callstack
@@ -179,6 +187,18 @@ public final class AlmToolsUtils {
             }
         }
     }
-    
-    
+
+    private static boolean skipMarkingBuildUnstableOrFailure(@Nonnull Run<?, ?> build, @Nonnull TaskListener listener) throws IllegalArgumentException {
+        ParametersAction paramAction = build.getAction(ParametersAction.class);
+        boolean skip = false;
+        if (paramAction != null) {
+            ParameterValue paramValuePair = paramAction.getParameter(SKIP_MARKING_BUILD_UNSTABLE_OR_FAILURE);
+            if (paramValuePair != null) {
+                skip = (boolean) paramValuePair.getValue();
+                listener.getLogger().println(String.format(KEY_VALUE_FORMAT, SKIP_MARKING_BUILD_UNSTABLE_OR_FAILURE, skip));
+            }
+        }
+        return skip;
+    }
+
 }
