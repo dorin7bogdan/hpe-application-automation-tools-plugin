@@ -77,12 +77,14 @@ public  class UftScenarioLoadStepExecution extends SynchronousNonBlockingStepExe
 
         listener.getLogger().println("Running UftScenarioLoadStepExecution");
 
-        step.getRunFromFileBuilder().perform(build, ws, launcher, listener);
+        try {
+            step.getRunFromFileBuilder().perform(build, ws, launcher, listener);
+        } finally {
+            HashMap<String, String> resultFilename = new HashMap<String, String>(0);
+            resultFilename.put(RunFromFileBuilder.class.getName(), step.getRunFromFileBuilder().getRunResultsFileName());
 
-        HashMap<String, String> resultFilename = new HashMap<String, String>(0);
-        resultFilename.put(RunFromFileBuilder.class.getName(), step.getRunFromFileBuilder().getRunResultsFileName());
-
-        step.getRunResultRecorder().pipelinePerform(build, ws, launcher, listener, resultFilename);
+            step.getRunResultRecorder().pipelinePerform(build, ws, launcher, listener, resultFilename);
+        }
 
         return null;
     }

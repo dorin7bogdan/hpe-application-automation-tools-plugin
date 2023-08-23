@@ -112,9 +112,11 @@ public final class AlmToolsUtils {
 
             if (returnCode != 0) {
                 if (returnCode == -1) {
-                    build.setResult(Result.FAILURE);
+                    throw new RuntimeException("FAILURE");
+                    //build.setResult(Result.FAILURE);
                 } else if (returnCode == -2) {
-                    build.setResult(Result.UNSTABLE);
+                    throw new RuntimeException("UNSTABLE");
+                    //build.setResult(Result.UNSTABLE);
                 } else if (returnCode == -3) {
                     build.setResult(Result.ABORTED);
                     // throwing this exception ensures we enter into the respective catch branch in the callstack
