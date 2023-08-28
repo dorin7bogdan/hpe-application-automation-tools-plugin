@@ -62,7 +62,7 @@
 		<msbuild.exe>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe</msbuild.exe>
 		<msbuild.configuration>Release</msbuild.configuration>
 		<jenkins.version>2.319.1</jenkins.version>
-		<maven.exec.skip>false</maven.exec.skip>
+		<maven.exec.skip>true</maven.exec.skip>
 		<java.level>8</java.level>
 		<jenkins-test-harness.version>2.55</jenkins-test-harness.version> <!-- TODO newer versions require debugging an issue with open file handles -->
 	</properties>
