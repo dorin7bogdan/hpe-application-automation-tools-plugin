@@ -1,5 +1,0 @@
-image: Visual Studio 2022
-init:
-- cmd: >-
-    SET MAVEN_OPTS=-XX:MaxPermSize=2g -Xmx4g
-    SET JAVA_OPTS=-XX:MaxPermSize=2g -Xmx4g
