@@ -98,9 +98,10 @@ namespace HpToolsLauncher
                 }
                 catch
                 {
-                    Console.WriteLine("Unsupported encoding {0}. In this case UTF-8 will be used.", outEncoding);
+                    Console.WriteLine("Unsupported encoding [{0}].", outEncoding);
                 }
             }
+            Console.WriteLine("The current output encoding will be [{0}]", Console.OutputEncoding.EncodingName);
 
             Console.CancelKeyPress += Console_CancelKeyPress;
 

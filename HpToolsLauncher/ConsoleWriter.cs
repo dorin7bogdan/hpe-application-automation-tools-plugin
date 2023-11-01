@@ -28,6 +28,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Text.RegularExpressions;
 namespace HpToolsLauncher
 {
@@ -99,9 +100,30 @@ namespace HpToolsLauncher
 
         public static void WriteLine(string message)
         {
-            message = FilterXmlProblematicChars(message); 
-            
-            Console.WriteLine(message);
+            message = FilterXmlProblematicChars(message);
+
+            Encoding initialOutEncoding = Console.OutputEncoding;
+            try
+            {
+                Console.WriteLine(message);
+            }
+            catch
+            {
+                Console.OutputEncoding = initialOutEncoding == Encoding.UTF8 ? Encoding.Unicode : Encoding.UTF8;
+                try
+                {
+                    Console.WriteLine("Failed to print the message using [{0}]. Trying to use [{1}] ...", initialOutEncoding.EncodingName, Console.OutputEncoding);
+                    Console.WriteLine(message);
+                }
+                catch
+                {
+                    Console.WriteLine("Failed to print the error message using [0].", Console.OutputEncoding.EncodingName);
+                }
+                finally
+                {
+                    Console.OutputEncoding = initialOutEncoding;
+                }
+            }
 
             if (activeTestRun != null)
                 activeTestRun.ConsoleOut += message + "\n";
