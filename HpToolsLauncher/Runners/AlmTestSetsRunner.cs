@@ -1765,7 +1765,11 @@ namespace HpToolsLauncher
                     }
                     catch (InvalidCastException ex)
                     {
-                        Console.WriteLine("Conversion failed: " + ex.Message);
+                        ConsoleWriter.WriteLine("Conversion failed: " + ex.Message);
+                    }
+                    catch (Exception ex)
+                    {
+                        ConsoleWriter.WriteException(ex);
                     }
                 }
 

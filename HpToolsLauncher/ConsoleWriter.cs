@@ -28,6 +28,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 namespace HpToolsLauncher
@@ -61,6 +62,21 @@ namespace HpToolsLauncher
                 activeTestRun.ConsoleErr += message + "\n" + ex.Message + "\n" + ex.StackTrace + "\n";
         }
 
+        public static void WriteException(Exception ex, [CallerMemberName] string method = "")
+        {
+            try
+            {
+                Console.Out.WriteLine(ex.Message);
+                Console.Out.WriteLine(ex.StackTrace);
+                if (activeTestRun != null)
+                    activeTestRun.ConsoleErr += ex.Message + "\n" + ex.StackTrace + "\n";
+            }
+            catch
+            {
+                Console.WriteLine($"{method}: Failed to print exception of type [{ex.GetType().Name}].");
+            }
+
+        }
 
         public static void WriteErrLine(string message)
         {
@@ -117,7 +133,7 @@ namespace HpToolsLauncher
                 }
                 catch
                 {
-                    Console.WriteLine("Failed to print the error message using [0].", Console.OutputEncoding.EncodingName);
+                    Console.WriteLine("Failed to print the error message using [{0}].", Console.OutputEncoding.EncodingName);
                 }
                 finally
                 {
