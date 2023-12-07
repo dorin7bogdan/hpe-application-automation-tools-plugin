@@ -30,27 +30,30 @@
  * ___________________________________________________________________
  */
 
-
+using HpToolsLauncher.Utils;
 using QTObjectModelLib;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
+using Action = QTObjectModelLib.Action;
 
 namespace HpToolsLauncher
 {
     public class MBTRunner : RunnerBase, IDisposable
     {
         private readonly object _lockObject = new object();
-        private string parentFolder;//folder in which we will create new tests
-        private string repoFolder;
-        private IEnumerable<MBTTest> tests;
+        private readonly string parentFolder;//folder in which we will create new tests
+        private readonly string repoFolder;
+        private readonly IEnumerable<MBTTest> mbtTests;
 
         public MBTRunner(string parentFolder, string repoFolder, IEnumerable<MBTTest> tests)
         {
             this.parentFolder = parentFolder;
             this.repoFolder = repoFolder;
-            this.tests = tests;
+            this.mbtTests = tests;
         }
 
         public override TestSuiteRunResults Run()
@@ -59,7 +62,7 @@ namespace HpToolsLauncher
 
             lock (_lockObject)
             {
-                Application _qtpApplication = Activator.CreateInstance(type) as Application;
+                Application qtpApp = Activator.CreateInstance(type) as Application;
                 try
                 {
                     if (Directory.Exists(parentFolder))
@@ -78,60 +81,68 @@ namespace HpToolsLauncher
 
                 try
                 {
-                    if (_qtpApplication.Launched)
+                    if (qtpApp.Launched)
                     {
-                        _qtpApplication.Quit();
+                        qtpApp.Quit();
                     }
                 }
                 catch (Exception e)
                 {
-                    ConsoleWriter.WriteErrLine("Failed to close qtpApp : " + e.Message);
+                    ConsoleWriter.WriteErrLine("Failed to close qtpApp: " + e.Message);
                 }
 
-
-
                 //START Test creation
-                //_qtpApplication.Launch();
-                //_qtpApplication.Visible = false;
-                foreach (var test in tests)
+                foreach (var mbtTest in mbtTests)
                 {
-                    DateTime startTotal = DateTime.Now;
-                    ConsoleWriter.WriteLine("Creation of " + test.Name + " *****************************");
-                    LoadNeededAddins(_qtpApplication, test.UnderlyingTests);
+                    DateTime dtStartOfTest = DateTime.Now;
+                    ConsoleWriter.WriteLine("Creation of " + mbtTest.Name + " *****************************");
+                    string[] addins = LoadNeededAddins(qtpApp, mbtTest.UnderlyingTests);
+                    ConsoleWriter.WriteLine(string.Format("LoadNeededAddins took {0:0.0} secs", (DateTime.Now-dtStartOfTest).TotalSeconds));
                     try
                     {
-                        DateTime startSub1 = DateTime.Now;
-                        _qtpApplication.New();
-
+                        DateTime dtStartOfStep = DateTime.Now;
+                        qtpApp.New();
+                        ConsoleWriter.WriteLine(string.Format("qtpApp.New took {0:0.0} secs", (DateTime.Now-dtStartOfStep).TotalSeconds));
+                        Test test = qtpApp.Test;
+                        if (addins != null && addins.Length > 0)
+                        {
+                            dtStartOfStep = DateTime.Now;
+                            object err;
+                            test.SetAssociatedAddins(addins, out err);
+                            ConsoleWriter.WriteLine(string.Format("test.SetAssociatedAddins took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
+                            if (!((string)err).IsNullOrEmpty())
+                            {
+                                ConsoleWriter.WriteErrLine("Failed to SetAssociatedAddins: " + err);
+                            }
+                        }
                         try
                         {
                             //The test is set to record and run on any open Web application. 
-                            _qtpApplication.Test.Settings.Launchers["Web"].Active = false;
+                            test.Settings.Launchers["Web"].Active = false;
                         }
                         catch (Exception e)
                         {
                             ConsoleWriter.WriteLine("Failed to set .Launchers[Web].Active = false : " + e.Message);
                         }
 
-                        ConsoleWriter.WriteLine(string.Format("_qtpApplication.New took {0:0.0} secs", DateTime.Now.Subtract(startSub1).TotalSeconds));
-                        QTObjectModelLib.Action qtAction1 = _qtpApplication.Test.Actions[1];
-                        qtAction1.Description = "unitIds=" + string.Join(",", test.UnitIds);
+                        Action action1 = test.Actions[1];
+                        action1.Description = "unitIds=" + string.Join(",", mbtTest.UnitIds);
 
                         //https://myskillpoint.com/how-to-use-loadandrunaction-in-uft/#LoadAndRunAction_Having_Input-Output_Parameters
                         //LoadAndRunAction "E:\UFT_WorkSpace\TestScripts\SampleTest","Action1",0,"inputParam1","inputParam2",outParameterVal
                         //string actionContent = "LoadAndRunAction \"c:\\Temp\\GUITest2\\\",\"Action1\"";
-                        string actionContent = File.Exists(test.Script) ? File.ReadAllText(test.Script) : test.Script;
-                        qtAction1.ValidateScript(actionContent);
-                        qtAction1.SetScript(actionContent);
+                        string actionContent = File.Exists(mbtTest.Script) ? File.ReadAllText(mbtTest.Script) : mbtTest.Script;
+                        action1.ValidateScript(actionContent);
+                        action1.SetScript(actionContent);
 
                         DirectoryInfo fullDir = parentDir;
-                        if (!string.IsNullOrEmpty(test.PackageName))
+                        if (!mbtTest.PackageName.IsNullOrEmpty())
                         {
-                            fullDir = fullDir.CreateSubdirectory(test.PackageName);
+                            fullDir = fullDir.CreateSubdirectory(mbtTest.PackageName);
                         }
 
                         //Expects to receive params in CSV format, encoded base64
-                        if (!string.IsNullOrEmpty(test.DatableParams))
+                        if (!mbtTest.DatableParams.IsNullOrEmpty())
                         {
                             string tempCsvFileName = Path.Combine(parentFolder, "temp.csv");
                             if (File.Exists(tempCsvFileName))
@@ -139,28 +150,26 @@ namespace HpToolsLauncher
                                 File.Delete(tempCsvFileName);
                             }
 
-                            byte[] data = Convert.FromBase64String(test.DatableParams);
+                            byte[] data = Convert.FromBase64String(mbtTest.DatableParams);
                             string decodedParams = Encoding.UTF8.GetString(data);
 
                             File.WriteAllText(tempCsvFileName, decodedParams);
-                            _qtpApplication.Test.DataTable.Import(tempCsvFileName);
+                            test.DataTable.Import(tempCsvFileName);
                             File.Delete(tempCsvFileName);
                         }
 
-                        string fullPath = fullDir.CreateSubdirectory(test.Name).FullName;
-                        _qtpApplication.Test.SaveAs(fullPath);
-                        double sec = DateTime.Now.Subtract(startTotal).TotalSeconds;
-                        ConsoleWriter.WriteLine(string.Format("MBT test was created in {0} in {1:0.0} secs", fullPath, sec));
-
+                        string fullPath = fullDir.CreateSubdirectory(mbtTest.Name).FullName;
+                        test.SaveAs(fullPath);
+                        ConsoleWriter.WriteLine(string.Format("MBT test was created in {0} in {1:0.0} secs", fullPath, (DateTime.Now - dtStartOfTest).TotalSeconds));
                     }
                     catch (Exception e)
                     {
-                        ConsoleWriter.WriteErrLine("Fail in MBTRunner : " + e.Message);
+                        ConsoleWriter.WriteErrLine("Failed in MBTRunner : " + e.Message);
                     }
                 }
-                if (_qtpApplication.Launched)
+                if (qtpApp.Launched)
                 {
-                    _qtpApplication.Quit();
+                    qtpApp.Quit();
                 }
             }
 
@@ -171,7 +180,7 @@ namespace HpToolsLauncher
         {
             //file path might be full or just file name;
             string location = qtpApplication.Folders.Locate(filePath);
-            if (!string.IsNullOrEmpty(location))
+            if (!location.IsNullOrEmpty())
             {
                 ConsoleWriter.WriteLine(string.Format("Adding resources : {0} - done", filePath));
             }
@@ -179,61 +188,13 @@ namespace HpToolsLauncher
             {
                 ConsoleWriter.WriteLine(string.Format("Adding resources : {0} - failed to find file in repository. Please check correctness of resource location.", filePath));
             }
-            /*else
-            {
-                string[] allFiles = Directory.GetFiles(repoFolder, fileName, SearchOption.AllDirectories);
-                if (allFiles.Length == 0)
-                {
-                    ConsoleWriter.WriteLine(string.Format("Adding resources : {0} - failed to find file in repository. Please check correctness of resource name.", fileName));
-                }
-                else if (allFiles.Length > 1)
-                {
-                    //we found several possible locations
-                    //if resource has full path, we can try to find it in found paths 
-                    //for example resource : c://aa/bb/repo/resourceName
-                    //one of found paths is : c:/jenkins/repo/resourceName , after removing repo is will be /repo/resourceName
-                    //so /repo/resourceName is last part of c://aa/bb/repo/resourceName
-                    bool found = false;
-                    if (Path.IsPathRooted(filePath))
-                    {
-                        foreach (string path in allFiles)
-                        {
-                            string pathInRepo = path.Replace(repoFolder,"");
-                            if (filePath.EndsWith(pathInRepo))
-                            {
-                                string directoryPath = new FileInfo(path).Directory.FullName;
-                                ConsoleWriter.WriteLine(string.Format("Adding resources : {0} - folder {1} is added to settings", fileName, directoryPath.Replace(repoFolder, "")));
-                                qtpApplication.Folders.Add(directoryPath);
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!found)
-                    {
-                        StringBuilder sb = new StringBuilder();
-                        foreach (string path in allFiles)
-                        {
-                            string directoryPath = new FileInfo(path).Directory.FullName;
-                            sb.Append(directoryPath).Append("; ");
-                        }
-                        ConsoleWriter.WriteLine(string.Format("Adding resources : {0} - found more than 1 file in repo. Please define 'Folder location' manually in (Tools->Options->GUI Testing->Folders). Possible values : {1}", fileName, sb.ToString()));
-                    }
-                }
-                else//found ==1
-                {
-                    string directoryPath = new FileInfo(allFiles[0]).Directory.FullName;
-                    ConsoleWriter.WriteLine(string.Format("Adding resources : {0} - folder {1} is added to settings", fileName, directoryPath.Replace(repoFolder,"")));
-                    qtpApplication.Folders.Add(directoryPath);
-                }
-            }*/
 
             return filePath;
         }
 
-        private void LoadNeededAddins(Application _qtpApplication, IEnumerable<String> fileNames)
+        private string[] LoadNeededAddins(Application _qtpApplication, IEnumerable<string> fileNames)
         {
+            string[] addins = null;
             try
             {
                 HashSet<string> addinsSet = new HashSet<string>();
@@ -242,45 +203,40 @@ namespace HpToolsLauncher
                     try
                     {
                         DateTime start1 = DateTime.Now;
-                        var testAddinsObj = _qtpApplication.GetAssociatedAddinsForTest(fileName);
+                        object[] testAddinsObj = (object[])_qtpApplication.GetAssociatedAddinsForTest(fileName);
                         ConsoleWriter.WriteLine(string.Format("GetAssociatedAddinsForTest took {0:0.0} secs", DateTime.Now.Subtract(start1).TotalSeconds));
-                        object[] tempTestAddins = (object[])testAddinsObj;
+                        IEnumerable<string> tempTestAddins = testAddinsObj.Cast<string>();
 
                         foreach (string addin in tempTestAddins)
                         {
                             addinsSet.Add(addin);
                         }
                     }
-                    catch (Exception testErr)
+                    catch (Exception ex)
                     {
-                        ConsoleWriter.WriteErrLine("Fail to LoadNeededAddins for : " + fileName + ", " + testErr.Message);
+                        ConsoleWriter.WriteErrLine("Failed to LoadNeededAddins for : " + fileName + ", " + ex.Message);
                     }
                 }
 
-                //if (_qtpApplication.Launched)
-                //{
-                //_qtpApplication.Quit();
-                //ConsoleWriter.WriteLine("LoadNeededAddins : _qtpApplication.Quit");
-                //}
+                object err = null;
 
-                object erroDescription = null;
-
-                string[] addinsArr = new string[addinsSet.Count];
-                addinsSet.CopyTo(addinsArr);
-                ConsoleWriter.WriteLine("Loading Addins : " + string.Join(",", addinsArr));
+                addins = new string[addinsSet.Count];
+                addinsSet.CopyTo(addins);
+                ConsoleWriter.WriteLine("Loading Addins : " + string.Join(",", addins));
                 DateTime start2 = DateTime.Now;
-                _qtpApplication.SetActiveAddins(addinsArr, out erroDescription);
+                _qtpApplication.SetActiveAddins(addins, out err);
                 ConsoleWriter.WriteLine(string.Format("SetActiveAddins took {0:0.0} secs", DateTime.Now.Subtract(start2).TotalSeconds));
-                if (!string.IsNullOrEmpty((string)erroDescription))
+                if (!((string)err).IsNullOrEmpty())
                 {
-                    ConsoleWriter.WriteErrLine("Fail to SetActiveAddins : " + erroDescription);
+                    ConsoleWriter.WriteErrLine("Failed to SetActiveAddins : " + err);
                 }
             }
-            catch (Exception globalErr)
+            catch (Exception ex)
             {
-                ConsoleWriter.WriteErrLine("Fail to LoadNeededAddins : " + globalErr.Message);
+                ConsoleWriter.WriteErrLine("Failed to LoadNeededAddins : " + ex.Message);
                 // Try anyway to run the test
             }
+            return addins;
         }
     }
 
@@ -296,7 +252,7 @@ namespace HpToolsLauncher
             string[] parts = content.Split(',');//expected 3 parts separated by , : location,name,position(default is -1)
             if (parts.Length < 2)
             {
-                ConsoleWriter.WriteErrLine("Fail to parse recovery scenario (need at least 2 parts, separated with ,): " + content);
+                ConsoleWriter.WriteErrLine("Failed to parse recovery scenario (need at least 2 parts, separated with ,): " + content);
                 return null;
             }
             rs.FileName = parts[0];
@@ -309,7 +265,7 @@ namespace HpToolsLauncher
                 }
                 catch (Exception e)
                 {
-                    ConsoleWriter.WriteErrLine("Fail to parse position of recovery scenario : " + content + " : " + e.Message);
+                    ConsoleWriter.WriteErrLine("Failed to parse position of recovery scenario : " + content + " : " + e.Message);
                     rs.Position = -1;
                 }
             }
