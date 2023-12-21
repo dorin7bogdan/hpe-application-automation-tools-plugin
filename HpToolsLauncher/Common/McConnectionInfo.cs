@@ -104,7 +104,7 @@ namespace HpToolsLauncher
         private AuthTokenInfo _token;
         private string _execToken;
         private AuthType _authType = AuthType.UsernamePassword;
-        private DigitalLabType _labType = DigitalLabType.UFT;
+        private DigitalLabType _labType = DigitalLabType.ValueEdge; // this is a custom version for VEFT
 
         public string UserName { get; set; }
         public string Password { get; set; }
@@ -555,19 +555,16 @@ namespace HpToolsLauncher
         }
     }
 
-    public class DigitalLab
+    public class DigitalLab(McConnectionInfo connInfo, string jobSettings, CloudBrowser cloudBrowser, string execDescription)
     {
-        private McConnectionInfo _connInfo;
-        private string _mobileInfo;
-        private CloudBrowser _cloudBrowser;
-        public DigitalLab(McConnectionInfo mcConnInfo, string mobileInfo, CloudBrowser cloudBrowser)
-        {
-            _connInfo = mcConnInfo;
-            _mobileInfo = mobileInfo;
-            _cloudBrowser = cloudBrowser;
-        }
-        public McConnectionInfo ConnectionInfo { get { return _connInfo; } }
-        public string MobileInfo { get { return _mobileInfo; } }
-        public CloudBrowser CloudBrowser { get { return _cloudBrowser; } }
+        private readonly McConnectionInfo _connInfo = connInfo;
+        private readonly string _jobSettings = jobSettings;
+        private readonly CloudBrowser _cloudBrowser = cloudBrowser;
+        private readonly string _execDescription = execDescription;
+
+        public McConnectionInfo ConnectionInfo => _connInfo;
+        public string JobSettings => _jobSettings;
+        public CloudBrowser CloudBrowser => _cloudBrowser;
+        public string ExecDescription => _execDescription;
     }
 }

@@ -43,6 +43,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using Resources = HpToolsLauncher.Properties.Resources;
 using AuthType = HpToolsLauncher.McConnectionInfo.AuthType;
+using static HpToolsLauncher.McConnectionInfo;
 
 namespace HpToolsLauncher
 {
@@ -66,6 +67,8 @@ namespace HpToolsLauncher
         private const string MOBILE_PROXY_SETTING_AUTHENTICATION = "EXTERNAL_MobileProxySetting_Authentication";
         private const string MOBILE_PROXY_SETTING_USERNAME = "EXTERNAL_MobileProxySetting_UserName";
         private const string MOBILE_PROXY_SETTING_PASSWORD = "EXTERNAL_MobileProxySetting_Password";
+        private const string MOBILE_EXEC_ORIGINAL_TOOL = "EXTERNAL_MOBILE_EXECUTION_ORIGINALTOOL";
+        private const string MOBILE_EXEC_DESCRIPTION = "EXTERNAL_MOBILE_EXECUTION_DESCRIPTION";
         private const string MOBILE_INFO = "mobileinfo";
         private const string REPORT = "Report";
         private const string READY = "Ready";
@@ -81,6 +84,7 @@ namespace HpToolsLauncher
         private const string SYSTEM_PROXY = "System Proxy";
         private const string HTTP_PROXY = "HTTP Proxy";
         private const string DEFAULT_WORKSPACE = "default workspace";
+        private const string FTE = "FTE";
 
         private readonly Type _qtType = Type.GetTypeFromProgID("Quicktest.Application");
         private readonly IAssetRunner _runNotifier;
@@ -93,9 +97,10 @@ namespace HpToolsLauncher
         private Parameters _qtpParameters;
         private bool _useUFTLicense;
         private RunCancelledDelegate _runCancelled;
-        private McConnectionInfo _mcConnection;
-        private string _mobileInfo;
-        private CloudBrowser _cloudBrowser;
+        private readonly McConnectionInfo _mcConnection;
+        private readonly string _mobileInfo;
+        private readonly CloudBrowser _dlCloudBrowser;
+        private readonly string _dlExecDescription;
         private bool _printInputParams;
         private bool _isCancelledByUser;
         private RunAsUser _uftRunAsUser;
@@ -114,8 +119,9 @@ namespace HpToolsLauncher
             _runNotifier = runNotifier;
             _useUFTLicense = useUftLicense;
             _mcConnection = digitalLab.ConnectionInfo;
-            _mobileInfo = digitalLab.MobileInfo;
-            _cloudBrowser = digitalLab.CloudBrowser;
+            _mobileInfo = digitalLab.JobSettings;
+            _dlCloudBrowser = digitalLab.CloudBrowser;
+            _dlExecDescription = digitalLab.ExecDescription;
             _printInputParams = printInputParams;
             _uftRunAsUser = uftRunAsUser;
         }
@@ -213,7 +219,7 @@ namespace HpToolsLauncher
                     LoadNeededAddins(testPath);
 
                     // set Mc connection and other mobile info into rack if neccesary
-                    SetMobileInfo();
+                    //SetMobileInfo();
 
                     if (!_qtpApplication.Launched)
                     {
@@ -271,6 +277,13 @@ namespace HpToolsLauncher
             {
                 ConsoleWriter.WriteErrLine(Resources.FsDuplicateParamNames);
                 throw;
+            }
+
+            if (!HandleDigitalLab4VEFT(qtpVersion, ref errorReason))
+            {
+                runDesc.TestState = TestState.Error;
+                runDesc.ErrorDesc = errorReason;
+                return runDesc;
             }
 
             if (!HandleInputParameters(testPath, ref errorReason, paramDict, testinf))
@@ -773,13 +786,20 @@ namespace HpToolsLauncher
                 Application app = _qtpApplication;
                 try
                 {
-                    app.Options.DLConnection.Type = $"{(int)_mcConnection.LabType}";
+                    app.Options.DLConnection.Type = $"{(int)DigitalLabType.ValueEdge}";
                     app.Options.DLConnection.AuthType = AuthType.AuthToken.GetEnumDescription();
                     app.Options.DLConnection.ValueEdgeAccessKey = _mcConnection.ExecToken;
                     app.Options.DLConnection.ValueEdgeHostAddress = _mcConnection.HostAddress;
                     app.Options.DLConnection.UseProxySettings = false;
                     app.Options.DLConnection.ShowRemoteWndOnRun = false;
                     app.Options.DLConnection.WorkSpace = "default workspace";
+
+                    ITDPierToTulip tulip = _qtpApplication.TDPierToTulip;
+                    if (!string.IsNullOrEmpty(_dlExecDescription))
+                    {
+                        tulip.SetTestOptionsVal(MOBILE_EXEC_ORIGINAL_TOOL, FTE);
+                        tulip.SetTestOptionsVal(MOBILE_EXEC_DESCRIPTION, _dlExecDescription);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -792,7 +812,7 @@ namespace HpToolsLauncher
 
         private bool HandleCloudBrowser(Version qtpVersion, ref string errorReason)
         {
-            if (_cloudBrowser != null)
+            if (_dlCloudBrowser != null)
             {
                 if (qtpVersion < new Version(2023, 4))
                 {
@@ -804,12 +824,12 @@ namespace HpToolsLauncher
                     var launcher = _qtpApplication.Test.Settings.Launchers[WEB];
                     launcher.Active = true;
                     launcher.SetLab(CLOUD_BROWSER);
-                    if (!_cloudBrowser.Url.IsNullOrWhiteSpace())
-                        launcher.Address = _cloudBrowser.Url;
-                    launcher.CloudBrowser.OS = _cloudBrowser.OS;
-                    launcher.CloudBrowser.Browser = _cloudBrowser.Browser;
-                    launcher.CloudBrowser.BrowserVersion = _cloudBrowser.Version;
-                    launcher.CloudBrowser.Location = _cloudBrowser.Region;
+                    if (!_dlCloudBrowser.Url.IsNullOrWhiteSpace())
+                        launcher.Address = _dlCloudBrowser.Url;
+                    launcher.CloudBrowser.OS = _dlCloudBrowser.OS;
+                    launcher.CloudBrowser.Browser = _dlCloudBrowser.Browser;
+                    launcher.CloudBrowser.BrowserVersion = _dlCloudBrowser.Version;
+                    launcher.CloudBrowser.Location = _dlCloudBrowser.Region;
                 }
                 catch (Exception ex) 
                 {

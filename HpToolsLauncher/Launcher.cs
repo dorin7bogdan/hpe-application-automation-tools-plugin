@@ -523,6 +523,9 @@ namespace HpToolsLauncher
                     {
                          CloudBrowser.TryParse(strCloudBrowser, out cloudBrowser);
                     }
+                    string mobileExecDescr = _ciParams.GetOrDefault("MobileExecDescription");
+
+                    DigitalLab digitalLab = new(mcConnectionInfo, mobileinfo, cloudBrowser, mobileExecDescr);
 
                     var parallelRunnerEnvironments = new Dictionary<string, List<string>>();
 
@@ -594,11 +597,11 @@ namespace HpToolsLauncher
                     string uftRunMode = _ciParams.GetOrDefault("fsUftRunMode", "Fast");
                     if (validTests.Count > 0)
                     {
-                        runner = new FileSystemTestsRunner(validTests, GetValidParams(), printInputParams, timeout, uftRunMode, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVars, new DigitalLab(mcConnectionInfo, mobileinfo, cloudBrowser), parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding, uftRunAsUser);
+                        runner = new FileSystemTestsRunner(validTests, GetValidParams(), printInputParams, timeout, uftRunMode, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVars, digitalLab, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding, uftRunAsUser);
                     }
                     else if (cleanupAndRerunTests.Count > 0)
                     {
-                        runner = new FileSystemTestsRunner(cleanupAndRerunTests, printInputParams, timeout, uftRunMode, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVars, new DigitalLab(mcConnectionInfo, mobileinfo, cloudBrowser), parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding, uftRunAsUser);
+                        runner = new FileSystemTestsRunner(cleanupAndRerunTests, printInputParams, timeout, uftRunMode, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVars, digitalLab, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding, uftRunAsUser);
                     }
                     else
                     {
