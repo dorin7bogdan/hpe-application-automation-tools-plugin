@@ -80,6 +80,7 @@ namespace HpToolsLauncher
         private const string CLOUD_BROWSER = "CloudBrowser";
         private const string SYSTEM_PROXY = "System Proxy";
         private const string HTTP_PROXY = "HTTP Proxy";
+        private const string DEFAULT_WORKSPACE = "default workspace";
 
         private readonly Type _qtType = Type.GetTypeFromProgID("Quicktest.Application");
         private readonly IAssetRunner _runNotifier;
@@ -758,6 +759,35 @@ namespace HpToolsLauncher
             }
 
             return legal;
+        }
+
+        private bool HandleDigitalLab4VEFT(Version qtpVersion, ref string errorReason)
+        {
+            if (_mcConnection != null && !_mcConnection.HostAddress.IsNullOrEmpty() && _mcConnection.MobileAuthType == AuthType.AuthToken)
+            {
+                if (qtpVersion < new Version(2023, 4))
+                {
+                    errorReason = string.Format("DLConnection not supported on UFT One {0}", qtpVersion.ToString(2));
+                    return false;
+                }
+                Application app = _qtpApplication;
+                try
+                {
+                    app.Options.DLConnection.Type = $"{(int)_mcConnection.LabType}";
+                    app.Options.DLConnection.AuthType = AuthType.AuthToken.GetEnumDescription();
+                    app.Options.DLConnection.ValueEdgeAccessKey = _mcConnection.ExecToken;
+                    app.Options.DLConnection.ValueEdgeHostAddress = _mcConnection.HostAddress;
+                    app.Options.DLConnection.UseProxySettings = false;
+                    app.Options.DLConnection.ShowRemoteWndOnRun = false;
+                    app.Options.DLConnection.WorkSpace = "default workspace";
+                }
+                catch (Exception ex)
+                {
+                    errorReason = ex.Message;
+                    return false;
+                }
+            }
+            return true;
         }
 
         private bool HandleCloudBrowser(Version qtpVersion, ref string errorReason)

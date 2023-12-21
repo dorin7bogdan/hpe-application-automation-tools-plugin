@@ -183,6 +183,7 @@ namespace HpToolsLauncher
             if (ciParams.ContainsKey(MOBILEHOSTADDRESS))
             {
                 //ssl
+                bool isUseSslProvided = false;
                 if (ciParams.ContainsKey(MOBILEUSESSL))
                 {
                     string strUseSSL = ciParams[MOBILEUSESSL];
@@ -191,6 +192,7 @@ namespace HpToolsLauncher
                         int intUseSSL;
                         int.TryParse(ciParams[MOBILEUSESSL], out intUseSSL);
                         _useSSL = intUseSSL == ONE;
+                        isUseSslProvided = true;
                     }
                 }
 
@@ -210,15 +212,32 @@ namespace HpToolsLauncher
                 }
                 else if (arr.Length == 2)
                 {
-                    if (arr[0].Trim().In(true, HTTP, HTTPS))
+                    string first = arr[0].Trim();
+                    if (first.In(true, HTTP, HTTPS))
                     {
                         HostAddress = arr[1].Trim(SLASH);
+                        if (!_useSSL && first.EqualsIgnoreCase(HTTPS))
+                        {
+                            _useSSL = true;
+                        }
                         HostPort = _useSSL ? PORT_443 : PORT_8080;
                     }
                     else
                     {
-                        HostAddress = arr[0].Trim(SLASH);
+                        HostAddress = first.Trim(SLASH);
                         HostPort = arr[1].Trim();
+                        if (isUseSslProvided)
+                        {
+                            if ((_useSSL && HostPort.EqualsIgnoreCase(HTTP)) ||
+                               (!_useSSL && HostPort.EqualsIgnoreCase(HTTPS)))
+                            {
+                                throw new ArgumentException(string.Format("Port={0} is not compatible with UseSSL={1}", HostPort, UseSslAsInt));
+                            }
+                        }
+                        else if (HostPort == PORT_443)
+                        {
+                            _useSSL = true;
+                        }
                     }
                 }
                 else if (arr.Length == 3)

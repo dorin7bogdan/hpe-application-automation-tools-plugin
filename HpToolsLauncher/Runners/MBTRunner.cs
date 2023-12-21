@@ -49,6 +49,9 @@ namespace HpToolsLauncher
         private readonly string repoFolder;
         private readonly IEnumerable<MBTTest> mbtTests;
 
+        private const string MOBILE_JOB_SETTINGS = @"AddIn Manager\Mobile\Startup Settings\JOB_SETTINGS";
+        private const string _DEFAULT = "_default";
+
         public MBTRunner(string parentFolder, string repoFolder, IEnumerable<MBTTest> tests)
         {
             this.parentFolder = parentFolder;
@@ -81,10 +84,11 @@ namespace HpToolsLauncher
 
                 try
                 {
-                    if (qtpApp.Launched)
+                    if (!qtpApp.Launched)
                     {
-                        qtpApp.Quit();
+                        qtpApp.Launch();
                     }
+                    qtpApp.Visible = false;
                 }
                 catch (Exception e)
                 {
@@ -100,15 +104,30 @@ namespace HpToolsLauncher
                     ConsoleWriter.WriteLine(string.Format("LoadNeededAddins took {0:0.0} secs", (DateTime.Now-dtStartOfTest).TotalSeconds));
                     try
                     {
-                        DateTime dtStartOfStep = DateTime.Now;
+                        string firstUnderlyingTest = mbtTest.UnderlyingTests.FirstOrDefault(t => !t.IsNullOrEmpty());
+                        string jobSettings = null;
+                        DateTime dtStartOfStep;
+                        if (!firstUnderlyingTest.IsNullOrEmpty())
+                        {
+                            dtStartOfStep = DateTime.Now;
+                            jobSettings = GetJobSettings(qtpApp, firstUnderlyingTest);
+                            ConsoleWriter.WriteLine(string.Format("GetJobSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
+                            Console.WriteLine($"jobSettings: {jobSettings}");
+                        }
+                        dtStartOfStep = DateTime.Now;
                         qtpApp.New();
                         ConsoleWriter.WriteLine(string.Format("qtpApp.New took {0:0.0} secs", (DateTime.Now-dtStartOfStep).TotalSeconds));
+                        if (!jobSettings.IsNullOrEmpty())
+                        {
+                            dtStartOfStep = DateTime.Now;
+                            qtpApp.TDPierToTulip.SetTestOptionsValWithPath(MOBILE_JOB_SETTINGS, _DEFAULT, jobSettings);
+                            ConsoleWriter.WriteLine(string.Format("SetJobSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
+                        }
                         Test test = qtpApp.Test;
                         if (addins != null && addins.Length > 0)
                         {
                             dtStartOfStep = DateTime.Now;
-                            object err;
-                            test.SetAssociatedAddins(addins, out err);
+                            test.SetAssociatedAddins(addins, out object err);
                             ConsoleWriter.WriteLine(string.Format("test.SetAssociatedAddins took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
                             if (!((string)err).IsNullOrEmpty())
                             {
@@ -117,7 +136,6 @@ namespace HpToolsLauncher
                         }
                         try
                         {
-                            //The test is set to record and run on any open Web application. 
                             test.Settings.Launchers["Web"].Active = false;
                         }
                         catch (Exception e)
@@ -192,6 +210,13 @@ namespace HpToolsLauncher
             return filePath;
         }
 
+        private string GetJobSettings(Application qtApp, string testPath)
+        {
+            qtApp.Open(testPath);
+            qtApp.TDPierToTulip.GetTestOptionsValWithPath(MOBILE_JOB_SETTINGS, _DEFAULT, out object jobSettings);
+            qtApp.Test.Close();
+            return jobSettings as string;
+        }
         private string[] LoadNeededAddins(Application _qtpApplication, IEnumerable<string> fileNames)
         {
             string[] addins = null;
@@ -218,13 +243,11 @@ namespace HpToolsLauncher
                     }
                 }
 
-                object err = null;
-
                 addins = new string[addinsSet.Count];
                 addinsSet.CopyTo(addins);
                 ConsoleWriter.WriteLine("Loading Addins : " + string.Join(",", addins));
                 DateTime start2 = DateTime.Now;
-                _qtpApplication.SetActiveAddins(addins, out err);
+                _qtpApplication.SetActiveAddins(addins, out object err);
                 ConsoleWriter.WriteLine(string.Format("SetActiveAddins took {0:0.0} secs", DateTime.Now.Subtract(start2).TotalSeconds));
                 if (!((string)err).IsNullOrEmpty())
                 {
