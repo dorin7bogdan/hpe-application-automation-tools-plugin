@@ -794,11 +794,10 @@ namespace HpToolsLauncher
                     app.Options.DLConnection.ShowRemoteWndOnRun = false;
                     app.Options.DLConnection.WorkSpace = "default workspace";
 
-                    ITDPierToTulip tulip = _qtpApplication.TDPierToTulip;
                     if (!string.IsNullOrEmpty(_dlExecDescription))
                     {
-                        tulip.SetTestOptionsVal(MOBILE_EXEC_ORIGINAL_TOOL, FTE);
-                        tulip.SetTestOptionsVal(MOBILE_EXEC_DESCRIPTION, _dlExecDescription);
+                        app.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_ORIGINAL_TOOL, FTE);
+                        app.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_DESCRIPTION, _dlExecDescription);
                     }
                 }
                 catch (Exception ex)
