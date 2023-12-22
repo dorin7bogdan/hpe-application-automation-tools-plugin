@@ -793,15 +793,6 @@ namespace HpToolsLauncher
                 Application app = _qtpApplication;
                 try
                 {
-                    try
-                    {
-                        var launcher = app.Test.Settings.Launchers[MOBILE];
-                        launcher.Lab = DIGITAL_LAB;
-                    }
-                    catch
-                    {
-                        ConsoleWriter.WriteLine("Mobile launcher not found.");
-                    }
                     app.Options.DLConnection.Type = $"{(int)DigitalLabType.ValueEdge}";
                     app.Options.DLConnection.AuthType = AuthType.AuthToken.GetEnumDescription();
                     app.Options.DLConnection.ValueEdgeAccessKey = _mcConnection.ExecToken;
