@@ -80,6 +80,8 @@ namespace HpToolsLauncher
         private const int MEMBER_NOT_FOUND = -2147352573;
         private const string PROTECT_BstrToBase64_FAILED = "ProtectBSTRToBase64 failed for {0}.";
         private const string WEB = "Web";
+        private const string MOBILE = "Mobile";
+        private const string DIGITAL_LAB = "DigitalLab";
         private const string CLOUD_BROWSER = "CloudBrowser";
         private const string SYSTEM_PROXY = "System Proxy";
         private const string HTTP_PROXY = "HTTP Proxy";
@@ -219,7 +221,7 @@ namespace HpToolsLauncher
                     LoadNeededAddins(testPath);
 
                     // set Mc connection and other mobile info into rack if neccesary
-                    //SetMobileInfo();
+                    SetMobileInfo();
 
                     if (!_qtpApplication.Launched)
                     {
@@ -279,12 +281,12 @@ namespace HpToolsLauncher
                 throw;
             }
 
-            if (!HandleDigitalLab4VEFT(qtpVersion, ref errorReason))
+            /*if (!HandleDigitalLab4VEFT(qtpVersion, ref errorReason))
             {
                 runDesc.TestState = TestState.Error;
                 runDesc.ErrorDesc = errorReason;
                 return runDesc;
-            }
+            }*/
 
             if (!HandleInputParameters(testPath, ref errorReason, paramDict, testinf))
             {
@@ -420,6 +422,11 @@ namespace HpToolsLauncher
                 if (!string.IsNullOrEmpty(_mobileInfo))
                 {
                     tulip.SetTestOptionsVal(MOBILE_INFO, _mobileInfo);
+                }
+                if (!string.IsNullOrEmpty(_dlExecDescription))
+                {
+                    tulip.SetTestOptionsVal(MOBILE_EXEC_ORIGINAL_TOOL, FTE);
+                    tulip.SetTestOptionsVal(MOBILE_EXEC_DESCRIPTION, _dlExecDescription);
                 }
             }
             #endregion
@@ -564,7 +571,7 @@ namespace HpToolsLauncher
         /// <returns></returns>
         private GuiTestRunResult ExecuteQTPRun(TestRunResults testResults)
         {
-            GuiTestRunResult result = new GuiTestRunResult { IsSuccess = true };
+            GuiTestRunResult result = new () { IsSuccess = true };
             try
             {
                 Type runResultsOptionstype = Type.GetTypeFromProgID("QuickTest.RunResultsOptions");
@@ -786,11 +793,22 @@ namespace HpToolsLauncher
                 Application app = _qtpApplication;
                 try
                 {
+                    try
+                    {
+                        var launcher = app.Test.Settings.Launchers[MOBILE];
+                        launcher.Lab = DIGITAL_LAB;
+                    }
+                    catch
+                    {
+                        ConsoleWriter.WriteLine("Mobile launcher not found.");
+                    }
                     app.Options.DLConnection.Type = $"{(int)DigitalLabType.ValueEdge}";
                     app.Options.DLConnection.AuthType = AuthType.AuthToken.GetEnumDescription();
                     app.Options.DLConnection.ValueEdgeAccessKey = _mcConnection.ExecToken;
                     app.Options.DLConnection.ValueEdgeHostAddress = _mcConnection.HostAddress;
+                    app.Options.DLConnection.UseSSL = _mcConnection.UseSSL;
                     app.Options.DLConnection.UseProxySettings = false;
+                    app.Options.DLConnection.SpecifyAuthentication = false;
                     app.Options.DLConnection.ShowRemoteWndOnRun = false;
                     app.Options.DLConnection.WorkSpace = "default workspace";
 

@@ -80,15 +80,14 @@ namespace HpToolsLauncher
                 }
 
                 Directory.CreateDirectory(parentFolder);
-                DirectoryInfo parentDir = new DirectoryInfo(parentFolder);
+                DirectoryInfo parentDir = new(parentFolder);
 
                 try
                 {
-                    if (!qtpApp.Launched)
+                    if (qtpApp.Launched)
                     {
-                        qtpApp.Launch();
+                        qtpApp.Quit();
                     }
-                    qtpApp.Visible = false;
                 }
                 catch (Exception e)
                 {
