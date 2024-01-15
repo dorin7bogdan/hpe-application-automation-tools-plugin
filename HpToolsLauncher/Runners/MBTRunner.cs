@@ -34,7 +34,6 @@ using HpToolsLauncher.Utils;
 using QTObjectModelLib;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -139,7 +138,7 @@ namespace HpToolsLauncher
                         }
                         catch (Exception e)
                         {
-                            ConsoleWriter.WriteLine("Failed to set .Launchers[Web].Active = false : " + e.Message);
+                            //ConsoleWriter.WriteLine("Failed to set .Launchers[Web].Active = false : " + e.Message);
                         }
 
                         Action action1 = test.Actions[1];

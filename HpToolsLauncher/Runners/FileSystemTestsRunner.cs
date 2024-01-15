@@ -648,7 +648,7 @@ namespace HpToolsLauncher
         /// <returns></returns>
         private TestRunResults RunHpToolsTest(TestInfo testInfo, TestType type, ref string errorReason, out Dictionary<string, string> outParams)
         {
-            outParams = new Dictionary<string, string>();
+            outParams = [];
             // if the current test is an api test ignore the parallel runner flag and just continue as usual
             if (type == TestType.ST && _parallelRunnerEnvironments.Count > 0)
             {

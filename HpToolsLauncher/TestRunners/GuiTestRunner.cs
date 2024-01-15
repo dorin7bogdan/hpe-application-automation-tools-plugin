@@ -139,9 +139,9 @@ namespace HpToolsLauncher
         /// <returns></returns>
         public TestRunResults RunTest(TestInfo testinf, ref string errorReason, RunCancelledDelegate runCancelled, out Dictionary<string, string> outParams)
         {
-            outParams = new Dictionary<string, string>();
+            outParams = [];
             var testPath = testinf.TestPath;
-            TestRunResults runDesc = new TestRunResults { TestType = TestType.QTP };
+            TestRunResults runDesc = new() { TestType = TestType.QTP };
             ConsoleWriter.ActiveTestRun = runDesc;
             ConsoleWriter.WriteLineWithTime("Running: " + testPath);
 
@@ -171,8 +171,7 @@ namespace HpToolsLauncher
                 return runDesc;
             }
 
-            string reason;
-            if (!Helper.CanUftProcessStart(out reason))
+            if (!Helper.CanUftProcessStart(out string reason))
             {
                 runDesc.TestState = TestState.Error;
                 runDesc.ErrorDesc = reason;
@@ -221,7 +220,7 @@ namespace HpToolsLauncher
                     LoadNeededAddins(testPath);
 
                     // set Mc connection and other mobile info into rack if neccesary
-                    SetMobileInfo();
+                    //SetMobileInfo();
 
                     if (!_qtpApplication.Launched)
                     {
@@ -281,12 +280,12 @@ namespace HpToolsLauncher
                 throw;
             }
 
-            /*if (!HandleDigitalLab4VEFT(qtpVersion, ref errorReason))
+            if (!HandleDigitalLab4VEFT(qtpVersion, ref errorReason))
             {
                 runDesc.TestState = TestState.Error;
                 runDesc.ErrorDesc = errorReason;
                 return runDesc;
-            }*/
+            }
 
             if (!HandleInputParameters(testPath, ref errorReason, paramDict, testinf))
             {
@@ -442,11 +441,7 @@ namespace HpToolsLauncher
                 lock (_lockObject)
                 {
                     //if we don't have a qtp instance, create one
-                    if (_qtpApplication == null)
-                    {
-                        _qtpApplication = Activator.CreateInstance(_qtType) as Application;
-                    }
-
+                    _qtpApplication ??= Activator.CreateInstance(_qtType) as Application;
                     _qtpApplication.Quit();
                 }
             }
@@ -479,11 +474,10 @@ namespace HpToolsLauncher
 
             try
             {
-                HashSet<string> colCurrentTestAddins = new HashSet<string>();
+                HashSet<string> colCurrentTestAddins = [];
 
-                object erroDescription;
                 var testAddinsObj = _qtpApplication.GetAssociatedAddinsForTest(fileName);
-                object[] testAddins = (object[])testAddinsObj;
+                IEnumerable<string> testAddins = ((object[])testAddinsObj)?.Cast<string>();
 
                 foreach (string addin in testAddins)
                 {
@@ -521,7 +515,7 @@ namespace HpToolsLauncher
                 {
                     if (_qtpApplication.Launched && _uftRunAsUser == null)
                         _qtpApplication.Quit();
-                    _qtpApplication.SetActiveAddins(ref testAddinsObj, out erroDescription);
+                    _qtpApplication.SetActiveAddins(ref testAddinsObj, out object _);
                 }
             }
             catch (Exception)
@@ -552,10 +546,9 @@ namespace HpToolsLauncher
                         qtAddins[idx - 1] = qtInstalledAddins[idx].Name;
                     }
 
-                    object erroDescription;
                     var addinNames = (object)qtAddins;
 
-                    _qtpApplication.SetActiveAddins(ref addinNames, out erroDescription);
+                    _qtpApplication.SetActiveAddins(ref addinNames, out object _);
                 }
             }
             catch (Exception)
@@ -597,6 +590,7 @@ namespace HpToolsLauncher
                 ConsoleWriter.WriteLine(string.Format(Resources.FsRunnerRunningTest, testResults.TestPath));
 
                 _qtpApplication.Test.Run(options, false, _qtpParameters);
+                Console.WriteLine($"Status = {_qtpApplication.GetStatus()}");
 
                 result.ReportPath = Path.Combine(testResults.ReportLocation, REPORT);
                 int slept = 0;
@@ -640,6 +634,7 @@ namespace HpToolsLauncher
                 {
                     testResults.TestState = TestState.Error;
                     testResults.ErrorDesc = lastError;
+                    Console.WriteLine(lastError);
                 }
 
                 // the way to check the logical success of the target QTP test is: app.Test.LastRunResults.Status == "Passed".
@@ -711,15 +706,12 @@ namespace HpToolsLauncher
             //kill the qtp automation, to make sure it will run correctly next time
             Process[] processes = Process.GetProcessesByName("qtpAutomationAgent");
             Process qtpAuto = processes.Where(p => p.SessionId == Process.GetCurrentProcess().SessionId).FirstOrDefault();
-            if (qtpAuto != null)
-            {
-                qtpAuto.Kill();
-            }
+            qtpAuto?.Kill();
         }
 
         private bool HandleOutputArguments(ref string errorReason, out Dictionary<string, string> outParams)
         {
-            outParams = new Dictionary<string, string>();
+            outParams = [];
             try
             {
                 for (int i = 1; i <= _qtpParamDefs.Count; ++i)
@@ -751,8 +743,7 @@ namespace HpToolsLauncher
         }
         private bool VerifyParameterValueType(object paramValue, qtParameterType type)
         {
-            bool legal = false;
-
+            bool legal;
             switch (type)
             {
                 case qtParameterType.qtParamTypeBoolean:
@@ -790,23 +781,30 @@ namespace HpToolsLauncher
                     errorReason = string.Format("DLConnection not supported on UFT One {0}", qtpVersion.ToString(2));
                     return false;
                 }
-                Application app = _qtpApplication;
                 try
                 {
-                    app.Options.DLConnection.Type = $"{(int)DigitalLabType.ValueEdge}";
-                    app.Options.DLConnection.AuthType = AuthType.AuthToken.GetEnumDescription();
-                    app.Options.DLConnection.ValueEdgeAccessKey = _mcConnection.ExecToken;
-                    app.Options.DLConnection.ValueEdgeHostAddress = _mcConnection.HostAddress;
-                    app.Options.DLConnection.UseSSL = _mcConnection.UseSSL;
-                    app.Options.DLConnection.UseProxySettings = false;
-                    app.Options.DLConnection.SpecifyAuthentication = false;
-                    app.Options.DLConnection.ShowRemoteWndOnRun = false;
-                    app.Options.DLConnection.WorkSpace = "default workspace";
+                    string url = $"{(_mcConnection.UseSSL ? "https" : "http")}://{_mcConnection.HostAddress}";
+                    string type = $"{(int)DigitalLabType.ValueEdge}";
+                    _qtpApplication.Options.DLConnection.Type = type;
+                    _qtpApplication.Options.DLConnection.AuthType = AuthType.AuthToken.GetEnumDescription();
+                    _qtpApplication.Options.DLConnection.ValueEdgeAccessKey = _mcConnection.ExecToken;
+                    _qtpApplication.Options.DLConnection.ValueEdgeHostAddress = url;
+                    _qtpApplication.Options.DLConnection.UseProxySettings = false;
+                    _qtpApplication.Options.DLConnection.ShowRemoteWndOnRun = true;
+                    _qtpApplication.Options.DLConnection.WorkSpace = "default workspace";
 
                     if (!string.IsNullOrEmpty(_dlExecDescription))
                     {
-                        app.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_ORIGINAL_TOOL, FTE);
-                        app.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_DESCRIPTION, _dlExecDescription);
+                        _qtpApplication.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_ORIGINAL_TOOL, FTE);
+                        _qtpApplication.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_DESCRIPTION, _dlExecDescription);
+                    }
+
+                    var launchers = _qtpApplication.Test.Settings.Launchers;
+                    //Console.WriteLine($"launchers.Count = {launchers?.Count}");
+                    var launcher = launchers[MOBILE];
+                    if (launcher != null && launcher.Lab != DIGITAL_LAB)
+                    {
+                        launcher.Lab = DIGITAL_LAB;
                     }
                 }
                 catch (Exception ex)
