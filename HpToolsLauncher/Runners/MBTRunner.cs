@@ -41,22 +41,15 @@ using Action = QTObjectModelLib.Action;
 
 namespace HpToolsLauncher
 {
-    public class MBTRunner : RunnerBase, IDisposable
+    public class MBTRunner(string parentFolder, string repoFolder, IEnumerable<MBTTest> tests) : RunnerBase, IDisposable
     {
-        private readonly object _lockObject = new object();
-        private readonly string parentFolder;//folder in which we will create new tests
-        private readonly string repoFolder;
-        private readonly IEnumerable<MBTTest> mbtTests;
+        private readonly object _lockObject = new();
+        private readonly string parentFolder = parentFolder;//folder in which we will create new tests
+        private readonly string repoFolder = repoFolder;
+        private readonly IEnumerable<MBTTest> mbtTests = tests;
 
         private const string MOBILE_JOB_SETTINGS = @"AddIn Manager\Mobile\Startup Settings\JOB_SETTINGS";
         private const string _DEFAULT = "_default";
-
-        public MBTRunner(string parentFolder, string repoFolder, IEnumerable<MBTTest> tests)
-        {
-            this.parentFolder = parentFolder;
-            this.repoFolder = repoFolder;
-            this.mbtTests = tests;
-        }
 
         public override TestSuiteRunResults Run()
         {

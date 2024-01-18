@@ -617,10 +617,10 @@ namespace HpToolsLauncher
 
                     int counter = 1;
                     string testProp = "test" + counter;
-                    List<MBTTest> tests = new List<MBTTest>();
+                    List<MBTTest> tests = [];
                     while (_ciParams.ContainsKey(testProp))
                     {
-                        MBTTest test = new MBTTest();
+                        MBTTest test = new();
                         tests.Add(test);
 
                         test.Name = _ciParams[testProp];
