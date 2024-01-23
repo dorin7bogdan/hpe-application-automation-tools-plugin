@@ -125,14 +125,14 @@ namespace HpToolsLauncher
                                 ConsoleWriter.WriteErrLine("Failed to SetAssociatedAddins: " + err);
                             }
                         }
-                        try
+/*                      try
                         {
-                            test.Settings.Launchers["Web"].Active = false;
+                            test.Settings.Launchers[WEB].Active = false;
                         }
-                        catch (Exception e)
+                        catch //(Exception e)
                         {
                             //ConsoleWriter.WriteLine("Failed to set .Launchers[Web].Active = false : " + e.Message);
-                        }
+                        }*/
 
                         Action action1 = test.Actions[1];
                         action1.Description = "unitIds=" + string.Join(",", mbtTest.UnitIds);

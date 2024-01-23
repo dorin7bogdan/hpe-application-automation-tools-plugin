@@ -800,15 +800,17 @@ namespace HpToolsLauncher
                     }
 
                     var launchers = _qtpApplication.Test.Settings.Launchers;
-                    //Console.WriteLine($"launchers.Count = {launchers?.Count}");
+#if DEBUG
+                    Console.WriteLine($"launchers.Count = {launchers?.Count}");
+#endif
                     var launcher = launchers[MOBILE];
-                    if (launcher != null && launcher.Lab != DIGITAL_LAB)
-                    {
-                        launcher.Lab = DIGITAL_LAB;
-                    }
+                    launcher.Lab = DIGITAL_LAB;
                 }
                 catch (Exception ex)
                 {
+#if DEBUG
+                    Console.WriteLine(ex.Message);
+#endif
                     errorReason = ex.Message;
                     return false;
                 }
