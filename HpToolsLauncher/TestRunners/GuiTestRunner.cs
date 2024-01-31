@@ -258,14 +258,15 @@ namespace HpToolsLauncher
                 return runDesc;
             }
 
-            if (_qtpApplication.Test != null && _qtpApplication.Test.Modified)
+            //  IMPORTANT currently this line is breaking the functionality of test.Settings.Launchers from method HandleInputParameters
+            /*if (_qtpApplication.Test != null && _qtpApplication.Test.Modified)
             {
                 var message = Resources.QtpNotLaunchedError;
                 errorReason = message;
                 runDesc.TestState = TestState.Error;
                 runDesc.ErrorDesc = errorReason;
                 return runDesc;
-            }
+            }*/
 
             _qtpApplication.UseLicenseOfType(_useUFTLicense ? tagUnifiedLicenseType.qtUnifiedFunctionalTesting : tagUnifiedLicenseType.qtNonUnified);
 
@@ -523,7 +524,6 @@ namespace HpToolsLauncher
                 // Try anyway to run the test
             }
         }
-
 
         /// <summary>
         /// Activate all Installed Addins 
@@ -798,13 +798,6 @@ namespace HpToolsLauncher
                         _qtpApplication.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_ORIGINAL_TOOL, FTE);
                         _qtpApplication.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_DESCRIPTION, _dlExecDescription);
                     }
-
-                    var launchers = _qtpApplication.Test.Settings.Launchers;
-#if DEBUG
-                    Console.WriteLine($"launchers.Count = {launchers?.Count}");
-#endif
-                    var launcher = launchers[MOBILE];
-                    launcher.Lab = DIGITAL_LAB;
                 }
                 catch (Exception ex)
                 {
@@ -862,6 +855,31 @@ namespace HpToolsLauncher
                 }
 
                 _qtpApplication.Open(path, true, false);
+                Test test = _qtpApplication.Test;
+                try
+                {
+                    Launchers launchers = test.Settings.Launchers;
+#if DEBUG
+                    foreach(object lan in launchers)
+                    {
+                        if (lan is MobileLauncher)
+                        {
+                            Console.WriteLine($"MobileLauncher is loaded.");
+                            break;
+                        }
+                    }
+                    Console.WriteLine($"launchers.Count = {launchers?.Count}");
+#endif
+                    var launcher = launchers[MOBILE];
+                    launcher.Lab = DIGITAL_LAB;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    Console.WriteLine(ex.StackTrace);
+                    throw;
+                }
+
                 _qtpParamDefs = _qtpApplication.Test.ParameterDefinitions;
                 _qtpParameters = _qtpParamDefs.GetParameters();
 

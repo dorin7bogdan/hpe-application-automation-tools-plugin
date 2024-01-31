@@ -115,7 +115,7 @@ namespace HpToolsLauncher
                             ConsoleWriter.WriteLine(string.Format("SetJobSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
                         }
                         Test test = qtpApp.Test;
-                        if (addins != null && addins.Length > 0)
+                        if (addins?.Length > 0)
                         {
                             dtStartOfStep = DateTime.Now;
                             test.SetAssociatedAddins(addins, out object err);
