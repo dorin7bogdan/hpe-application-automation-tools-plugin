@@ -860,18 +860,23 @@ namespace HpToolsLauncher
                 {
                     Launchers launchers = test.Settings.Launchers;
 #if DEBUG
-                    foreach(object lan in launchers)
-                    {
-                        if (lan is MobileLauncher)
-                        {
-                            Console.WriteLine($"MobileLauncher is loaded.");
-                            break;
-                        }
-                    }
                     Console.WriteLine($"launchers.Count = {launchers?.Count}");
 #endif
-                    var launcher = launchers[MOBILE];
-                    launcher.Lab = DIGITAL_LAB;
+                    foreach(var ln in launchers)
+                    {
+                        if (ln is MobileLauncher mobileLnc)
+                        {
+                            if (mobileLnc.Lab != DIGITAL_LAB)
+                                mobileLnc.Lab = DIGITAL_LAB;
+                            Console.WriteLine($"MobileLauncher is loaded and Lab = {mobileLnc.Lab}.");
+                        }
+                        else if (ln is WebLauncher webLnc)
+                        {
+                            if (webLnc.Active)
+                                webLnc.Active = false; // use default option
+                            Console.WriteLine($"WebLauncher is loaded and Active = {webLnc.Active}.");
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {

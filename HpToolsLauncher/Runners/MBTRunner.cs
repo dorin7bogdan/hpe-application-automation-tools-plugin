@@ -50,6 +50,9 @@ namespace HpToolsLauncher
 
         private const string MOBILE_JOB_SETTINGS = @"AddIn Manager\Mobile\Startup Settings\JOB_SETTINGS";
         private const string _DEFAULT = "_default";
+        private const string WEB = "Web";
+        private const string MOBILE = "Mobile";
+        private const string DIGITAL_LAB = "DigitalLab";
 
         public override TestSuiteRunResults Run()
         {
@@ -92,7 +95,7 @@ namespace HpToolsLauncher
                     DateTime dtStartOfTest = DateTime.Now;
                     ConsoleWriter.WriteLine("Creation of " + mbtTest.Name + " *****************************");
                     string[] addins = LoadNeededAddins(qtpApp, mbtTest.UnderlyingTests);
-                    ConsoleWriter.WriteLine(string.Format("LoadNeededAddins took {0:0.0} secs", (DateTime.Now-dtStartOfTest).TotalSeconds));
+                    ConsoleWriter.WriteLine(string.Format("LoadNeededAddins took {0:0.0} secs", (DateTime.Now - dtStartOfTest).TotalSeconds));
                     try
                     {
                         string firstUnderlyingTest = mbtTest.UnderlyingTests.FirstOrDefault(t => !t.IsNullOrEmpty());
@@ -107,7 +110,7 @@ namespace HpToolsLauncher
                         }
                         dtStartOfStep = DateTime.Now;
                         qtpApp.New();
-                        ConsoleWriter.WriteLine(string.Format("qtpApp.New took {0:0.0} secs", (DateTime.Now-dtStartOfStep).TotalSeconds));
+                        ConsoleWriter.WriteLine(string.Format("qtpApp.New took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
                         if (!jobSettings.IsNullOrEmpty())
                         {
                             dtStartOfStep = DateTime.Now;
@@ -125,14 +128,6 @@ namespace HpToolsLauncher
                                 ConsoleWriter.WriteErrLine("Failed to SetAssociatedAddins: " + err);
                             }
                         }
-/*                      try
-                        {
-                            test.Settings.Launchers[WEB].Active = false;
-                        }
-                        catch //(Exception e)
-                        {
-                            //ConsoleWriter.WriteLine("Failed to set .Launchers[Web].Active = false : " + e.Message);
-                        }*/
 
                         Action action1 = test.Actions[1];
                         action1.Description = "unitIds=" + string.Join(",", mbtTest.UnitIds);
@@ -170,15 +165,40 @@ namespace HpToolsLauncher
                         string fullPath = fullDir.CreateSubdirectory(mbtTest.Name).FullName;
                         test.SaveAs(fullPath);
                         ConsoleWriter.WriteLine(string.Format("MBT test was created in {0} in {1:0.0} secs", fullPath, (DateTime.Now - dtStartOfTest).TotalSeconds));
+                        qtpApp.Quit();
+                        qtpApp = Activator.CreateInstance(type) as Application;
+                        Console.WriteLine($@"Activating the labs ...");
+                        qtpApp.Open(fullPath, false, true);
+                        Launchers launchers = qtpApp.Test.Settings.Launchers;
+                        Console.WriteLine($"launchers.Count = {launchers.Count}");
+                        foreach (var lan in launchers)
+                        {
+                            if (lan is WebLauncher webLnc)
+                            {
+                                webLnc.Active = false; //use default option
+                                Console.WriteLine($"WebLauncher is loaded and Active = {webLnc.Active}");
+                            }
+                            else if (lan is MobileLauncher mobileLnc)
+                            {
+                                mobileLnc.Lab = DIGITAL_LAB;
+                                Console.WriteLine($"MobileLauncher is loaded and Lab = {mobileLnc.Lab}");
+                            }
+                        }
+                        qtpApp.Test.Save();
+                        qtpApp.Test.Close();
+                        Console.WriteLine($"Saved and closed [{fullPath}].");
                     }
                     catch (Exception e)
                     {
                         ConsoleWriter.WriteErrLine("Failed in MBTRunner : " + e.Message);
+                        ConsoleWriter.WriteLine(e.StackTrace);
                     }
                 }
                 if (qtpApp.Launched)
                 {
+                    Console.WriteLine($"Trying to close UFT One...");
                     qtpApp.Quit();
+                    Console.WriteLine($"Closed UFT One.");
                 }
             }
 
