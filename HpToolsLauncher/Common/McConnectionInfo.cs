@@ -33,10 +33,8 @@
 using System;
 using System.ComponentModel;
 using System.Linq;
-using System.Net.Sockets;
 using HpToolsLauncher.Properties;
 using HpToolsLauncher.Utils;
-using Mercury.TD.Client.Ota.QC9;
 
 namespace HpToolsLauncher
 {
@@ -56,9 +54,9 @@ namespace HpToolsLauncher
         private const string TENANT = "tenant";
         private const int ZERO = 0;
         private const int ONE = 1;
-        private static readonly char[] SLASH = new char[] { '/' };
-        private static readonly char[] COLON = new char[] { ':' };
-        private static readonly char[] DBL_QUOTE = new char[] { '"' };
+        private static readonly char[] SLASH = ['/'];
+        private static readonly char[] COLON = [':'];
+        private static readonly char[] DBL_QUOTE = ['"'];
 
         private const string MOBILEHOSTADDRESS = "MobileHostAddress";
         private const string MOBILEUSESSL = "MobileUseSSL";
@@ -189,8 +187,7 @@ namespace HpToolsLauncher
                     string strUseSSL = ciParams[MOBILEUSESSL];
                     if (!string.IsNullOrEmpty(strUseSSL))
                     {
-                        int intUseSSL;
-                        int.TryParse(ciParams[MOBILEUSESSL], out intUseSSL);
+                        int.TryParse(ciParams[MOBILEUSESSL], out int intUseSSL);
                         _useSSL = intUseSSL == ONE;
                         isUseSslProvided = true;
                     }
@@ -326,7 +323,7 @@ namespace HpToolsLauncher
                 if (!string.IsNullOrEmpty(proxyAddress))
                 {
                     // data is something like "16.105.9.23:8080"
-                    string[] arrProxyAddress = proxyAddress.Split(new char[] { ':' });
+                    string[] arrProxyAddress = proxyAddress.Split([':']);
                     if (arrProxyAddress.Length == 2)
                     {
                         ProxyAddress = arrProxyAddress[0];
@@ -479,7 +476,7 @@ namespace HpToolsLauncher
     {
     }
 
-    public class CloudBrowser
+    public class CloudBrowser(string url, string os, string type, string version, string location)
     {
         private const string EQ = "=";
         private const string SEMI_COLON = ";";
@@ -489,26 +486,13 @@ namespace HpToolsLauncher
         private const string VERSION = "version";
         private const string REGION = "region";
 
-        private static readonly char[] DBL_QUOTE = new char[] { '"' };
+        private static readonly char[] DBL_QUOTE = ['"'];
 
-        private string _url;
-        private string _os;
-        private string _type;
-        private string _version;
-        private string _location;
-        public CloudBrowser(string url, string os, string type, string version, string location)
-        {
-            _url = url;
-            _os = os;
-            _type = type;
-            _version = version;
-            _location = location;
-        }
-        public string Url { get { return _url; } }
-        public string OS { get { return _os; } }
-        public string Browser { get { return _type;} }
-        public string Version { get { return _version; } }
-        public string Region { get { return _location; } }
+        public string Url => url;
+        public string OS => os;
+        public string Browser => type;
+        public string Version => version;
+        public string Region => location;
 
         public static bool TryParse(string strCloudBrowser, out CloudBrowser cloudBrowser)
         {

@@ -54,7 +54,7 @@ namespace HpToolsLauncher
         private IAssetRunner _runner;
         private IXmlBuilder _xmlBuilder;
         private bool _ciRun = false;
-        private readonly JavaProperties _ciParams = new JavaProperties();
+        private readonly JavaProperties _ciParams = [];
         private TestStorageType _runType;
         private static ExitCodeEnum _exitCode = ExitCodeEnum.Passed;
         private const string _dateFormat = "dd'/'MM'/'yyyy HH':'mm':'ss";
@@ -198,7 +198,7 @@ namespace HpToolsLauncher
 
                     //rerun the selected tests (either the entire set, just the selected tests or only the failed tests)
                     List<TestRunResults> runResults = results.TestRuns;
-                    List<TestInfo> reruntests = new List<TestInfo>();
+                    List<TestInfo> reruntests = [];
                     int index = 0;
                     foreach (var item in runResults)
                     {
@@ -261,8 +261,7 @@ namespace HpToolsLauncher
                     }
 
                     //parse params that need parsing
-                    double dblQcTimeout;
-                    if (!double.TryParse(_ciParams["almTimeout"], out dblQcTimeout))
+                    if (!double.TryParse(_ciParams["almTimeout"], out double dblQcTimeout))
                     {
                         ConsoleWriter.WriteLine(Resources.LauncherTimeoutNotNumeric);
                         dblQcTimeout = int.MaxValue;
@@ -270,8 +269,7 @@ namespace HpToolsLauncher
 
                     ConsoleWriter.WriteLine(string.Format(Resources.LuancherDisplayTimout, dblQcTimeout));
 
-                    QcRunMode enmQcRunMode;
-                    if (!Enum.TryParse(_ciParams["almRunMode"], true, out enmQcRunMode))
+                    if (!Enum.TryParse(_ciParams["almRunMode"], true, out QcRunMode enmQcRunMode))
                     {
                         ConsoleWriter.WriteLine(Resources.LauncherIncorrectRunmode);
                         enmQcRunMode = QcRunMode.RUN_LOCAL;
@@ -299,13 +297,13 @@ namespace HpToolsLauncher
 
                     string statuses = _ciParams.GetOrDefault("FilterByStatus");
 
-                    List<string> filterByStatuses = new List<string>();
+                    List<string> filterByStatuses = [];
 
                     if (statuses != string.Empty)
                     {
                         if (statuses.Contains(","))
                         {
-                            filterByStatuses = statuses.Split(',').ToList();
+                            filterByStatuses = [.. statuses.Split(',')];
                         }
                         else
                         {
@@ -345,7 +343,7 @@ namespace HpToolsLauncher
 
                     bool printInputParams = _ciParams.GetOrDefault("printTestParams", ONE) == ONE;
                     IEnumerable<string> jenkinsEnvVarsWithCommas = GetParamsWithPrefix("JenkinsEnv");
-                    Dictionary<string, string> jenkinsEnvVars = new Dictionary<string, string>();
+                    Dictionary<string, string> jenkinsEnvVars = [];
                     foreach (string var in jenkinsEnvVarsWithCommas)
                     {
                         string[] nameVal = var.Split(_colon_semicolon);
@@ -353,8 +351,8 @@ namespace HpToolsLauncher
                     }
 
                     //add build tests and cleanup tests in correct order
-                    List<TestData> validTests = new List<TestData>();
-                    List<TestInfo> cleanupAndRerunTests = new List<TestInfo>();
+                    List<TestData> validTests = [];
+                    List<TestInfo> cleanupAndRerunTests = [];
 
                     if (isFirstRun)
                     {
@@ -376,7 +374,7 @@ namespace HpToolsLauncher
                         string fsTestType = _ciParams.GetOrDefault("testType");
                         List<TestData> validCleanupTests = GetValidTests(CLEANUP_TEST, Resources.LauncherNoCleanupTestsFound, Resources.LauncherNoValidCleanupTests, fsTestType);
                         List<string> reruns = GetParamsWithPrefix("Reruns");
-                        List<int> numberOfReruns = new List<int>();
+                        List<int> numberOfReruns = [];
                         foreach (var item in reruns)
                         {
                             numberOfReruns.Add(int.Parse(item));
@@ -457,8 +455,7 @@ namespace HpToolsLauncher
                         string strTimeoutInSeconds = _ciParams["fsTimeout"];
                         if (strTimeoutInSeconds.Trim() != "-1")
                         {
-                            int intTimeoutInSeconds;
-                            int.TryParse(strTimeoutInSeconds, out intTimeoutInSeconds);
+                            int.TryParse(strTimeoutInSeconds, out int intTimeoutInSeconds);
                             timeout = TimeSpan.FromSeconds(intTimeoutInSeconds);
                         }
                     }
@@ -476,14 +473,13 @@ namespace HpToolsLauncher
                     if (_ciParams.ContainsKey("PerScenarioTimeOut"))
                     {
                         string strTimeoutInMinutes = _ciParams["PerScenarioTimeOut"];
-                        int intTimoutInMinutes;
-                        if (strTimeoutInMinutes.Trim() != "-1" && int.TryParse(strTimeoutInMinutes, out intTimoutInMinutes))
+                        if (strTimeoutInMinutes.Trim() != "-1" && int.TryParse(strTimeoutInMinutes, out int intTimoutInMinutes))
                             perScenarioTimeOutMinutes = TimeSpan.FromMinutes(intTimoutInMinutes);
                     }
                     ConsoleWriter.WriteLine("PerScenarioTimeout: " + perScenarioTimeOutMinutes.ToString(@"dd\:\:hh\:mm\:ss") + " minutes");
 
-                    char[] delimiter = { '\n' };
-                    List<string> ignoreErrorStrings = new List<string>();
+                    char[] delimiter = ['\n'];
+                    List<string> ignoreErrorStrings = [];
                     if (_ciParams.ContainsKey("ignoreErrorStrings"))
                     {
                         ignoreErrorStrings.AddRange(Array.ConvertAll(_ciParams["ignoreErrorStrings"].Split(delimiter, StringSplitOptions.RemoveEmptyEntries), ignoreError => ignoreError.Trim()));
@@ -527,7 +523,7 @@ namespace HpToolsLauncher
 
                     DigitalLab digitalLab = new(mcConnectionInfo, mobileinfo, cloudBrowser, mobileExecDescr);
 
-                    var parallelRunnerEnvironments = new Dictionary<string, List<string>>();
+                    Dictionary<string, List<string>> parallelRunnerEnvironments = [];
 
                     // retrieve the parallel runner environment for each test
                     if (_ciParams.ContainsKey("parallelRunnerMode"))
@@ -555,10 +551,10 @@ namespace HpToolsLauncher
                             string fsReportPath = _ciParams["fsReportPath"];
 
                             //get parameter name
-                            fsReportPath = fsReportPath.Trim(new char[] { ' ', '$', '{', '}' });
+                            fsReportPath = fsReportPath.Trim([' ', '$', '{', '}']);
 
                             //get parameter value
-                            fsReportPath = fsReportPath.Trim(new char[] { ' ', '\t' });
+                            fsReportPath = fsReportPath.Trim([' ', '\t']);
                             try
                             {
                                 reportPath = jenkinsEnvVars[fsReportPath];
@@ -647,7 +643,7 @@ namespace HpToolsLauncher
         private List<string> GetParamsWithPrefix(string prefix, bool skipEmptyEntries = false)
         {
             int idx = 1;
-            List<string> parameters = new List<string>();
+            List<string> parameters = [];
             while (_ciParams.ContainsKey(prefix + idx))
             {
                 string set = _ciParams[prefix + idx];
@@ -702,13 +698,15 @@ namespace HpToolsLauncher
                 {
                     if (_ciRun)
                     {
-                        _xmlBuilder = new JunitXmlBuilder();
-                        _xmlBuilder.XmlName = resultsFile;
+                        _xmlBuilder = new JunitXmlBuilder
+                        {
+                            XmlName = resultsFile
+                        };
                     }
 
                     _xmlBuilder.CreateXmlFromRunResults(results);
                 }
-                var allTestRuns = new List<TestRunResults>(results.TestRuns);
+                List<TestRunResults> allTestRuns = new(results.TestRuns);
 
                 if (allTestRuns.Count == 0)
                 {
@@ -854,8 +852,7 @@ namespace HpToolsLauncher
                 if (summaryDataLogFlags.Length == 4)
                 {
                     //If the polling interval is not a valid number, set it to default (10 seconds)
-                    int summaryDataLoggerPollingInterval;
-                    if (!int.TryParse(summaryDataLogFlags[3], out summaryDataLoggerPollingInterval))
+                    if (!int.TryParse(summaryDataLogFlags[3], out int summaryDataLoggerPollingInterval))
                     {
                         summaryDataLoggerPollingInterval = 10;
                     }
@@ -869,12 +866,12 @@ namespace HpToolsLauncher
                 }
                 else
                 {
-                    summaryDataLogger = new SummaryDataLogger();
+                    summaryDataLogger = new();
                 }
             }
             else
             {
-                summaryDataLogger = new SummaryDataLogger();
+                summaryDataLogger = new();
             }
 
             return summaryDataLogger;
@@ -882,12 +879,12 @@ namespace HpToolsLauncher
 
         private List<ScriptRTSModel> GetScriptRtsSet()
         {
-            List<ScriptRTSModel> scriptRtsSet = new List<ScriptRTSModel>();
+            List<ScriptRTSModel> scriptRtsSet = [];
 
             IEnumerable<string> scriptNames = GetParamsWithPrefix("ScriptRTS");
             foreach (string scriptName in scriptNames)
             {
-                ScriptRTSModel scriptRts = new ScriptRTSModel(scriptName);
+                ScriptRTSModel scriptRts = new(scriptName);
 
                 IEnumerable<string> additionalAttributes = GetParamsWithPrefix("AdditionalAttribute");
                 foreach (string additionalAttribute in additionalAttributes)
@@ -921,7 +918,7 @@ namespace HpToolsLauncher
         {
             if (fsTestType != RERUN_FAILED_TESTS || propPrefix == CLEANUP_TEST)
             {
-                List<TestData> tests = new List<TestData>();
+                List<TestData> tests = [];
                 Dictionary<string, string> testsKeyValue = GetKeyValuesWithPrefix(propPrefix);
                 if (propPrefix == CLEANUP_TEST && testsKeyValue.Count == 0)
                 {
@@ -948,7 +945,7 @@ namespace HpToolsLauncher
                 }
             }
 
-            return new List<TestData>();
+            return [];
         }
 
 
@@ -958,7 +955,7 @@ namespace HpToolsLauncher
         /// <returns></returns>
         private List<TestParameter> GetValidParams()
         {
-            List<TestParameter> parameters = new List<TestParameter>();
+            List<TestParameter> parameters = [];
 
             int initialNumOfTests = _ciParams.ContainsKey("numOfTests") ? int.Parse(_ciParams["numOfTests"]) : 0;
 
