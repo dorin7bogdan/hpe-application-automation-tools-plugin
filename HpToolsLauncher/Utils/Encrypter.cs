@@ -30,17 +30,30 @@
  * ___________________________________________________________________
  */
 
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Modes;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Utilities.Encoders;
 using System;
-using System.Security.Cryptography;
+using System.IO;
 using System.Text;
 
 namespace HpToolsLauncher.Utils
 {
     public static class Encrypter
     {
-        private static readonly RijndaelManaged _rijndaelCipher;
+        private static readonly byte[] _secretKey;
+        private static readonly byte[] _initVector;
+
         private const string AES_256_SECRET_KEY = "AES_256_SECRET_KEY";
         private const string AES_256_SECRET_INIT_VECTOR = "AES_256_SECRET_INIT_VECTOR";
+
+        private const string ALGORITHM = "AES";
+        private const string CIPHER = "AES/GCM/NoPadding";
+
+        private static IBufferedCipher _decryptor;
 
         static Encrypter()
         {
@@ -50,32 +63,33 @@ namespace HpToolsLauncher.Utils
             string secretKey = Environment.GetEnvironmentVariable(AES_256_SECRET_KEY);
             string initVector = Environment.GetEnvironmentVariable(AES_256_SECRET_INIT_VECTOR);
 
-            _rijndaelCipher = new()
+            if (secretKey.IsNullOrEmpty() && !initVector.IsNullOrEmpty())
             {
-                Mode = CipherMode.CBC,
-                Padding = PaddingMode.PKCS7,
-                KeySize = 256,
-                BlockSize = 128,
-                Key = Encoding.UTF8.GetBytes(secretKey), // 32 bytes
-                IV = Encoding.UTF8.GetBytes(initVector) // 16 bytes
-            };
+                _secretKey = Encoding.UTF8.GetBytes(secretKey); // 32 bytes
+                _initVector = Encoding.UTF8.GetBytes(initVector); // 16 bytes
+            }
         }
 
-        /// <summary>
-        /// Decrypts the data with the node's private key.
-        /// </summary>
-        /// <param name="encryptedText"></param>
-        /// <returns></returns>
-        public static string Decrypt(string encryptedText)
+        public static string Decrypt(string textToDecrypt)
         {
-            if (encryptedText.IsNullOrWhiteSpace())
+            if (textToDecrypt.IsNullOrWhiteSpace())
                 return string.Empty;
 #if DEBUG
             return textToDecrypt;
 #endif
-            byte[] encryptedData = Convert.FromBase64String(encryptedText);
-            byte[] plainText = _rijndaelCipher.CreateDecryptor().TransformFinalBlock(encryptedData, 0, encryptedData.Length);
-            return Encoding.UTF8.GetString(plainText);
+            byte[] bytesToDecrypt = Convert.FromBase64String(textToDecrypt);
+            IBufferedCipher cipher = _decryptor ?? CreateDecryptor();
+            byte[] plaintextBytes = cipher.DoFinal(bytesToDecrypt);
+            return Encoding.UTF8.GetString(plaintextBytes);
         }
+        private static IBufferedCipher CreateDecryptor()
+        {
+            KeyParameter keySpec = ParameterUtilities.CreateKeyParameter(ALGORITHM, _secretKey);
+            ParametersWithIV ivSpec = new(keySpec, _initVector);
+            _decryptor = CipherUtilities.GetCipher(CIPHER);
+            _decryptor.Init(false, ivSpec);
+            return _decryptor;
+        }
+
     }
 }
