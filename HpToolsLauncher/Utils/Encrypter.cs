@@ -53,20 +53,24 @@ namespace HpToolsLauncher.Utils
         private const string ALGORITHM = "AES";
         private const string CIPHER = "AES/GCM/NoPadding";
 
-        private static IBufferedCipher _decryptor;
+        private static readonly IBufferedCipher _decryptor;
 
         static Encrypter()
         {
 #if DEBUG
             return;
 #endif
-            string secretKey = Environment.GetEnvironmentVariable(AES_256_SECRET_KEY);
-            string initVector = Environment.GetEnvironmentVariable(AES_256_SECRET_INIT_VECTOR);
+            string key = Environment.GetEnvironmentVariable(AES_256_SECRET_KEY);
+            string iv = Environment.GetEnvironmentVariable(AES_256_SECRET_INIT_VECTOR);
 
-            if (secretKey.IsNullOrEmpty() && !initVector.IsNullOrEmpty())
+            if (!key.IsNullOrEmpty() && !iv.IsNullOrEmpty())
             {
-                _secretKey = Encoding.UTF8.GetBytes(secretKey); // 32 bytes
-                _initVector = Encoding.UTF8.GetBytes(initVector); // 16 bytes
+                _secretKey = Encoding.UTF8.GetBytes(key); // 32 bytes
+                _initVector = Encoding.UTF8.GetBytes(iv); // 16 bytes
+                KeyParameter keySpec = ParameterUtilities.CreateKeyParameter(ALGORITHM, _secretKey);
+                ParametersWithIV ivSpec = new(keySpec, _initVector);
+                _decryptor = CipherUtilities.GetCipher(CIPHER);
+                _decryptor.Init(false, ivSpec);
             }
         }
 
@@ -78,18 +82,8 @@ namespace HpToolsLauncher.Utils
             return textToDecrypt;
 #endif
             byte[] bytesToDecrypt = Convert.FromBase64String(textToDecrypt);
-            IBufferedCipher cipher = _decryptor ?? CreateDecryptor();
-            byte[] plaintextBytes = cipher.DoFinal(bytesToDecrypt);
+            byte[] plaintextBytes = _decryptor.DoFinal(bytesToDecrypt);
             return Encoding.UTF8.GetString(plaintextBytes);
         }
-        private static IBufferedCipher CreateDecryptor()
-        {
-            KeyParameter keySpec = ParameterUtilities.CreateKeyParameter(ALGORITHM, _secretKey);
-            ParametersWithIV ivSpec = new(keySpec, _initVector);
-            _decryptor = CipherUtilities.GetCipher(CIPHER);
-            _decryptor.Init(false, ivSpec);
-            return _decryptor;
-        }
-
     }
 }
