@@ -56,22 +56,25 @@ namespace HpToolsLauncher.Utils
 #if DEBUG
             return;
 #endif
+            string key = null, iv = null;
             try
             {
-                string key = Environment.GetEnvironmentVariable(AES_256_SECRET_KEY);
-                string iv = Environment.GetEnvironmentVariable(AES_256_SECRET_INIT_VECTOR);
-
-                if (!key.IsNullOrEmpty() && !iv.IsNullOrEmpty())
-                {
-                    _secretKey = Encoding.UTF8.GetBytes(key); // 32 bytes
-                    _initVector = Encoding.UTF8.GetBytes(iv); // 16 bytes
-                    KeyParameter keySpec = ParameterUtilities.CreateKeyParameter(ALGORITHM, _secretKey);
-                    ParametersWithIV ivSpec = new(keySpec, _initVector);
-                    _decryptor = CipherUtilities.GetCipher(CIPHER);
-                    _decryptor.Init(false, ivSpec);
-                }
-            } catch {
+                key = Environment.GetEnvironmentVariable(AES_256_SECRET_KEY);
+                iv = Environment.GetEnvironmentVariable(AES_256_SECRET_INIT_VECTOR);
+            }
+            catch (ArgumentNullException)
+            {
                 Console.WriteLine("Environment variable AES_256_SECRET_KEY and / or AES_256_SECRET_INIT_VECTOR not found.");
+                return;
+            }
+            if (!key.IsNullOrEmpty() && !iv.IsNullOrEmpty())
+            {
+                _secretKey = Encoding.UTF8.GetBytes(key); // 32 bytes
+                _initVector = Encoding.UTF8.GetBytes(iv); // 16 bytes
+                KeyParameter keySpec = ParameterUtilities.CreateKeyParameter(ALGORITHM, _secretKey);
+                ParametersWithIV ivSpec = new(keySpec, _initVector);
+                _decryptor = CipherUtilities.GetCipher(CIPHER);
+                _decryptor.Init(false, ivSpec);
             }
         }
 
