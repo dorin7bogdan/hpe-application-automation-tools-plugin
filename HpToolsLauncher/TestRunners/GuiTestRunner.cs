@@ -869,11 +869,12 @@ namespace HpToolsLauncher
                             if (mobileLnc.Lab != DIGITAL_LAB)
                                 mobileLnc.Lab = DIGITAL_LAB;
                             Console.WriteLine($"MobileLauncher is loaded and Lab = {mobileLnc.Lab}.");
+                            mobileLnc.EnableWebSettingForMobile();
                         }
                         else if (ln is WebLauncher webLnc)
                         {
-                            if (webLnc.Active)
-                                webLnc.Active = false; // use default option
+                            //if (webLnc.Active)
+                            //    webLnc.Active = false; // use default option
                             Console.WriteLine($"WebLauncher is loaded and Active = {webLnc.Active}.");
                         }
                     }

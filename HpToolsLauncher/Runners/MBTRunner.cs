@@ -49,11 +49,25 @@ namespace HpToolsLauncher
         private readonly IEnumerable<MBTTest> mbtTests = tests;
 
         private const string MOBILE_JOB_SETTINGS = @"AddIn Manager\Mobile\Startup Settings\JOB_SETTINGS";
-        private const string MOBILE_APP_SETTINGS = @"AddIn Manager\Mobile\Startup Settings\ApplicationName";
+        private const string WEB_MOBILE_JOB_SETTINGS = @"AddIn Manager\Web\Startup Settings\Web_Mobile\Mobile\JOB_SETTINGS";
+        private const string MOBILE_APP_NAME = @"AddIn Manager\Mobile\Startup Settings\ApplicationName";
+        private const string WEB_MOBILE_SELECTED_APP = @"Addin Manager\Web\Startup Settings\Web_Mobile\Mobile\Selected_Application";
+        private const string WEB_MOBILE_SELECTED_DEVICE = @"Addin Manager\Web\Startup Settings\Web_Mobile\Mobile\Selected_Device";
+        private const string WEB_MOBILE_SELECTED_VITALS = @"Addin Manager\Web\Startup Settings\Web_Mobile\Mobile\Selected_Vitals";
         private const string _DEFAULT = "_default";
         private const string WEB = "Web";
         private const string MOBILE = "Mobile";
         private const string DIGITAL_LAB = "DigitalLab";
+
+        private class MobileSettings(string job, string appName, string jobWeb, string selectedApp, string selectedDevice, string selectedVitals)
+        {
+            public string Job => job;
+            public string JobWeb => jobWeb;
+            public string AppName => appName;
+            public string SelectedApp => selectedApp;
+            public string SelectedDevice => selectedDevice;
+            public string SelectedVitals => selectedVitals;
+        }
 
         public override TestSuiteRunResults Run()
         {
@@ -100,15 +114,17 @@ namespace HpToolsLauncher
                     try
                     {
                         string firstUnderlyingTest = mbtTest.UnderlyingTests.FirstOrDefault(t => !t.IsNullOrEmpty());
-                        string jobSettings = null, appSettings = null;
+                        string jobSettings = null, appSettings = null, jobWebSettings = null, appWebSettings = null;
                         DateTime dtStartOfStep;
                         if (!firstUnderlyingTest.IsNullOrEmpty())
                         {
                             dtStartOfStep = DateTime.Now;
-                            GetMobileSettings(qtpApp, firstUnderlyingTest, out jobSettings, out appSettings);
+                            MobileSettings settings = GetMobileSettings(qtpApp, firstUnderlyingTest);
                             ConsoleWriter.WriteLine(string.Format("GetJobSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
                             Console.WriteLine($"jobSettings: {jobSettings}");
                             Console.WriteLine($"appSettings: {appSettings}");
+                            Console.WriteLine($"webJobSettings: {jobWebSettings}");
+                            Console.WriteLine($"webAppSettings: {appWebSettings}");
                         }
                         dtStartOfStep = DateTime.Now;
                         qtpApp.New();
@@ -121,10 +137,23 @@ namespace HpToolsLauncher
                             if (!appSettings.IsNullOrEmpty())
                             {
                                 dtStartOfStep = DateTime.Now;
-                                qtpApp.TDPierToTulip.SetTestOptionsValWithPath(MOBILE_APP_SETTINGS, _DEFAULT, appSettings);
+                                qtpApp.TDPierToTulip.SetTestOptionsValWithPath(MOBILE_APP_NAME, _DEFAULT, appSettings);
                                 ConsoleWriter.WriteLine(string.Format("SetAppSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
                             }
                         }
+                        if (!jobWebSettings.IsNullOrEmpty())
+                        {
+                            dtStartOfStep = DateTime.Now;
+                            qtpApp.TDPierToTulip.SetTestOptionsValWithPath(WEB_MOBILE_JOB_SETTINGS, _DEFAULT, jobWebSettings);
+                            ConsoleWriter.WriteLine(string.Format("SetWebJobSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
+                            if (!appWebSettings.IsNullOrEmpty())
+                            {
+                                dtStartOfStep = DateTime.Now;
+                                qtpApp.TDPierToTulip.SetTestOptionsValWithPath(WEB_MOBILE_SELECTED_APP, _DEFAULT, appWebSettings);
+                                ConsoleWriter.WriteLine(string.Format("SetWebAppSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
+                            }
+                        }
+
                         Test test = qtpApp.Test;
                         if (addins?.Length > 0)
                         {
@@ -183,7 +212,7 @@ namespace HpToolsLauncher
                         {
                             if (lan is WebLauncher webLnc)
                             {
-                                webLnc.Active = false; //use default option
+                                //webLnc.Active = false; //use default option TODO
                                 Console.WriteLine($"WebLauncher is loaded and Active = {webLnc.Active}");
                             }
                             else if (lan is MobileLauncher mobileLnc)
@@ -229,14 +258,23 @@ namespace HpToolsLauncher
             return filePath;
         }
 
-        private void GetMobileSettings(Application qtApp, string testPath, out string jobSettings, out string appSettings)
+        private MobileSettings GetMobileSettings(Application qtApp, string testPath)
         {
             qtApp.Open(testPath);
             qtApp.TDPierToTulip.GetTestOptionsValWithPath(MOBILE_JOB_SETTINGS, _DEFAULT, out object objJobSettings);
-            qtApp.TDPierToTulip.GetTestOptionsValWithPath(MOBILE_APP_SETTINGS, _DEFAULT, out object objAppSettings);
-            jobSettings = objJobSettings as string;
-            appSettings = objAppSettings as string;
+            qtApp.TDPierToTulip.GetTestOptionsValWithPath(MOBILE_APP_NAME, _DEFAULT, out object objAppName);
+            qtApp.TDPierToTulip.GetTestOptionsValWithPath(WEB_MOBILE_JOB_SETTINGS, _DEFAULT, out object objJobWebSettings);
+            qtApp.TDPierToTulip.GetTestOptionsValWithPath(WEB_MOBILE_SELECTED_APP, _DEFAULT, out object objWebSelectedApp);
+            qtApp.TDPierToTulip.GetTestOptionsValWithPath(WEB_MOBILE_SELECTED_DEVICE, _DEFAULT, out object objWebSelectedDevice);
+            qtApp.TDPierToTulip.GetTestOptionsValWithPath(WEB_MOBILE_SELECTED_VITALS, _DEFAULT, out object objWebSelectedVitals);
             qtApp.Test.Close();
+            return new (
+                objJobSettings as string, 
+                objAppName as string, 
+                objJobWebSettings as string, 
+                objWebSelectedApp as string, 
+                objWebSelectedDevice as string,
+                objWebSelectedVitals as string);
         }
         private string[] LoadNeededAddins(Application _qtpApplication, IEnumerable<string> fileNames)
         {
