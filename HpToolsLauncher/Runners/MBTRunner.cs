@@ -49,8 +49,8 @@ namespace HpToolsLauncher
         private readonly IEnumerable<MBTTest> mbtTests = tests;
 
         private const string MOBILE_JOB_SETTINGS = @"AddIn Manager\Mobile\Startup Settings\JOB_SETTINGS";
-        private const string WEB_MOBILE_JOB_SETTINGS = @"AddIn Manager\Web\Startup Settings\Web_Mobile\Mobile\JOB_SETTINGS";
         private const string MOBILE_APP_NAME = @"AddIn Manager\Mobile\Startup Settings\ApplicationName";
+        private const string WEB_MOBILE_JOB_SETTINGS = @"AddIn Manager\Web\Startup Settings\Web_Mobile\Mobile\JOB_SETTINGS";
         private const string WEB_MOBILE_SELECTED_APP = @"Addin Manager\Web\Startup Settings\Web_Mobile\Mobile\Selected_Application";
         private const string WEB_MOBILE_SELECTED_DEVICE = @"Addin Manager\Web\Startup Settings\Web_Mobile\Mobile\Selected_Device";
         private const string WEB_MOBILE_SELECTED_VITALS = @"Addin Manager\Web\Startup Settings\Web_Mobile\Mobile\Selected_Vitals";
@@ -114,46 +114,55 @@ namespace HpToolsLauncher
                     try
                     {
                         string firstUnderlyingTest = mbtTest.UnderlyingTests.FirstOrDefault(t => !t.IsNullOrEmpty());
-                        string jobSettings = null, appSettings = null, jobWebSettings = null, appWebSettings = null;
+                        MobileSettings settings = null;
                         DateTime dtStartOfStep;
                         if (!firstUnderlyingTest.IsNullOrEmpty())
                         {
                             dtStartOfStep = DateTime.Now;
-                            MobileSettings settings = GetMobileSettings(qtpApp, firstUnderlyingTest);
+                            settings = GetMobileSettings(qtpApp, firstUnderlyingTest);
                             ConsoleWriter.WriteLine(string.Format("GetJobSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
-                            Console.WriteLine($"jobSettings: {jobSettings}");
-                            Console.WriteLine($"appSettings: {appSettings}");
-                            Console.WriteLine($"webJobSettings: {jobWebSettings}");
-                            Console.WriteLine($"webAppSettings: {appWebSettings}");
+                            Console.WriteLine($"Job Settings: {settings.Job}");
+                            Console.WriteLine($"App Name: {settings.AppName}");
+                            Console.WriteLine($"Web JobSettings: {settings.JobWeb}");
+                            Console.WriteLine($"Selected App: {settings.SelectedApp}");
+                            Console.WriteLine($"Selected Vitals: {settings.SelectedVitals}");
                         }
                         dtStartOfStep = DateTime.Now;
                         qtpApp.New();
                         ConsoleWriter.WriteLine(string.Format("qtpApp.New took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
-                        if (!jobSettings.IsNullOrEmpty())
+                        if (settings != null)
                         {
-                            dtStartOfStep = DateTime.Now;
-                            qtpApp.TDPierToTulip.SetTestOptionsValWithPath(MOBILE_JOB_SETTINGS, _DEFAULT, jobSettings);
-                            ConsoleWriter.WriteLine(string.Format("SetJobSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
-                            if (!appSettings.IsNullOrEmpty())
+                            if (!settings.Job.IsNullOrEmpty())
                             {
                                 dtStartOfStep = DateTime.Now;
-                                qtpApp.TDPierToTulip.SetTestOptionsValWithPath(MOBILE_APP_NAME, _DEFAULT, appSettings);
+                                qtpApp.TDPierToTulip.SetTestOptionsValWithPath(MOBILE_JOB_SETTINGS, _DEFAULT, settings.Job);
+                                ConsoleWriter.WriteLine(string.Format("SetJobSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
+                            }
+                            if (!settings.AppName.IsNullOrEmpty())
+                            {
+                                dtStartOfStep = DateTime.Now;
+                                qtpApp.TDPierToTulip.SetTestOptionsValWithPath(MOBILE_APP_NAME, _DEFAULT, settings.AppName);
                                 ConsoleWriter.WriteLine(string.Format("SetAppSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
                             }
-                        }
-                        if (!jobWebSettings.IsNullOrEmpty())
-                        {
-                            dtStartOfStep = DateTime.Now;
-                            qtpApp.TDPierToTulip.SetTestOptionsValWithPath(WEB_MOBILE_JOB_SETTINGS, _DEFAULT, jobWebSettings);
-                            ConsoleWriter.WriteLine(string.Format("SetWebJobSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
-                            if (!appWebSettings.IsNullOrEmpty())
+                            if (!settings.JobWeb.IsNullOrEmpty())
                             {
                                 dtStartOfStep = DateTime.Now;
-                                qtpApp.TDPierToTulip.SetTestOptionsValWithPath(WEB_MOBILE_SELECTED_APP, _DEFAULT, appWebSettings);
+                                qtpApp.TDPierToTulip.SetTestOptionsValWithPath(WEB_MOBILE_JOB_SETTINGS, _DEFAULT, settings.JobWeb);
+                                ConsoleWriter.WriteLine(string.Format("SetWebJobSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
+                            }
+                            if (!settings.SelectedApp.IsNullOrEmpty())
+                            {
+                                dtStartOfStep = DateTime.Now;
+                                qtpApp.TDPierToTulip.SetTestOptionsValWithPath(WEB_MOBILE_SELECTED_APP, _DEFAULT, settings.SelectedApp);
                                 ConsoleWriter.WriteLine(string.Format("SetWebAppSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
                             }
+                            if (!settings.SelectedVitals.IsNullOrEmpty())
+                            { 
+                                dtStartOfStep = DateTime.Now;
+                                qtpApp.TDPierToTulip.SetTestOptionsValWithPath(WEB_MOBILE_SELECTED_VITALS, _DEFAULT, settings.SelectedVitals);
+                                ConsoleWriter.WriteLine(string.Format("SetWebVitalSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
+                            }
                         }
-
                         Test test = qtpApp.Test;
                         if (addins?.Length > 0)
                         {
