@@ -869,7 +869,7 @@ namespace HpToolsLauncher
                             if (mobileLnc.Lab != DIGITAL_LAB)
                                 mobileLnc.Lab = DIGITAL_LAB;
                             Console.WriteLine($"MobileLauncher is loaded and Lab = {mobileLnc.Lab}.");
-                            mobileLnc.EnableWebSettingForMobile();
+                            //mobileLnc.EnableWebSettingForMobile();
                         }
                         else if (ln is WebLauncher webLnc)
                         {
