@@ -791,7 +791,7 @@ namespace HpToolsLauncher
                     _qtpApplication.Options.DLConnection.ValueEdgeHostAddress = url;
                     _qtpApplication.Options.DLConnection.UseProxySettings = false;
                     _qtpApplication.Options.DLConnection.ShowRemoteWndOnRun = true;
-                    _qtpApplication.Options.DLConnection.WorkSpace = "default workspace";
+                    //_qtpApplication.Options.DLConnection.WorkSpace = "default workspace";
 
                     if (!string.IsNullOrEmpty(_dlExecDescription))
                     {

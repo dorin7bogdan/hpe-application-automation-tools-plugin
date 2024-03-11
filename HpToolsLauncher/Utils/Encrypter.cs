@@ -40,9 +40,6 @@ namespace HpToolsLauncher.Utils
 {
     public static class Encrypter
     {
-        private static readonly byte[] _secretKey;
-        private static readonly byte[] _initVector;
-
         private const string AES_256_SECRET_KEY = "AES_256_SECRET_KEY";
         private const string AES_256_SECRET_INIT_VECTOR = "AES_256_SECRET_INIT_VECTOR";
 
@@ -53,38 +50,28 @@ namespace HpToolsLauncher.Utils
 
         static Encrypter()
         {
-#if DEBUG
-            return;
-#endif
-            string key = null, iv = null;
-            try
+            string key = Environment.GetEnvironmentVariable(AES_256_SECRET_KEY);
+            string iv = Environment.GetEnvironmentVariable(AES_256_SECRET_INIT_VECTOR);
+            if (key.IsNullOrEmpty() || iv.IsNullOrEmpty())
             {
-                key = Environment.GetEnvironmentVariable(AES_256_SECRET_KEY);
-                iv = Environment.GetEnvironmentVariable(AES_256_SECRET_INIT_VECTOR);
-            }
-            catch (ArgumentNullException)
-            {
-                Console.WriteLine("Environment variable AES_256_SECRET_KEY and / or AES_256_SECRET_INIT_VECTOR not found.");
+                Console.WriteLine("Environment variable AES_256_SECRET_KEY and / or AES_256_SECRET_INIT_VECTOR not found. The decrypt operations will be bypassed.");
                 return;
             }
-            if (!key.IsNullOrEmpty() && !iv.IsNullOrEmpty())
-            {
-                _secretKey = Encoding.UTF8.GetBytes(key); // 32 bytes
-                _initVector = Encoding.UTF8.GetBytes(iv); // 16 bytes
-                KeyParameter keySpec = ParameterUtilities.CreateKeyParameter(ALGORITHM, _secretKey);
-                ParametersWithIV ivSpec = new(keySpec, _initVector);
-                _decryptor = CipherUtilities.GetCipher(CIPHER);
-                _decryptor.Init(false, ivSpec);
-            }
+            byte[] secretKey = Encoding.UTF8.GetBytes(key); // 32 bytes
+            byte[] initVector = Encoding.UTF8.GetBytes(iv); // 16 bytes
+            KeyParameter keySpec = ParameterUtilities.CreateKeyParameter(ALGORITHM, secretKey);
+            ParametersWithIV ivSpec = new(keySpec, initVector);
+            _decryptor = CipherUtilities.GetCipher(CIPHER);
+            _decryptor.Init(false, ivSpec);
         }
 
         public static string Decrypt(string textToDecrypt)
         {
             if (textToDecrypt.IsNullOrWhiteSpace())
                 return string.Empty;
-#if DEBUG
-            return textToDecrypt;
-#endif
+            if (_decryptor == null)
+                return textToDecrypt;
+    
             byte[] bytesToDecrypt = Convert.FromBase64String(textToDecrypt);
             byte[] plaintextBytes = _decryptor.DoFinal(bytesToDecrypt);
             return Encoding.UTF8.GetString(plaintextBytes);
