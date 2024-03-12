@@ -31,7 +31,7 @@
  */
 
 using HpToolsLauncher.Utils;
-using Mercury.TD.Client.Ota.QC9;
+using Microsoft.Win32;
 using QTObjectModelLib;
 using System;
 using System.Collections.Generic;
@@ -39,51 +39,24 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Action = QTObjectModelLib.Action;
-using Test = QTObjectModelLib.Test;
 
 namespace HpToolsLauncher
 {
     public class MBTRunner(string parentFolder, string repoFolder, IEnumerable<MBTTest> tests) : RunnerBase, IDisposable
     {
         private readonly object _lockObject = new();
-        private readonly string parentFolder = parentFolder;//folder in which we will create new tests
-        private readonly string repoFolder = repoFolder;
-        private readonly IEnumerable<MBTTest> mbtTests = tests;
+        private readonly string _parentFolder = parentFolder;//folder in which we will create new tests
+        private readonly string _repoFolder = repoFolder;
+        private readonly IEnumerable<MBTTest> _mbtTests = tests;
+        private readonly IList<KeyValuePair<string, object>> _rnrMobilePaths = [];
+        private readonly IList<KeyValuePair<string, object>> _rnrWebPaths = [];
 
-        private const string MOBILE_JOB_SETTINGS = @"AddIn Manager\Mobile\Startup Settings\JOB_SETTINGS";
-        private const string MOBILE_APP_NAME = @"AddIn Manager\Mobile\Startup Settings\ApplicationName";
-        private const string WEB_MOBILE_JOB_SETTINGS = @"AddIn Manager\Web\Startup Settings\Web_Mobile\Mobile\JOB_SETTINGS";
-        private const string WEB_MOBILE_SELECTED_APP = @"Addin Manager\Web\Startup Settings\Web_Mobile\Mobile\Selected_Application";
-        private const string WEB_MOBILE_SELECTED_DEVICE = @"Addin Manager\Web\Startup Settings\Web_Mobile\Mobile\Selected_Device";
-        private const string WEB_MOBILE_SELECTED_VITALS = @"Addin Manager\Web\Startup Settings\Web_Mobile\Mobile\Selected_Vitals";
+        private const string MOBILE_STARTUP_SETTINGS_REG_KEY = @"Software\Mercury Interactive\QuickTest Professional\MicTest\AddIn Manager\Mobile\Startup Settings";
+        private const string WEB_STARTUP_SETTINGS_REG_KEY = @"Software\Mercury Interactive\QuickTest Professional\MicTest\AddIn Manager\Web\Startup Settings";
+        private const string MOBILE_STARTUP_SETTINGS = @"AddIn Manager\Mobile\Startup Settings";
+        private const string WEB_STARTUP_SETTINGS = @"AddIn Manager\Web\Startup Settings";
+        private const string HISTORY = "History";
         private const string _DEFAULT = "_default";
-        private const string WEB = "Web";
-        private const string MOBILE = "Mobile";
-        private const string DIGITAL_LAB = "DigitalLab";
-
-        private class WebLauncherEx(bool active, /*string env,*/ string address, string browser, string browserParamName)
-        {
-            public bool Active => active;
-            public string Address => address;
-            public string Browser => browser;
-            //public string Env => env;
-            public string BrowserParamName => browserParamName;
-        }
-
-        private class MobileSettings(string job, string appName, string jobWeb, string selectedApp, string selectedDevice, string selectedVitals, WebLauncher webLauncher)
-        {
-            private readonly WebLauncherEx webLauncherEx = webLauncher != null ?
-                            new(webLauncher.Active, webLauncher.Address, webLauncher.Browser, webLauncher.BrowserParameterName) :
-                            null;
-
-            public string Job => job;
-            public string JobWeb => jobWeb;
-            public string AppName => appName;
-            public string SelectedApp => selectedApp;
-            public string SelectedDevice => selectedDevice;
-            public string SelectedVitals => selectedVitals;
-            public WebLauncherEx WebLauncherEx => webLauncherEx;
-        }
 
         public override TestSuiteRunResults Run()
         {
@@ -94,19 +67,19 @@ namespace HpToolsLauncher
                 Application qtpApp = Activator.CreateInstance(type) as Application;
                 try
                 {
-                    if (Directory.Exists(parentFolder))
+                    if (Directory.Exists(_parentFolder))
                     {
-                        Directory.Delete(parentFolder, true);
+                        Directory.Delete(_parentFolder, true);
                     }
-                    ConsoleWriter.WriteLine("Using parent folder : " + parentFolder);
+                    ConsoleWriter.WriteLine("Using parent folder : " + _parentFolder);
                 }
                 catch (Exception e)
                 {
                     ConsoleWriter.WriteErrLine("Failed to delete parent folder : " + e.Message);
                 }
 
-                Directory.CreateDirectory(parentFolder);
-                DirectoryInfo parentDir = new(parentFolder);
+                Directory.CreateDirectory(_parentFolder);
+                DirectoryInfo parentDir = new(_parentFolder);
 
                 try
                 {
@@ -121,8 +94,9 @@ namespace HpToolsLauncher
                 }
 
                 //START Test creation
-                foreach (var mbtTest in mbtTests)
+                foreach (var mbtTest in _mbtTests)
                 {
+                    ResetKvpListsValues();
                     DateTime dtStartOfTest = DateTime.Now;
                     ConsoleWriter.WriteLine("Creation of " + mbtTest.Name + " *****************************");
                     string[] addins = LoadNeededAddins(qtpApp, mbtTest.UnderlyingTests);
@@ -130,32 +104,24 @@ namespace HpToolsLauncher
                     try
                     {
                         string firstUnderlyingTest = mbtTest.UnderlyingTests.FirstOrDefault(t => !t.IsNullOrEmpty());
-                        MobileSettings settings = null;
                         DateTime dtStartOfStep;
-                        if (!firstUnderlyingTest.IsNullOrEmpty())
-                        {
-                            dtStartOfStep = DateTime.Now;
-                            settings = GetMobileSettings(qtpApp, firstUnderlyingTest);
-                            ConsoleWriter.WriteLine(string.Format("GetJobSettings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
-                            Console.WriteLine($"Job Settings: {settings.Job}");
-                            Console.WriteLine($"App Name: {settings.AppName}");
-                            Console.WriteLine($"Web JobSettings: {settings.JobWeb}");
-                            Console.WriteLine($"Selected App: {settings.SelectedApp}");
-                            Console.WriteLine($"Selected Vitals: {settings.SelectedVitals}");
-                        }
+                        dtStartOfStep = DateTime.Now;
+                        GetMobileAndWebSettings(qtpApp, firstUnderlyingTest, out bool hasMobileSettings, out bool hasWebSettings);
+                        ConsoleWriter.WriteLine(string.Format("Get Mobile and/or Web Settings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
                         dtStartOfStep = DateTime.Now;
                         qtpApp.New();
                         ConsoleWriter.WriteLine(string.Format("qtpApp.New took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
-                        if (settings != null)
+                        if (hasMobileSettings)
                         {
                             dtStartOfStep = DateTime.Now;
-                            SetTestOptionsValWithPath(MOBILE_JOB_SETTINGS, settings.Job);
-                            SetTestOptionsValWithPath(MOBILE_APP_NAME, settings.AppName);
-                            SetTestOptionsValWithPath(WEB_MOBILE_JOB_SETTINGS, settings.JobWeb);
-                            SetTestOptionsValWithPath(WEB_MOBILE_SELECTED_APP, settings.SelectedApp);
-                            SetTestOptionsValWithPath(WEB_MOBILE_SELECTED_DEVICE, settings.SelectedDevice);
-                            SetTestOptionsValWithPath(WEB_MOBILE_SELECTED_VITALS, settings.SelectedVitals);
-                            ConsoleWriter.WriteLine(string.Format("Set Test Options took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
+                            SetTestOptionsValWithPath(qtpApp, _rnrMobilePaths, MOBILE_STARTUP_SETTINGS);
+                            ConsoleWriter.WriteLine(string.Format("Set Mobile Settings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
+                        }
+                        if (hasWebSettings)
+                        {
+                            dtStartOfStep = DateTime.Now;
+                            SetTestOptionsValWithPath(qtpApp, _rnrWebPaths, WEB_STARTUP_SETTINGS);
+                            ConsoleWriter.WriteLine(string.Format("Set Web Settings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
                         }
                         Test test = qtpApp.Test;
                         if (addins?.Length > 0)
@@ -188,7 +154,7 @@ namespace HpToolsLauncher
                         //Expects to receive params in CSV format, encoded base64
                         if (!mbtTest.DatableParams.IsNullOrEmpty())
                         {
-                            string tempCsvFileName = Path.Combine(parentFolder, "temp.csv");
+                            string tempCsvFileName = Path.Combine(_parentFolder, "temp.csv");
                             if (File.Exists(tempCsvFileName))
                             {
                                 File.Delete(tempCsvFileName);
@@ -204,35 +170,8 @@ namespace HpToolsLauncher
 
                         string fullPath = fullDir.CreateSubdirectory(mbtTest.Name).FullName;
                         test.SaveAs(fullPath);
-                        ConsoleWriter.WriteLine(string.Format("MBT test was created in {0} in {1:0.0} secs", fullPath, (DateTime.Now - dtStartOfTest).TotalSeconds));
-                        qtpApp.Quit();
-                        qtpApp = Activator.CreateInstance(type) as Application;
-                        Console.WriteLine($@"Activating the labs ...");
-                        qtpApp.Open(fullPath, false, true);
-                        Launchers launchers = qtpApp.Test.Settings.Launchers;
-                        Console.WriteLine($"launchers.Count = {launchers.Count}");
-                        foreach (var lan in launchers)
-                        {
-                            if (lan is WebLauncher webLnc)
-                            {
-                                WebLauncherEx webLncEx = settings.WebLauncherEx;
-                                //webLnc.SetLab("MobileBrowser");
-                                webLnc.Active = webLncEx.Active;
-                                //webLnc.Env = webLncEx.Env;
-                                webLnc.Address = webLncEx.Address;
-                                webLnc.Browser = webLncEx.Browser;
-                                webLnc.BrowserParameterName = webLncEx.BrowserParamName;
-                                Console.WriteLine($"WebLauncher is loaded and Active = {webLnc.Active}");
-                            }
-                            else if (lan is MobileLauncher mobileLnc)
-                            {
-                                mobileLnc.Lab = DIGITAL_LAB;
-                                Console.WriteLine($"MobileLauncher is loaded and Lab = {mobileLnc.Lab}");
-                            }
-                        }
-                        qtpApp.Test.Save();
                         qtpApp.Test.Close();
-                        Console.WriteLine($"Saved and closed [{fullPath}].");
+                        ConsoleWriter.WriteLine(string.Format("MBT test was created in {0} in {1:0.0} secs", fullPath, (DateTime.Now - dtStartOfTest).TotalSeconds));
                     }
                     catch (Exception e)
                     {
@@ -242,21 +181,31 @@ namespace HpToolsLauncher
                 }
                 if (qtpApp.Launched)
                 {
-                    Console.WriteLine($"Trying to close UFT One...");
                     qtpApp.Quit();
                     Console.WriteLine($"Closed UFT One.");
-                }
-
-                void SetTestOptionsValWithPath(string path, string value)
-                {
-                    if (!value.IsNullOrEmpty())
-                    {
-                        qtpApp.TDPierToTulip.SetTestOptionsValWithPath(path, _DEFAULT, value);
-                    }
                 }
             }
 
             return null;
+        }
+
+        private void ResetKvpListsValues()
+        {
+            resetPathListValues(_rnrMobilePaths);
+            resetPathListValues(_rnrWebPaths);
+
+            static void resetPathListValues(IList<KeyValuePair<string, object>> list)
+            {
+                if (list.Any())
+                {
+                    for (int x = 0; x < list.Count; x++)
+                    {
+                        KeyValuePair<string, object> kvp = list[x];
+                        if (kvp.Value != null)
+                            list[x] = new(kvp.Key, null);
+                    }
+                }
+            }
         }
 
         private string GetResourceFileNameAndAddToUftFoldersIfRequired(Application qtpApplication, string filePath)
@@ -275,50 +224,65 @@ namespace HpToolsLauncher
             return filePath;
         }
 
-        private MobileSettings GetMobileSettings(Application qtApp, string testPath)
+        private void GetMobileAndWebSettings(Application app, string testPath, out bool hasMobileSettings, out bool hasWebSettings)
         {
-            qtApp.Open(testPath, true);
-            qtApp.TDPierToTulip.GetTestOptionsValWithPath(MOBILE_JOB_SETTINGS, _DEFAULT, out object objJobSettings);
-            qtApp.TDPierToTulip.GetTestOptionsValWithPath(MOBILE_APP_NAME, _DEFAULT, out object objAppName);
-            qtApp.TDPierToTulip.GetTestOptionsValWithPath(WEB_MOBILE_JOB_SETTINGS, _DEFAULT, out object objJobWebSettings);
-            qtApp.TDPierToTulip.GetTestOptionsValWithPath(WEB_MOBILE_SELECTED_APP, _DEFAULT, out object objWebSelectedApp);
-            qtApp.TDPierToTulip.GetTestOptionsValWithPath(WEB_MOBILE_SELECTED_DEVICE, _DEFAULT, out object objWebSelectedDevice);
-            qtApp.TDPierToTulip.GetTestOptionsValWithPath(WEB_MOBILE_SELECTED_VITALS, _DEFAULT, out object objWebSelectedVitals);
-
-            Launchers launchers = qtApp.Test.Settings.Launchers;
-            WebLauncher webLauncher = null;
-            foreach (var lan in launchers)
+            Console.WriteLine($"Opening the firstUnderlyingTest: [{testPath}]");
+            app.Open(testPath, true);
+            hasMobileSettings = hasWebSettings = false;
+            Launchers launchers = app.Test.Settings.Launchers;
+            Console.WriteLine($"launchers.Count = {launchers.Count}");
+            foreach (object lnc in app.Test.Settings.Launchers)
             {
-                if (lan is WebLauncher webLnc)
+                if (lnc is MobileLauncher)
                 {
-                    webLauncher = webLnc;
-                    Console.WriteLine($"WebLauncher is loaded");
-                    Console.WriteLine($"Active = {webLnc.Active}");
-                    try { Console.WriteLine($"Env = {webLnc.Env}"); } catch (Exception e) { Console.WriteLine($"Env => {e.Message}"); }
-                    Console.WriteLine($"Address = {webLnc.Address}");
-                    Console.WriteLine($"Browser = {webLnc.Browser}");
-                    Console.WriteLine($"BrowserParameterName = {webLnc.BrowserParameterName}");
-                    break;
+                    Console.WriteLine($"GET Mobile Startup Settings");
+                    RegistryKey key = Registry.CurrentUser.OpenSubKey(MOBILE_STARTUP_SETTINGS_REG_KEY, false);
+                    if (!_rnrMobilePaths.Any())
+                        GetSubKeyNamesRecursively(key, _rnrMobilePaths);
+                    GetTestOptionsValWithPath(app, _rnrMobilePaths, MOBILE_STARTUP_SETTINGS);
+                    hasMobileSettings = true;
+                }
+                else if (lnc is WebLauncher)
+                {
+                    Console.WriteLine($"GET Web Startup Settings");
+                    RegistryKey key = Registry.CurrentUser.OpenSubKey(WEB_STARTUP_SETTINGS_REG_KEY, false);
+                    if (!_rnrWebPaths.Any())
+                        GetSubKeyNamesRecursively(key, _rnrWebPaths);
+                    GetTestOptionsValWithPath(app, _rnrWebPaths, WEB_STARTUP_SETTINGS);
+                    hasWebSettings = true;
                 }
             }
-            MobileSettings res = new(
-                        objJobSettings as string,
-                        objAppName as string,
-                        objJobWebSettings as string,
-                        objWebSelectedApp as string,
-                        objWebSelectedDevice as string,
-                        objWebSelectedVitals as string,
-                        webLauncher
-                );
-            qtApp.Test.Close();
-            return res;
+            app.Test.Close();
+            Console.WriteLine($"Closed the firstUnderlyingTest: [{testPath}]");
         }
+        void SetTestOptionsValWithPath(Application app, IList<KeyValuePair<string, object>> paths, string startupSettings)
+        {
+            for (int x = 0; x < paths.Count; x++)
+            {
+                KeyValuePair<string, object> kvp = paths[x];
+                app.TDPierToTulip.SetTestOptionsValWithPath($@"{startupSettings}\{kvp.Key}", _DEFAULT, kvp.Value);
+            }
+        }
+
+        private void GetTestOptionsValWithPath(Application app, IList<KeyValuePair<string, object>> paths, string startupSettings)
+        {
+            for (int x = 0; x < paths.Count; x++)
+            {
+                KeyValuePair<string, object> kvp = paths[x];
+                app.TDPierToTulip.GetTestOptionsValWithPath($@"{startupSettings}\{kvp.Key}", _DEFAULT, out object obj);
+                if (obj != null)
+                {
+                    paths[x] = new(kvp.Key, obj);
+                }
+            }
+        }
+
         private string[] LoadNeededAddins(Application _qtpApplication, IEnumerable<string> fileNames)
         {
             string[] addins = null;
             try
             {
-                HashSet<string> addinsSet = new HashSet<string>();
+                HashSet<string> addinsSet = [];
                 foreach (string fileName in fileNames)
                 {
                     try
@@ -357,6 +321,24 @@ namespace HpToolsLauncher
             }
             return addins;
         }
+
+        private void GetSubKeyNamesRecursively(RegistryKey regKey, IList<KeyValuePair<string, object>> list, string suffix = "")
+        {
+            if (regKey.SubKeyCount > 0)
+            {
+                string[] subKeys = regKey.GetSubKeyNames();
+                foreach (string subKey in subKeys)
+                {
+                    string s = suffix == string.Empty ? subKey : $@"{suffix}\{subKey}";
+                    list.Add(new(s, null));
+                    if (subKey != HISTORY)
+                    {
+                        RegistryKey regSubKey = regKey.OpenSubKey(subKey, false);
+                        GetSubKeyNamesRecursively(regSubKey, list, s);
+                    }
+                }
+            }
+        }
     }
 
     public class RecoveryScenario
@@ -367,7 +349,7 @@ namespace HpToolsLauncher
 
         public static RecoveryScenario ParseFromString(string content)
         {
-            RecoveryScenario rs = new RecoveryScenario();
+            RecoveryScenario rs = new();
             string[] parts = content.Split(',');//expected 3 parts separated by , : location,name,position(default is -1)
             if (parts.Length < 2)
             {
@@ -406,6 +388,4 @@ namespace HpToolsLauncher
         public string PackageName { get; set; }
         public string DatableParams { get; set; }
     }
-
-
 }

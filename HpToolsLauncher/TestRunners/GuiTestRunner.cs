@@ -743,32 +743,14 @@ namespace HpToolsLauncher
         }
         private bool VerifyParameterValueType(object paramValue, qtParameterType type)
         {
-            bool legal;
-            switch (type)
+            var legal = type switch
             {
-                case qtParameterType.qtParamTypeBoolean:
-                    legal = paramValue is bool;
-                    break;
-
-                case qtParameterType.qtParamTypeDate:
-                    legal = paramValue is DateTime;
-                    break;
-
-                case qtParameterType.qtParamTypeNumber:
-                    legal = ((paramValue is int) || (paramValue is long) || (paramValue is decimal) || (paramValue is float) || (paramValue is double));
-                    break;
-
-                case qtParameterType.qtParamTypePassword:
-                case qtParameterType.qtParamTypeString:
-                case qtParameterType.qtParamTypeAny:
-                    legal = paramValue is string;
-                    break;
-
-                default:
-                    legal = false;
-                    break;
-            }
-
+                qtParameterType.qtParamTypeBoolean => paramValue is bool,
+                qtParameterType.qtParamTypeDate => paramValue is DateTime,
+                qtParameterType.qtParamTypeNumber => ((paramValue is int) || (paramValue is long) || (paramValue is decimal) || (paramValue is float) || (paramValue is double)),
+                qtParameterType.qtParamTypePassword or qtParameterType.qtParamTypeString or qtParameterType.qtParamTypeAny => paramValue is string,
+                _ => false,
+            };
             return legal;
         }
 
@@ -801,9 +783,7 @@ namespace HpToolsLauncher
                 }
                 catch (Exception ex)
                 {
-#if DEBUG
                     Console.WriteLine(ex.Message);
-#endif
                     errorReason = ex.Message;
                     return false;
                 }
@@ -859,9 +839,6 @@ namespace HpToolsLauncher
                 try
                 {
                     Launchers launchers = test.Settings.Launchers;
-#if DEBUG
-                    Console.WriteLine($"launchers.Count = {launchers?.Count}");
-#endif
                     foreach(var ln in launchers)
                     {
                         if (ln is MobileLauncher mobileLnc)
@@ -869,12 +846,9 @@ namespace HpToolsLauncher
                             if (mobileLnc.Lab != DIGITAL_LAB)
                                 mobileLnc.Lab = DIGITAL_LAB;
                             Console.WriteLine($"MobileLauncher is loaded and Lab = {mobileLnc.Lab}.");
-                            //mobileLnc.EnableWebSettingForMobile();
                         }
                         else if (ln is WebLauncher webLnc)
                         {
-                            //if (webLnc.Active)
-                            //    webLnc.Active = false; // use default option
                             Console.WriteLine($"WebLauncher is loaded and Active = {webLnc.Active}.");
                         }
                     }
