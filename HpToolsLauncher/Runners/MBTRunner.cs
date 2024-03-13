@@ -324,7 +324,7 @@ namespace HpToolsLauncher
 
         private void GetSubKeyNamesRecursively(RegistryKey regKey, IList<KeyValuePair<string, object>> list, string suffix = "")
         {
-            if (regKey.SubKeyCount > 0)
+            if (regKey?.SubKeyCount > 0)
             {
                 string[] subKeys = regKey.GetSubKeyNames();
                 foreach (string subKey in subKeys)

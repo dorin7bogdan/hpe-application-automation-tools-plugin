@@ -250,9 +250,7 @@ namespace HpToolsLauncher
                     runDesc.ErrorDesc = errorReason;
                     ConsoleWriter.WriteErrLine(errorReason);
                 }
-#if DEBUG
                 ConsoleWriter.WriteException(e);
-#endif
                 runDesc.TestState = TestState.Error;
                 runDesc.ReportLocation = string.Empty;
                 return runDesc;
@@ -340,96 +338,6 @@ namespace HpToolsLauncher
                 Directory.CreateDirectory(rptLocation);
             }
             return rptLocation;
-        }
-
-        private void SetMobileInfo()
-        {
-            if (_mcConnection == null) return;
-
-            #region Mc connection and other mobile info
-
-            ITDPierToTulip tulip = _qtpApplication.TDPierToTulip;
-            // Mc Address, username and password
-            if (!_mcConnection.HostAddress.IsNullOrEmpty())
-            {
-                tulip.SetTestOptionsVal(MC_TYPE, (int)_mcConnection.LabType);
-
-                tulip.SetTestOptionsVal(MOBILE_HOST_ADDRESS, _mcConnection.HostAddress);
-                if (!_mcConnection.HostPort.IsNullOrEmpty())
-                {
-                    tulip.SetTestOptionsVal(MOBILE_HOST_PORT, _mcConnection.HostPort);
-                }
-
-                AuthType mcAuthType = _mcConnection.MobileAuthType;
-                switch (mcAuthType)
-                {
-                    case AuthType.AuthToken:
-                        var token = _mcConnection.GetAuthToken();
-
-                        tulip.SetTestOptionsVal(MOBILE_CLIENTID, token.ClientId);
-                        tulip.SetTestOptionsVal(MOBILE_SECRET, token.SecretKey);
-
-                        break;
-                    case AuthType.UsernamePassword:
-                        if (!_mcConnection.UserName.IsNullOrEmpty())
-                        {
-                            tulip.SetTestOptionsVal(MOBILE_USER, _mcConnection.UserName);
-                        }
-
-                        if (!_mcConnection.Password.IsNullOrEmpty())
-                        {
-                            string encriptedMcPassword = WinUserNativeMethods.ProtectBSTRToBase64(_mcConnection.Password);
-                            if (encriptedMcPassword == null)
-                            {
-                                ConsoleWriter.WriteLine(string.Format(PROTECT_BstrToBase64_FAILED, "DL Password"));
-                                throw new Exception(string.Format(PROTECT_BstrToBase64_FAILED, "DL Password"));
-                            }
-                            tulip.SetTestOptionsVal(MOBILE_PASSWORD, encriptedMcPassword);
-                        }
-                        break;
-                }
-
-                // set authentication type
-                tulip.SetTestOptionsVal(MOBILE_AUTH_TYPE, mcAuthType);
-
-                // set tenantID
-                if (!_mcConnection.TenantId.IsNullOrEmpty())
-                {
-                    tulip.SetTestOptionsVal(MOBILE_TENANT, _mcConnection.TenantId);
-                }
-
-                // ssl and proxy info
-                tulip.SetTestOptionsVal(MOBILE_USE_SSL, _mcConnection.UseSslAsInt);
-
-                if (_mcConnection.UseProxy)
-                {
-                    tulip.SetTestOptionsVal(MOBILE_USE_PROXY, _mcConnection.UseProxyAsInt);
-                    tulip.SetTestOptionsVal(MOBILE_PROXY_SETTING, _mcConnection.ProxyType == 1 ? SYSTEM_PROXY : HTTP_PROXY);
-                    tulip.SetTestOptionsVal(MOBILE_PROXY_SETTING_ADDRESS, _mcConnection.ProxyAddress);
-                    tulip.SetTestOptionsVal(MOBILE_PROXY_SETTING_PORT, _mcConnection.ProxyPort);
-                    tulip.SetTestOptionsVal(MOBILE_PROXY_SETTING_AUTHENTICATION, _mcConnection.UseProxyAuthAsInt);
-                    tulip.SetTestOptionsVal(MOBILE_PROXY_SETTING_USERNAME, _mcConnection.ProxyUserName);
-                    string encMcProxyPassword = WinUserNativeMethods.ProtectBSTRToBase64(_mcConnection.ProxyPassword);
-                    if (encMcProxyPassword == null)
-                    {
-                        ConsoleWriter.WriteLine(string.Format(PROTECT_BstrToBase64_FAILED, "DL Proxy Password"));
-                        throw new Exception(string.Format(PROTECT_BstrToBase64_FAILED, "DL Proxy Password"));
-                    }
-                    tulip.SetTestOptionsVal(MOBILE_PROXY_SETTING_PASSWORD, encMcProxyPassword);
-                }
-
-                // Mc info (device, app, launch and terminate data)
-                if (!string.IsNullOrEmpty(_mobileInfo))
-                {
-                    tulip.SetTestOptionsVal(MOBILE_INFO, _mobileInfo);
-                }
-                if (!string.IsNullOrEmpty(_dlExecDescription))
-                {
-                    tulip.SetTestOptionsVal(MOBILE_EXEC_ORIGINAL_TOOL, FTE);
-                    tulip.SetTestOptionsVal(MOBILE_EXEC_DESCRIPTION, _dlExecDescription);
-                }
-            }
-            #endregion
         }
 
         /// <summary>
@@ -774,12 +682,6 @@ namespace HpToolsLauncher
                     _qtpApplication.Options.DLConnection.UseProxySettings = false;
                     _qtpApplication.Options.DLConnection.ShowRemoteWndOnRun = true;
                     //_qtpApplication.Options.DLConnection.WorkSpace = "default workspace";
-
-                    if (!string.IsNullOrEmpty(_dlExecDescription))
-                    {
-                        _qtpApplication.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_ORIGINAL_TOOL, FTE);
-                        _qtpApplication.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_DESCRIPTION, _dlExecDescription);
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -836,6 +738,13 @@ namespace HpToolsLauncher
 
                 _qtpApplication.Open(path, true, false);
                 Test test = _qtpApplication.Test;
+
+                if (!_dlExecDescription.IsNullOrEmpty())
+                {
+                    _qtpApplication.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_ORIGINAL_TOOL, FTE);
+                    _qtpApplication.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_DESCRIPTION, _dlExecDescription);
+                }
+
                 try
                 {
                     Launchers launchers = test.Settings.Launchers;
@@ -843,8 +752,6 @@ namespace HpToolsLauncher
                     {
                         if (ln is MobileLauncher mobileLnc)
                         {
-                            if (mobileLnc.Lab != DIGITAL_LAB)
-                                mobileLnc.Lab = DIGITAL_LAB;
                             Console.WriteLine($"MobileLauncher is loaded and Lab = {mobileLnc.Lab}.");
                         }
                         else if (ln is WebLauncher webLnc)
@@ -860,7 +767,7 @@ namespace HpToolsLauncher
                     throw;
                 }
 
-                _qtpParamDefs = _qtpApplication.Test.ParameterDefinitions;
+                _qtpParamDefs = test.ParameterDefinitions;
                 _qtpParameters = _qtpParamDefs.GetParameters();
 
                 // handle all parameters (index starts with 1 !!!)
@@ -913,7 +820,7 @@ namespace HpToolsLauncher
                 // specify data table path
                 if (testInfo.DataTablePath != null)
                 {
-                    _qtpApplication.Test.Settings.Resources.DataTablePath = testInfo.DataTablePath;
+                    test.Settings.Resources.DataTablePath = testInfo.DataTablePath;
                     ConsoleWriter.WriteLine("Using external data table: " + testInfo.DataTablePath);
                 }
 
@@ -934,11 +841,11 @@ namespace HpToolsLauncher
                             int start = int.Parse(ii.StartIteration);
                             int end = int.Parse(ii.EndIteration);
 
-                            _qtpApplication.Test.Settings.Run.StartIteration = start;
+                            test.Settings.Run.StartIteration = start;
                             _qtpApplication.Test.Settings.Run.EndIteration = end;
                         }
 
-                        _qtpApplication.Test.Settings.Run.IterationMode = testInfo.IterationInfo.IterationMode;
+                        test.Settings.Run.IterationMode = testInfo.IterationInfo.IterationMode;
 
                         ConsoleWriter.WriteLine("Using iteration mode: " + testInfo.IterationInfo.IterationMode +
                        (rangeMode ? " " + testInfo.IterationInfo.StartIteration + "-" + testInfo.IterationInfo.EndIteration : string.Empty));
