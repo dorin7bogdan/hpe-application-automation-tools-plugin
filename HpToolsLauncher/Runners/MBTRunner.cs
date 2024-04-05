@@ -51,16 +51,20 @@ namespace HpToolsLauncher
         private readonly IList<KeyValuePair<string, object>> _rnrMobilePaths = [];
         private readonly IList<KeyValuePair<string, object>> _rnrWebPaths = [];
 
-        private const string MOBILE_STARTUP_SETTINGS_REG_KEY = @"Software\Mercury Interactive\QuickTest Professional\MicTest\AddIn Manager\Mobile\Startup Settings";
-        private const string WEB_STARTUP_SETTINGS_REG_KEY = @"Software\Mercury Interactive\QuickTest Professional\MicTest\AddIn Manager\Web\Startup Settings";
+        private const string MOBILE_STARTUP_SETTINGS_REG_KEY = @"Mercury Interactive\QuickTest Professional\MicTest\AddIn Manager\Mobile\Startup Settings";
+        private const string WEB_STARTUP_SETTINGS_REG_KEY = @"Mercury Interactive\QuickTest Professional\MicTest\AddIn Manager\Web\Startup Settings";
+        private const string SOFTWARE = "Software";
+        private const string SOFTWARE_WOW6432Node = @"SOFTWARE\WOW6432Node";
         private const string MOBILE_STARTUP_SETTINGS = @"AddIn Manager\Mobile\Startup Settings";
         private const string WEB_STARTUP_SETTINGS = @"AddIn Manager\Web\Startup Settings";
         private const string HISTORY = "History";
         private const string _DEFAULT = "_default";
+        private const string QT_APP = "Quicktest.Application";
+        private const string COMMA = ",";
 
         public override TestSuiteRunResults Run()
         {
-            var type = Type.GetTypeFromProgID("Quicktest.Application");
+            var type = Type.GetTypeFromProgID(QT_APP);
 
             lock (_lockObject)
             {
@@ -71,34 +75,34 @@ namespace HpToolsLauncher
                     {
                         Directory.Delete(_parentFolder, true);
                     }
-                    ConsoleWriter.WriteLine("Using parent folder : " + _parentFolder);
+                    ConsoleWriter.WriteLine($"Using parent folder : {_parentFolder}");
                 }
                 catch (Exception e)
                 {
-                    ConsoleWriter.WriteErrLine("Failed to delete parent folder : " + e.Message);
+                    ConsoleWriter.WriteErrLine($"Failed to delete parent folder : {e.Message}");
                 }
 
                 Directory.CreateDirectory(_parentFolder);
                 DirectoryInfo parentDir = new(_parentFolder);
 
-                try
-                {
-                    if (qtpApp.Launched)
-                    {
-                        qtpApp.Quit();
-                    }
-                }
-                catch (Exception e)
-                {
-                    ConsoleWriter.WriteErrLine("Failed to close qtpApp: " + e.Message);
-                }
-
                 //START Test creation
                 foreach (var mbtTest in _mbtTests)
                 {
+                    try
+                    {
+                        if (qtpApp.Launched)
+                        {
+                            qtpApp.Quit();
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        ConsoleWriter.WriteErrLine($"Failed to close qtpApp: {e.Message}");
+                    }
+
                     ResetKvpListsValues();
                     DateTime dtStartOfTest = DateTime.Now;
-                    ConsoleWriter.WriteLine("Creation of " + mbtTest.Name + " *****************************");
+                    ConsoleWriter.WriteLine($"Creation of {mbtTest.Name} *****************************");
                     string[] addins = LoadNeededAddins(qtpApp, mbtTest.UnderlyingTests);
                     ConsoleWriter.WriteLine(string.Format("LoadNeededAddins took {0:0.0} secs", (DateTime.Now - dtStartOfTest).TotalSeconds));
                     try
@@ -106,6 +110,7 @@ namespace HpToolsLauncher
                         string firstUnderlyingTest = mbtTest.UnderlyingTests.FirstOrDefault(t => !t.IsNullOrEmpty());
                         DateTime dtStartOfStep;
                         dtStartOfStep = DateTime.Now;
+                        qtpApp.Launch();
                         GetMobileAndWebSettings(qtpApp, firstUnderlyingTest, out bool hasMobileSettings, out bool hasWebSettings);
                         ConsoleWriter.WriteLine(string.Format("Get Mobile and/or Web Settings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
                         dtStartOfStep = DateTime.Now;
@@ -131,12 +136,12 @@ namespace HpToolsLauncher
                             ConsoleWriter.WriteLine(string.Format("test.SetAssociatedAddins took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
                             if (!((string)err).IsNullOrEmpty())
                             {
-                                ConsoleWriter.WriteErrLine("Failed to SetAssociatedAddins: " + err);
+                                ConsoleWriter.WriteErrLine($"Failed to SetAssociatedAddins: {err}");
                             }
                         }
 
                         Action action1 = test.Actions[1];
-                        action1.Description = "unitIds=" + string.Join(",", mbtTest.UnitIds);
+                        action1.Description = $"unitIds={string.Join(COMMA, mbtTest.UnitIds)}";
 
                         //https://myskillpoint.com/how-to-use-loadandrunaction-in-uft/#LoadAndRunAction_Having_Input-Output_Parameters
                         //LoadAndRunAction "E:\UFT_WorkSpace\TestScripts\SampleTest","Action1",0,"inputParam1","inputParam2",outParameterVal
@@ -175,14 +180,14 @@ namespace HpToolsLauncher
                     }
                     catch (Exception e)
                     {
-                        ConsoleWriter.WriteErrLine("Failed in MBTRunner : " + e.Message);
+                        ConsoleWriter.WriteErrLine($"Failed in MBTRunner : {e.Message}");
                         ConsoleWriter.WriteLine(e.StackTrace);
                     }
                 }
                 if (qtpApp.Launched)
                 {
                     qtpApp.Quit();
-                    Console.WriteLine($"Closed UFT One.");
+                    Console.WriteLine("Closed UFT One.");
                 }
             }
 
@@ -214,11 +219,11 @@ namespace HpToolsLauncher
             string location = qtpApplication.Folders.Locate(filePath);
             if (!location.IsNullOrEmpty())
             {
-                ConsoleWriter.WriteLine(string.Format("Adding resources : {0} - done", filePath));
+                ConsoleWriter.WriteLine($"Adding resources : {filePath} - done");
             }
             else
             {
-                ConsoleWriter.WriteLine(string.Format("Adding resources : {0} - failed to find file in repository. Please check correctness of resource location.", filePath));
+                ConsoleWriter.WriteLine($"Adding resources : {filePath} - failed to find file in repository. Please check correctness of resource location.");
             }
 
             return filePath;
@@ -236,20 +241,56 @@ namespace HpToolsLauncher
                 if (lnc is MobileLauncher)
                 {
                     Console.WriteLine($"GET Mobile Startup Settings");
-                    RegistryKey key = Registry.CurrentUser.OpenSubKey(MOBILE_STARTUP_SETTINGS_REG_KEY, false);
-                    if (!_rnrMobilePaths.Any())
-                        GetSubKeyNamesRecursively(key, _rnrMobilePaths);
-                    GetTestOptionsValWithPath(app, _rnrMobilePaths, MOBILE_STARTUP_SETTINGS);
-                    hasMobileSettings = true;
+                    string path = $@"{SOFTWARE_WOW6432Node}\{MOBILE_STARTUP_SETTINGS_REG_KEY}";
+                    RegistryKey key = Registry.LocalMachine.OpenSubKey(path, false);
+                    if (key == null || key.SubKeyCount == 0)
+                    {
+                        Console.WriteLine(@$"HKEY_LOCAL_MACHINE\{path} is null or empty");
+                        path = $@"{SOFTWARE}\{MOBILE_STARTUP_SETTINGS_REG_KEY}";
+                        key = Registry.CurrentUser.OpenSubKey(path, false);
+                        if (key == null || key.SubKeyCount == 0)
+                        {
+                            Console.WriteLine(@$"HKEY_CURRENT_USER\{path} is null or empty");
+                        }
+                    }
+                    if (key?.SubKeyCount > 0)
+                    {
+                        if (!_rnrMobilePaths.Any())
+                            GetSubKeyNamesRecursively(key, _rnrMobilePaths);
+                        GetTestOptionsValWithPath(app, _rnrMobilePaths, MOBILE_STARTUP_SETTINGS);
+                        hasMobileSettings = true;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Failed to GET Mobile Startup Settings from registry");
+                    }
                 }
                 else if (lnc is WebLauncher)
                 {
                     Console.WriteLine($"GET Web Startup Settings");
-                    RegistryKey key = Registry.CurrentUser.OpenSubKey(WEB_STARTUP_SETTINGS_REG_KEY, false);
-                    if (!_rnrWebPaths.Any())
-                        GetSubKeyNamesRecursively(key, _rnrWebPaths);
-                    GetTestOptionsValWithPath(app, _rnrWebPaths, WEB_STARTUP_SETTINGS);
-                    hasWebSettings = true;
+                    string path = $@"{SOFTWARE_WOW6432Node}\{WEB_STARTUP_SETTINGS_REG_KEY}";
+                    RegistryKey key = Registry.LocalMachine.OpenSubKey(path, false);
+                    if (key == null || key.SubKeyCount == 0)
+                    {
+                        Console.WriteLine(@$"HKEY_LOCAL_MACHINE\{path} is null or empty");
+                        path = $@"{SOFTWARE}\{WEB_STARTUP_SETTINGS_REG_KEY}";
+                        key = Registry.CurrentUser.OpenSubKey(path, false);
+                        if (key == null || key.SubKeyCount == 0)
+                        {
+                            Console.WriteLine(@$"HKEY_CURRENT_USER\{path} is null or empty");
+                        }
+                    }
+                    if (key?.SubKeyCount > 0)
+                    {
+                        if (!_rnrWebPaths.Any())
+                            GetSubKeyNamesRecursively(key, _rnrWebPaths);
+                        GetTestOptionsValWithPath(app, _rnrWebPaths, WEB_STARTUP_SETTINGS);
+                        hasWebSettings = true;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Failed to GET Web Startup Settings from registry");
+                    }
                 }
             }
             app.Test.Close();
@@ -257,10 +298,12 @@ namespace HpToolsLauncher
         }
         void SetTestOptionsValWithPath(Application app, IList<KeyValuePair<string, object>> paths, string startupSettings)
         {
+            Console.WriteLine($"{startupSettings}, paths.Count = {paths.Count}");
             for (int x = 0; x < paths.Count; x++)
             {
                 KeyValuePair<string, object> kvp = paths[x];
                 app.TDPierToTulip.SetTestOptionsValWithPath($@"{startupSettings}\{kvp.Key}", _DEFAULT, kvp.Value);
+                Console.WriteLine($@"{kvp.Key} = {kvp.Value}");
             }
         }
 
@@ -277,7 +320,7 @@ namespace HpToolsLauncher
             }
         }
 
-        private string[] LoadNeededAddins(Application _qtpApplication, IEnumerable<string> fileNames)
+        private string[] LoadNeededAddins(Application qtpApp, IEnumerable<string> fileNames)
         {
             string[] addins = null;
             try
@@ -288,7 +331,7 @@ namespace HpToolsLauncher
                     try
                     {
                         DateTime start1 = DateTime.Now;
-                        object[] testAddinsObj = (object[])_qtpApplication.GetAssociatedAddinsForTest(fileName);
+                        object[] testAddinsObj = (object[])qtpApp.GetAssociatedAddinsForTest(fileName);
                         ConsoleWriter.WriteLine(string.Format("GetAssociatedAddinsForTest took {0:0.0} secs", DateTime.Now.Subtract(start1).TotalSeconds));
                         IEnumerable<string> tempTestAddins = testAddinsObj.Cast<string>();
 
@@ -299,24 +342,24 @@ namespace HpToolsLauncher
                     }
                     catch (Exception ex)
                     {
-                        ConsoleWriter.WriteErrLine("Failed to LoadNeededAddins for : " + fileName + ", " + ex.Message);
+                        ConsoleWriter.WriteErrLine($"Failed to LoadNeededAddins for : {fileName}, {ex.Message}");
                     }
                 }
 
                 addins = new string[addinsSet.Count];
                 addinsSet.CopyTo(addins);
-                ConsoleWriter.WriteLine("Loading Addins : " + string.Join(",", addins));
+                ConsoleWriter.WriteLine($"Loading Addins : {string.Join(COMMA, addins)}");
                 DateTime start2 = DateTime.Now;
-                _qtpApplication.SetActiveAddins(addins, out object err);
+                qtpApp.SetActiveAddins(addins, out object err);
                 ConsoleWriter.WriteLine(string.Format("SetActiveAddins took {0:0.0} secs", DateTime.Now.Subtract(start2).TotalSeconds));
                 if (!((string)err).IsNullOrEmpty())
                 {
-                    ConsoleWriter.WriteErrLine("Failed to SetActiveAddins : " + err);
+                    ConsoleWriter.WriteErrLine($"Failed to SetActiveAddins : {err}");
                 }
             }
             catch (Exception ex)
             {
-                ConsoleWriter.WriteErrLine("Failed to LoadNeededAddins : " + ex.Message);
+                ConsoleWriter.WriteErrLine($"Failed to LoadNeededAddins : {ex.Message}");
                 // Try anyway to run the test
             }
             return addins;
@@ -330,6 +373,7 @@ namespace HpToolsLauncher
                 foreach (string subKey in subKeys)
                 {
                     string s = suffix == string.Empty ? subKey : $@"{suffix}\{subKey}";
+                    Console.WriteLine(s);
                     list.Add(new(s, null));
                     if (subKey != HISTORY)
                     {
@@ -353,7 +397,7 @@ namespace HpToolsLauncher
             string[] parts = content.Split(',');//expected 3 parts separated by , : location,name,position(default is -1)
             if (parts.Length < 2)
             {
-                ConsoleWriter.WriteErrLine("Failed to parse recovery scenario (need at least 2 parts, separated with ,): " + content);
+                ConsoleWriter.WriteErrLine($"Failed to parse recovery scenario (need at least 2 parts, separated with ,): {content}");
                 return null;
             }
             rs.FileName = parts[0];
@@ -366,7 +410,7 @@ namespace HpToolsLauncher
                 }
                 catch (Exception e)
                 {
-                    ConsoleWriter.WriteErrLine("Failed to parse position of recovery scenario : " + content + " : " + e.Message);
+                    ConsoleWriter.WriteErrLine($"Failed to parse position of recovery scenario : {content} : {e.Message}");
                     rs.Position = -1;
                 }
             }
