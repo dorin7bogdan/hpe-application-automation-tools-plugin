@@ -32,7 +32,6 @@
 
 package com.microfocus.application.automation.tools.commonResultUpload.xmlreader;
 
-import com.sun.org.apache.xerces.internal.impl.Constants;
 import hudson.FilePath;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
