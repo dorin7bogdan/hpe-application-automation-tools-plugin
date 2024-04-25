@@ -365,26 +365,14 @@
 			<artifactId>apache-httpcomponents-client-4-api</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.jayway.jsonpath</groupId>
-			<artifactId>json-path</artifactId>
-			<version>2.7.0</version>
-			<exclusions>
-				<!-- Provided by Jenkins core -->
-				<exclusion>
-					<groupId>org.ow2.asm</groupId>
-					<artifactId>asm</artifactId>
-				</exclusion>
-				<!-- Provided by Jenkins core -->
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-api</artifactId>
-				</exclusion>
-				<!-- Provided by Jenkins core -->
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-jdk14</artifactId>
-				</exclusion>
-			</exclusions>
+			<groupId>net.minidev</groupId>
+			<artifactId>json-smart</artifactId>
+			<version>2.5.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.ivy</groupId>
+			<artifactId>ivy</artifactId>
+			<version>2.5.2</version>
 		</dependency>
 		<!--workflow-aggregator-plugin : https://github.com/jenkinsci/workflow-aggregator-plugin
 		cloudbees doesn't support 2.6 therefore it is added manually -->
@@ -427,6 +415,12 @@
 		<dependency>
 			<groupId>org.jenkinsci.plugins</groupId>
 			<artifactId>pipeline-model-definition</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.apache.ivy</groupId>
+					<artifactId>ivy</artifactId>
+				</exclusion>
+			</exclusions>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
@@ -511,7 +505,7 @@
 		<dependency>
 			<artifactId>maven-plugin</artifactId>
 			<groupId>org.jenkins-ci.main</groupId>
-			<version>3.15.1</version>
+			<version>3.19</version>
 		</dependency>
 		<dependency>
 			<artifactId>matrix-project</artifactId>
