@@ -36,6 +36,9 @@ import com.microfocus.application.automation.tools.settings.UFTEncryptionGlobalC
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
+import hudson.security.ACL;
+import hudson.security.AuthorizationStrategy;
+import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
@@ -153,21 +156,21 @@ public final class AlmToolsUtils {
 
 		URL hpToolsAborterUrl = Jenkins.get().pluginManager.uberClassLoader.getResource("HpToolsAborter.exe");
         FilePath hpToolsAborterFile = runWorkspace.child(hpToolsAborter_exe);
-        
+
         args.add(hpToolsAborterFile);
         args.add(paramFileName);
-        
+
         hpToolsAborterFile.copyFrom(hpToolsAborterUrl);
-        
+
         int returnCode = launcher.launch().cmds(args).stdout(out).pwd(hpToolsAborterFile.getParent()).join();
-        
+
         try {
         	hpToolsAborterFile.delete();
 		} catch (Exception e) {
 			 listener.error("failed copying HpToolsAborter: " + e);
 		}
-        
-        
+
+
         if (returnCode != 0) {
             if (returnCode == 1) {
                 build.setResult(Result.FAILURE);
@@ -230,5 +233,25 @@ public final class AlmToolsUtils {
             props.store(stream, "");
             return stream.toString();
         }
+    }
+
+    public static boolean hasCurrentUserConfigurePermission() {
+        Jenkins jenkins = Jenkins.getInstanceOrNull();
+        if (jenkins == null) {
+            return false;
+        }
+        AuthorizationStrategy authStrategy = jenkins.getAuthorizationStrategy();
+        if (authStrategy == null) {
+            return false;
+        }
+        User user = User.current();
+        if (authStrategy instanceof FullControlOnceLoggedInAuthorizationStrategy) {
+            return user != null;
+        }
+        if (user == null) {
+            user = User.getUnknown();
+        }
+        ACL acl = authStrategy.getACL(user);
+        return acl.hasAnyPermission(Jenkins.ADMINISTER, Item.CONFIGURE);
     }
 }

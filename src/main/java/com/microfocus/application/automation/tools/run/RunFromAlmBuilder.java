@@ -428,7 +428,7 @@ public class RunFromAlmBuilder extends Builder implements SimpleBuildStep {
             } catch (IOException e1) {
                 Util.displayIOException(e1, listener);
                 build.setResult(Result.FAILURE);
-    		} catch (InterruptedException e1) {
+            } catch (InterruptedException e1) {
                 listener.error("Failed running HpToolsAborter " + e1.getMessage());
             }
         }
@@ -463,7 +463,6 @@ public class RunFromAlmBuilder extends Builder implements SimpleBuildStep {
     // To expose this builder in the Snippet Generator.
     @Symbol("runFromAlmBuilder")
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-
         public DescriptorImpl() {
             load();
         }
@@ -509,7 +508,6 @@ public class RunFromAlmBuilder extends Builder implements SimpleBuildStep {
                     m.add(UftConstants.NO_USERNAME_DEFINED);
                 }
             }
-
             return m;
         }
 
@@ -580,6 +578,9 @@ public class RunFromAlmBuilder extends Builder implements SimpleBuildStep {
 
         public List<CredentialsScope> getAlmCredentialScopes() {
             return Arrays.asList(CredentialsScope.values());
+        }
+        public boolean getHasConfigurePermission() {
+            return AlmToolsUtils.hasCurrentUserConfigurePermission();
         }
     }
 
