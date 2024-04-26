@@ -379,14 +379,17 @@
 		<dependency>
 			<groupId>org.jenkins-ci.plugins.workflow</groupId>
 			<artifactId>workflow-step-api</artifactId>
+			<version>625.vd896b_f445a_f8</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins.workflow</groupId>
 			<artifactId>workflow-api</artifactId>
+			<version>1144.v61c3180fa_03f</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins.workflow</groupId>
 			<artifactId>workflow-support</artifactId>
+			<version>813.vb_d7c3d2984a_0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -395,6 +398,7 @@
 		<dependency>
 			<groupId>org.jenkins-ci.plugins.workflow</groupId>
 			<artifactId>workflow-job</artifactId>
+			<version>1145.v7f2433caa07f</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -426,14 +430,17 @@
 		<dependency>
 			<groupId>org.jenkins-ci.plugins</groupId>
 			<artifactId>structs</artifactId>
+			<version>308.v852b473a2b8c</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins</groupId>
 			<artifactId>scm-api</artifactId>
+			<version>602.v6a_81757a_31d2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins</groupId>
 			<artifactId>script-security</artifactId>
+			<version>1158.v7c1b_73a_69a_08</version>
 			<scope>test</scope>
 		</dependency>
 		<!--workflow-aggregator-plugin-->
@@ -475,7 +482,59 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<dependency>
+			<groupId>org.jenkins-ci.plugins</groupId>
+			<artifactId>junit</artifactId>
+			<version>1119.1121.vc43d0fc45561</version>
 
+			<exclusions>			
+				<exclusion>
+					<groupId>io.jenkins.plugins</groupId>
+					<artifactId>font-awesome-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.jenkins.plugins</groupId>
+					<artifactId>echarts-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.jenkins.plugins</groupId>
+					<artifactId>plugin-util-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.jenkins.plugins</groupId>
+					<artifactId>checks-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.jenkins-ci.plugins</groupId>
+					<artifactId>display-url-api</artifactId>
+				</exclusion>
+			</exclusions> 
+		</dependency>
+		<dependency>
+			<groupId>io.jenkins.plugins</groupId>
+			<artifactId>font-awesome-api</artifactId>
+			<version>6.0.0-1</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jenkins.plugins</groupId>
+			<artifactId>echarts-api</artifactId>
+			<version>5.3.2-1</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jenkins.plugins</groupId>
+			<artifactId>plugin-util-api</artifactId>
+			<version>2.16.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jenkins.plugins</groupId>
+			<artifactId>checks-api</artifactId>
+			<version>1.7.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jenkins-ci.plugins</groupId>
+			<artifactId>display-url-api</artifactId>
+			<version>2.3.6</version>
+		</dependency>
 		<!-- Octane jenkins plugins -->
 
 		<dependency>
