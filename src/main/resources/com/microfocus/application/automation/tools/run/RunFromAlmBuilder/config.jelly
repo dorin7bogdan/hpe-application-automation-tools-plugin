@@ -162,7 +162,7 @@
     <f:entry field="isSSOEnabled">
         <f:checkbox title="SSO enabled" name="runfromalm.isSSOEnabled" checked="${isSsoEnabled}" value="${isSsoEnabled}"/>
     </f:entry>
-    <j:if test="${hasConfigPermission || !isSsoEnabled}">
+    <j:if test="${hasConfigPermission || (!isSsoEnabled &amp;&amp; expectedScope=='SYSTEM')}">
         <f:entry field="almUserName">
             <div class="sys-alm-username">
                 <label>ALM username</label>
@@ -177,7 +177,7 @@
             </div>
         </f:entry>
     </j:if>
-    <j:if test="${hasConfigPermission || isSsoEnabled}">
+    <j:if test="${hasConfigPermission || (isSsoEnabled &amp;&amp; expectedScope=='SYSTEM')}">
         <f:entry field="almClientID">
             <div class="sys-alm-client-id">
                 <label>ALM Client ID</label>
@@ -192,7 +192,7 @@
             </div>
         </f:entry>
     </j:if>
-    <j:if test="${hasConfigPermission || (expectedScope=='JOB' &amp;&amp; isSsoEnabled)}">
+    <j:if test="${hasConfigPermission || (isSsoEnabled &amp;&amp; expectedScope=='JOB')}">
         <f:entry>
             <div class="job-alm-client-id">
                 <label>Client ID</label>
@@ -212,7 +212,7 @@
             </div>
         </f:entry>
     </j:if>
-    <j:if test="${hasConfigPermission || (expectedScope=='JOB' &amp;&amp; !isSsoEnabled)}">
+    <j:if test="${hasConfigPermission || (!isSsoEnabled &amp;&amp; expectedScope=='JOB')}">
         <f:entry>
             <div class="job-alm-username">
                 <label>Username</label>
