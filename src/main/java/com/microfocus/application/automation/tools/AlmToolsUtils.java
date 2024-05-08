@@ -234,24 +234,4 @@ public final class AlmToolsUtils {
             return stream.toString();
         }
     }
-
-    public static boolean hasCurrentUserConfigurePermission() {
-        Jenkins jenkins = Jenkins.getInstanceOrNull();
-        if (jenkins == null) {
-            return false;
-        }
-        AuthorizationStrategy authStrategy = jenkins.getAuthorizationStrategy();
-        if (authStrategy == null) {
-            return false;
-        }
-        User user = User.current();
-        if (authStrategy instanceof FullControlOnceLoggedInAuthorizationStrategy) {
-            return user != null;
-        }
-        if (user == null) {
-            user = User.getUnknown();
-        }
-        ACL acl = authStrategy.getACL(user);
-        return acl.hasAnyPermission(Jenkins.ADMINISTER, Item.CONFIGURE);
-    }
 }

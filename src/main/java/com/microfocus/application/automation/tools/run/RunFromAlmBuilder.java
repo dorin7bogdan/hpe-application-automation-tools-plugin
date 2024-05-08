@@ -580,7 +580,7 @@ public class RunFromAlmBuilder extends Builder implements SimpleBuildStep {
             return Arrays.asList(CredentialsScope.values());
         }
         public boolean getHasConfigurePermission() {
-            return AlmToolsUtils.hasCurrentUserConfigurePermission();
+            return JenkinsUtils.hasCurrentUserConfigurePermission();
         }
     }
 
