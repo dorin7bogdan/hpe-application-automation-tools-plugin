@@ -44,6 +44,7 @@ import java.util.List;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
 
+import com.microfocus.application.automation.tools.JenkinsUtils;
 import com.microfocus.application.automation.tools.model.AlmServerSettingsModel;
 import com.microfocus.application.automation.tools.model.CdaDetails;
 import com.microfocus.application.automation.tools.model.EnumDescription;
@@ -399,7 +400,6 @@ public class SseBuilder extends Builder implements SimpleBuildStep {
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
 
         public DescriptorImpl() {
-
             load();
         }
 
@@ -416,7 +416,6 @@ public class SseBuilder extends Builder implements SimpleBuildStep {
         }
 
         public boolean hasAlmServers() {
-
             return AlmServerSettingsGlobalConfiguration.getInstance().hasAlmServers();
         }
 
@@ -551,5 +550,9 @@ public class SseBuilder extends Builder implements SimpleBuildStep {
 			// no credentials available, can't check
 			return FormValidation.warning("Cannot find any credentials with id " + value);
 		}
+
+        public boolean getHasConfigurePermission() {
+            return JenkinsUtils.hasCurrentProjectJobConfigurePermission();
+        }
     }
 }

@@ -58,9 +58,7 @@ import hudson.util.VariableResolver;
 import jenkins.tasks.SimpleBuildStep;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.*;
 
 import com.microfocus.application.automation.tools.AlmToolsUtils;
 import com.microfocus.application.automation.tools.EncryptionUtils;
@@ -580,7 +578,7 @@ public class RunFromAlmBuilder extends Builder implements SimpleBuildStep {
             return Arrays.asList(CredentialsScope.values());
         }
         public boolean getHasConfigurePermission() {
-            return JenkinsUtils.hasCurrentUserConfigurePermission();
+            return JenkinsUtils.hasCurrentProjectJobConfigurePermission();
         }
     }
 

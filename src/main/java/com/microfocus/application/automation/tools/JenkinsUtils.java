@@ -34,14 +34,10 @@ package com.microfocus.application.automation.tools;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.FilePath;
-import hudson.model.Item;
-import hudson.model.Node;
-import hudson.model.Run;
-import hudson.model.User;
-import hudson.security.ACL;
-import hudson.security.AuthorizationStrategy;
-import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
-import jenkins.model.Jenkins;
+import hudson.model.*;
+import org.kohsuke.stapler.Ancestor;
+import org.kohsuke.stapler.Stapler;
+import org.kohsuke.stapler.StaplerRequest;
 
 import javax.annotation.Nonnull;
 import java.util.Objects;
@@ -70,23 +66,12 @@ public final class JenkinsUtils {
 
         return null;
     }
-    public static boolean hasCurrentUserConfigurePermission() {
-        Jenkins jenkins = Jenkins.getInstanceOrNull();
-        if (jenkins == null) {
+    public static boolean hasCurrentProjectJobConfigurePermission() {
+        StaplerRequest req = Stapler.getCurrentRequest();
+        Ancestor ancestor = req.findAncestor(FreeStyleProject.class);
+        if (ancestor == null)
             return false;
-        }
-        AuthorizationStrategy authStrategy = jenkins.getAuthorizationStrategy();
-        if (authStrategy == null) {
-            return false;
-        }
-        User user = User.current();
-        if (authStrategy instanceof FullControlOnceLoggedInAuthorizationStrategy) {
-            return user != null;
-        }
-        if (user == null) {
-            user = User.getUnknown();
-        }
-        ACL acl = authStrategy.getACL(user);
-        return acl.hasAnyPermission(Jenkins.ADMINISTER, Item.CONFIGURE);
+        Item item = (Item)ancestor.getObject();
+        return item == null ? false : item.hasPermission(Item.CONFIGURE);
     }
 }
