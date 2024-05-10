@@ -177,6 +177,7 @@ public class XPathUtils {
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
             DocumentBuilder builder = dbf.newDocumentBuilder();
 
             InputSource inputSource = new InputSource();
