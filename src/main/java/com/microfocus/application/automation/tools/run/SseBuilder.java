@@ -552,7 +552,7 @@ public class SseBuilder extends Builder implements SimpleBuildStep {
 		}
 
         public boolean getHasConfigurePermission() {
-            return JenkinsUtils.hasCurrentProjectJobConfigurePermission();
+            return JenkinsUtils.hasItemConfigurePermission();
         }
     }
 }

@@ -35,15 +35,11 @@ package com.microfocus.application.automation.tools;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.FilePath;
 import hudson.model.*;
-import org.kohsuke.stapler.Ancestor;
-import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
-
+import org.jenkinsci.plugins.workflow.util.StaplerReferer;
 import javax.annotation.Nonnull;
 import java.util.Objects;
 
 public final class JenkinsUtils {
-
     private JenkinsUtils() {
         // no meaning instantiating
     }
@@ -66,12 +62,8 @@ public final class JenkinsUtils {
 
         return null;
     }
-    public static boolean hasCurrentProjectJobConfigurePermission() {
-        StaplerRequest req = Stapler.getCurrentRequest();
-        Ancestor ancestor = req.findAncestor(FreeStyleProject.class);
-        if (ancestor == null)
-            return false;
-        Item item = (Item)ancestor.getObject();
-        return item == null ? false : item.hasPermission(Item.CONFIGURE);
+    public static boolean hasItemConfigurePermission() {
+        Item item = StaplerReferer.findItemFromRequest(Item.class);
+        return item != null && item.hasPermission(Item.CONFIGURE);
     }
 }
