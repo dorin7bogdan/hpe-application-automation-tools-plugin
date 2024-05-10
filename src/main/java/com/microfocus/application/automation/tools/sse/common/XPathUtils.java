@@ -35,6 +35,7 @@ package com.microfocus.application.automation.tools.sse.common;
 import java.io.StringReader;
 import java.util.*;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPathConstants;
@@ -174,7 +175,10 @@ public class XPathUtils {
         
         Document ret = null;
         try {
-            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            DocumentBuilder builder = dbf.newDocumentBuilder();
+
             InputSource inputSource = new InputSource();
             inputSource.setCharacterStream(new StringReader(xml));
             ret = builder.parse(inputSource);

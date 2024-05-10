@@ -96,6 +96,7 @@ public class GlobalEventsListenerOctaneImpl extends ItemListener {
 
 	@Override
 	public void onBeforeShutdown() {
+
 		OctaneSDK.getClients().forEach(OctaneSDK::removeClient);
 		UftTestDiscoveryDispatcher dispatcher = Jenkins.get().getExtensionList(UftTestDiscoveryDispatcher.class).get(0);
 		dispatcher.close();
