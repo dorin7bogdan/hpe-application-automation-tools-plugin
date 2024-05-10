@@ -365,14 +365,26 @@
 			<artifactId>apache-httpcomponents-client-4-api</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>net.minidev</groupId>
-			<artifactId>json-smart</artifactId>
-			<version>2.5.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.ivy</groupId>
-			<artifactId>ivy</artifactId>
-			<version>2.5.2</version>
+			<groupId>com.jayway.jsonpath</groupId>
+			<artifactId>json-path</artifactId>
+			<version>2.7.0</version>
+			<exclusions>
+				<!-- Provided by Jenkins core -->
+				<exclusion>
+					<groupId>org.ow2.asm</groupId>
+					<artifactId>asm</artifactId>
+				</exclusion>
+				<!-- Provided by Jenkins core -->
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+				<!-- Provided by Jenkins core -->
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-jdk14</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!--workflow-aggregator-plugin : https://github.com/jenkinsci/workflow-aggregator-plugin
 		cloudbees doesn't support 2.6 therefore it is added manually -->
@@ -415,12 +427,6 @@
 		<dependency>
 			<groupId>org.jenkinsci.plugins</groupId>
 			<artifactId>pipeline-model-definition</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>org.apache.ivy</groupId>
-					<artifactId>ivy</artifactId>
-				</exclusion>
-			</exclusions>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
@@ -475,6 +481,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<dependency>
+			<groupId>org.jenkins-ci.plugins</groupId>
+			<artifactId>junit</artifactId>
+		</dependency>
+
 
 		<!-- Octane jenkins plugins -->
 
@@ -500,7 +511,7 @@
 		<dependency>
 			<artifactId>maven-plugin</artifactId>
 			<groupId>org.jenkins-ci.main</groupId>
-			<version>3.19</version>
+			<version>3.15.1</version>
 		</dependency>
 		<dependency>
 			<artifactId>matrix-project</artifactId>
@@ -550,7 +561,7 @@
 		<dependency>
 			<artifactId>token-macro</artifactId>
 			<groupId>org.jenkins-ci.plugins</groupId>
-			<version>293.v283932a_0a_b_49</version> <!-- TODO use version from BOM when possible -->
+			<version>267.vcdaea6462991</version> <!-- TODO use version from BOM when possible -->
 			<optional>true</optional>
 		</dependency>
 		<dependency>
@@ -562,7 +573,6 @@
 		<dependency>
 			<groupId>org.jenkins-ci.plugins</groupId>
 			<artifactId>mailer</artifactId>
-			<version>414.vcc4c33714601</version>
 			<optional>true</optional>
 		</dependency>
 
