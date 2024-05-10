@@ -113,9 +113,8 @@ public class LrScriptResultsParser {
      * @param scriptName the script name
      * @param outputFile the output file
      */
-    public void parse(FilePath scriptName, FilePath outputFile) throws InterruptedException{
+    public void parse(FilePath scriptName, FilePath outputFile) throws InterruptedException {
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-
         DocumentBuilder dBuilder = null;
         Document doc;
         Document newDoc;
