@@ -32,9 +32,14 @@
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:cv="/lib/custom">
-	<script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/configure.js"/>
-	<script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/parallelRunnerEnvironment.js"/>
-	<script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/js/fileSystemUtils.js"/>
+	<j:set var="hasConfigPermission" value="${descriptor.hasConfigurePermission}" />
+	<st:once>
+		<j:if test="${hasConfigPermission}">
+			<script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/configure.js"/>
+		</j:if>
+		<script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/parallelRunnerEnvironment.js"/>
+		<script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/js/fileSystemUtils.js"/>
+	</st:once>
 	<style>
 		#testsTable {
 			border: 1px;
@@ -279,16 +284,23 @@
 					</div>
 				</div>
 				<f:entry title="Digital Lab Server" field="mcServerName">
-					 <select name="mcServerName">
-						 <j:forEach var="mcServer" items="${descriptor.mcServers}">
-							 <f:option selected="${mcServer.mcServerName==instance.mCServerSettingsModel.mcServerName}" value="${mcServer.mcServerName}">
-								 ${mcServer.mcServerName}
-							 </f:option>
-						 </j:forEach>
-					 </select>
+					<j:choose>
+						<j:when test="${hasConfigPermission}">
+							<select name="mcServerName">
+								<j:forEach var="mcServer" items="${descriptor.mcServers}">
+									<f:option selected="${mcServer.mcServerName==instance.mCServerSettingsModel.mcServerName}" value="${mcServer.mcServerName}">
+										${mcServer.mcServerName}
+									</f:option>
+								</j:forEach>
+							</select>
+						</j:when>
+						<j:otherwise>
+							<f:textbox value="${instance.mCServerSettingsModel.mcServerName}"/>
+						</j:otherwise>
+					</j:choose>
 				 </f:entry>
 				<f:entry>
-					 <f:checkbox title="Use SSL" name="useSSL" checked="${instance.runFromFileModel.useSSL}" default="true"/>
+				 	<f:checkbox title="Use SSL" name="useSSL" checked="${instance.runFromFileModel.useSSL}" default="true"/>
 				 </f:entry>
 				<f:entry field="authModel">
                     <f:radioBlock name="authModel" value="token" checked="${instance.runFromFileModel.authType == 'token' || instance.runFromFileModel.authType == null}" title="Execution Token Authentication">
@@ -367,17 +379,21 @@
 						<f:entry>
 							<f:checkbox title="Recreate Digital Lab job if this job is copied from another job" name="recreateJob" checked="false"/>
 						</f:entry>
-						<f:entry>
-							<input name="digitalLabWizard" type="button" value="Wizard" onClick="startLoadInfo(a, this)"/>
-							<span class="error-msg">Digital Lab login information or proxy is incorrect.</span>
-						</f:entry>
+						<j:if test="${hasConfigPermission}">
+							<f:entry>
+								<input name="digitalLabWizard" type="button" value="Wizard" onClick="startLoadInfo(a, this)"/>
+								<span class="error-msg">Digital Lab login information or proxy is incorrect.</span>
+							</f:entry>
+						</j:if>
 					</div>
 				</f:optionalBlock>
 				<j:set var="isCloudBrowserLab" value="${instance.runFromFileModel.cloudBrowserModel != null}"/>
 				<f:optionalBlock name="cloudBrowserModel" title="Use Cloud Browser Lab" checked="${isCloudBrowserLab}" >
 					<div class="tr cloud-browser-section">
 						<f:nested>
-							<input type="button" name="cloudBrowserLab" value="Browser settings" onclick="startLoadInfo(a, this,'${rootURL}');" />
+							<j:if test="${hasConfigPermission}">
+								<input type="button" name="cloudBrowserLab" value="Browser settings" onclick="startLoadInfo(a, this,'${rootURL}');" />
+							</j:if>
 							<span class="error-msg">Digital Lab login information or proxy is incorrect.</span>
 							<f:textbox name="cloudBrowserUrl" value="${instance.runFromFileModel.cloudBrowserModel.url}" placeholder="URL"/>
 							<div class="repeated-chunk">
@@ -417,6 +433,6 @@
 
 	<script type="text/javascript">
 		checkIfPipelineAndUpdateHelpMsg("${%DontForgetThePublisherPipeline}");
-		setupFsTask();
+		setupFsTask(${hasConfigPermission});
 	</script>
 </j:jelly>

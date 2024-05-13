@@ -31,7 +31,12 @@
   -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:cv="/lib/custom">
-	<script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/parallelRunnerEnvironment.js"/>
+	<j:set var="hasConfigPermission" value="${descriptor.hasConfigurePermission}" />
+	<j:if test="${hasConfigPermission}">
+		<st:once>
+			<script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/parallelRunnerEnvironment.js"/>
+		</st:once>
+	</j:if>
 
 	<st:bind var="pluginPath" value="${rootURL}/plugin/hp-application-automation-tools-plugin/"/>
 
@@ -59,11 +64,12 @@
 			<f:textbox style="flex:1;margin-right: 8px;" field="environment"/>
 
 			<!-- This wizard will open the specific window...-->
-			<input type="button" name="env-wizard" value="Environment wizard" class="yui-button"
-				   onClick="ParallelRunnerEnv.onEnvironmentWizardClick(a,this._button,'browsersModal',true,'${rootURL}/');"/>
-
-			<!-- Remove environment from the list -->
-			<f:repeatableDeleteButton value="Remove" />
+			<j:if test="${hasConfigPermission}">
+				<input type="button" name="env-wizard" value="Environment wizard" class="yui-button"
+					   onClick="ParallelRunnerEnv.onEnvironmentWizardClick(a,this._button,'browsersModal',true,'${rootURL}/');"/>
+				<!-- Remove environment from the list -->
+				<f:repeatableDeleteButton value="Remove" />
+			</j:if>
 		</div>
 
 		<!-- Display an error message if the mobile center settings are not configured properly -->

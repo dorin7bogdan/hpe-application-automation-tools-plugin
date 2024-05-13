@@ -32,6 +32,7 @@
 
 package com.microfocus.application.automation.tools.model;
 
+import com.microfocus.application.automation.tools.JenkinsUtils;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
@@ -257,5 +258,6 @@ public class ParallelRunnerEnvironmentModel extends AbstractDescribableImpl<Para
 
             return FormValidation.ok();
         }
+        public boolean getHasConfigurePermission() { return JenkinsUtils.hasItemConfigurePermission(); }
     }
 }
