@@ -215,10 +215,8 @@ namespace HpToolsLauncher
                         reruntests = FileSystemTestsRunner.GetListOfTestInfo(specificTests);
                     }
 
-                    // save the initial XmlBuilder because it contains testcases already created, in order to speed up the report building
-                    JunitXmlBuilder initialXmlBuilder = ((RunnerBase)_runner).XmlBuilder;
                     //create the runner according to type
-                    _runner = CreateRunner(false, reruntests);
+                    _runner = CreateRunner(false, reruntests, (RunnerBase)_runner);
 
                     //runner instantiation failed (no tests to run or other problem)
                     if (_runner == null)
@@ -226,8 +224,6 @@ namespace HpToolsLauncher
                         Environment.Exit((int)ExitCodeEnum.Failed);
                         return;
                     }
-
-                    ((RunnerBase)_runner).XmlBuilder = initialXmlBuilder; // reuse the populated initialXmlBuilder because it contains testcases already created, in order to speed up the report building
                     TestSuiteRunResults rerunResults = _runner.Run();
 
                     RunSummary(resultsFilename, results, rerunResults);
@@ -240,7 +236,7 @@ namespace HpToolsLauncher
         /// creates the correct runner according to the given type
         /// </summary>
         /// <param name="isFirstRun"></param>
-        private IAssetRunner CreateRunner(bool isFirstRun, List<TestInfo> reruntests = null)
+        private IAssetRunner CreateRunner(bool isFirstRun, List<TestInfo> reruntests = null, RunnerBase initialRunnerBase = null)
         {
             IAssetRunner runner = null;
 
@@ -637,6 +633,12 @@ namespace HpToolsLauncher
                 default:
                     runner = null;
                     break;
+            }
+            if (runner != null && !isFirstRun)
+            {
+                RunnerBase rbase = (RunnerBase)runner;
+                rbase.XmlBuilder =  initialRunnerBase.XmlBuilder; // reuse the populated initialXmlBuilder because it contains testcases already created, in order to speed up the report building
+                rbase.IndexOfRptDirsByTestPath = initialRunnerBase.IndexOfRptDirsByTestPath;
             }
             return runner;
         }
