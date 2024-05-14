@@ -34,6 +34,9 @@
     <j:set var="hasConfigPermission" value="${descriptor.hasConfigurePermission}" />
     <j:if test="${hasConfigPermission}">
         <st:once>
+            <script type="text/javascript">
+                const _hasConfigPermission = ${hasConfigPermission};
+            </script>
             <script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/js/almUtils.js"/>
         </st:once>
     </j:if>

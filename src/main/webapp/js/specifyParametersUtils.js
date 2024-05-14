@@ -48,7 +48,6 @@ function setupParamSpecification() {
     } else if (document.currentScript) {
         main = document.currentScript.parentElement.closest(BUILDER_SELECTOR);
     }
-
     if (main == null) {
         setTimeout(() => { getFSContainerAndStartListening4Params(0); }, 500);
     } else {
@@ -94,65 +93,69 @@ function startListening4Params(main) {
 
     const btnAddNewParam = main.querySelector("button[name='addNewParamBtn']");
     if (btnAddNewParam) {
-        btnAddNewParam.addEventListener('click', () => {
-            addNewParam(main);
-        });
+        if (_hasConfigPermission) {
+            btnAddNewParam.addEventListener('click', () => { addNewParam(main, true); });
+        } else {
+            btnAddNewParam.disabled = true;
+            btnAddNewParam.style.cursor = "not-allowed";
+            btnAddNewParam.style.pointerEvents = "auto";
+        }
     } else {
         console.warn("Add parameter button is missing.");
     }
 
-    const updateMaxNumber4Spinner = (testInput) => {
-        const rowInputs = main.querySelectorAll(".test-param > div > .num-of-test-spinner");
-        const newMax = testInput.value.split("\n").filter(row => row !== "").length;
-        rowInputs.forEach(rowInput => rowInput.setAttribute("max", newMax === 0 ? 1 : newMax.toString()));
-    }
-    const updateTest = (container, spinner, testInput) => {
-        const testLabel = spinner.parentElement.nextElementSibling.querySelector(".test-label");
-        if (spinner.value === '') {
-            testLabel.value = "";
-            return;
+    if (_hasConfigPermission) {
+        const updateMaxNumber4Spinner = (testInput) => {
+            const rowInputs = main.querySelectorAll(".test-param > div > .num-of-test-spinner");
+            const newMax = testInput.value.split("\n").filter(row => row !== "").length;
+            rowInputs.forEach(rowInput => rowInput.setAttribute("max", newMax === 0 ? 1 : newMax.toString()));
         }
-        testLabel.value = testInput.value.split("\n")[parseInt(spinner.value) - 1] || "Please, specify tests first";
-    }
+        const updateTest = (container, spinner, testInput) => {
+            const testLabel = spinner.parentElement.nextElementSibling.querySelector(".test-label");
+            if (spinner.value === '') {
+                testLabel.value = "";
+                return;
+            }
+            testLabel.value = testInput.value.split("\n")[parseInt(spinner.value) - 1] || "Please, specify tests first";
+        }
 
-    let testInput;
-
-    const prepareTestInput = () => {
-        testInput = queryTestInput(main);
-        if (testInput) {
-            testInput.addEventListener("change", () => {
-                updateMaxNumber4Spinner(testInput);
-
-                rowInputs.forEach((rowInput) => {
-                    updateTest(main, rowInput, testInput);
+        let testInput;
+        const prepareTestInput = () => {
+            testInput = queryTestInput(main);
+            if (testInput) {
+                testInput.addEventListener("change", () => {
+                    updateMaxNumber4Spinner(testInput);
+                    rowInputs.forEach((rowInput) => {
+                        updateTest(main, rowInput, testInput);
+                    });
                 });
-            });
-            testInput.dispatchEvent(new Event("change"));
-        } else {
-            console.warn("Test input text area is missing.");
+                testInput.dispatchEvent(new Event("change"));
+            } else {
+                console.warn("Test input text area is missing.");
+            }
         }
-    }
 
-    const rowInputs = main.querySelectorAll(".test-param > div > .num-of-test-spinner");
-    prepareTestInput();
-    rowInputs.forEach(rowInput => {
-        rowInput.addEventListener("click", () => {
-            updateTest(main, rowInput, testInput);
-        });
-        rowInput.addEventListener("change", () => {
-            updateTest(main, rowInput, testInput);
-        })
-    });
-
-    const chkAreParamsEnabled = main.querySelector("input[name='areParametersEnabled']");
-    if (chkAreParamsEnabled) {
-        chkAreParamsEnabled.addEventListener("click", () => cleanParamInput(main));
-    }
-
-    const expandTestsFieldBtn = main.querySelector(".expanding-input__button [type='button']");
-    expandTestsFieldBtn && expandTestsFieldBtn.addEventListener("click", () => {
+        const rowInputs = main.querySelectorAll(".test-param > div > .num-of-test-spinner");
         prepareTestInput();
-    });
+        rowInputs.forEach(rowInput => {
+            rowInput.addEventListener("click", () => {
+                updateTest(main, rowInput, testInput);
+            });
+            rowInput.addEventListener("change", () => {
+                updateTest(main, rowInput, testInput);
+            })
+        });
+
+        const chkAreParamsEnabled = main.querySelector("input[name='areParametersEnabled']");
+        if (chkAreParamsEnabled) {
+            chkAreParamsEnabled.addEventListener("click", () => cleanParamInput(main, true));
+        }
+
+        const expandTestsFieldBtn = main.querySelector(".expanding-input__button [type='button']");
+        expandTestsFieldBtn && expandTestsFieldBtn.addEventListener("click", () => {
+            prepareTestInput();
+        });
+    }
 }
 
 function queryTestInput(container) {
@@ -222,6 +225,9 @@ function addNewParam(container) {
         console.warn("Test input field is missing.");
     }
 
+    let htmlDelBtn = _hasConfigPermission ?
+        `<span class="yui-button danger" id="delParamInput_${nextIdx}" name="delParam"><span class="first-child"><button type="button" tabindex="0">&#9747;</button></span></span>`:
+        "";
     const elem = `
         <li class="test-param" name="testParam" data-index="${nextIdx}">
             <div>
@@ -241,11 +247,7 @@ function addNewParam(container) {
                     ${selectableTypeList}
                 </select>
             </div>  
-            <span class="yui-button danger" id="delParamInput_${nextIdx}" name="delParam">
-                <span class="first-child">
-                    <button type="button" tabindex="0">&#9747;</button>
-                </span>
-            </span>
+            ${htmlDelBtn}
         </li>
         `;
 
@@ -275,7 +277,7 @@ function addNewParam(container) {
         .forEach(input => input.addEventListener("change", () => generateAndPutJSONResult(container)));
 
     const delButton = paramContainer.querySelector(`#delParamInput_${nextIdx} > span > button`);
-    delButton.addEventListener("click", () => deleteParam(delButton, container));
+    delButton?.addEventListener("click", () => deleteParam(delButton, container));
 
     const typeField = paramContainer.querySelector(`#paramInputType_${nextIdx}`);
     const valueField = paramContainer.querySelector(`#paramInputValue_${nextIdx}`);

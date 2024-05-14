@@ -34,12 +34,16 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:cv="/lib/custom">
 	<j:set var="hasConfigPermission" value="${descriptor.hasConfigurePermission}" />
 	<st:once>
+		<script type="text/javascript">
+			const _hasConfigPermission = ${hasConfigPermission};
+		</script>
 		<j:if test="${hasConfigPermission}">
 			<script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/configure.js"/>
 		</j:if>
 		<script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/parallelRunnerEnvironment.js"/>
 		<script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/js/fileSystemUtils.js"/>
 	</st:once>
+
 	<style>
 		#testsTable {
 			border: 1px;
