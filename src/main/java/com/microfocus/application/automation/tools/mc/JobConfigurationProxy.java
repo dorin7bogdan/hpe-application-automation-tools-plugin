@@ -281,12 +281,42 @@ public class JobConfigurationProxy {
         return null;
     }
 
-    //get all workspaces from MC
-    public JSONArray getAllMcWorkspaces(String mcUrl, AuthModel authModel, ProxySettings proxy) throws IOException {
+    //checking admin setting if prevent uploading to shared assert
+    public String isAllowUploadToSharedAssert(Map<String, String> headers, String mcUrl, ProxySettings proxy) throws IOException {
+        if (null == proxy) {
+            proxy = new ProxySettings();
+        }
+        String getAdminSettingUrl = mcUrl + Constants.GET_ADMIN_SETTINGS_URL;
+        if(!StringUtils.isNullOrEmpty(getAdminSettingUrl)){
+            getAdminSettingUrl += (String.format("/%s",Constants.USER_PERMISSION_CATEGORY));
+        }
+        HttpUtils.ProxyInfo proxyInfo = HttpUtils.setProxyCfg(proxy.getFsProxyAddress(), proxy.getFsProxyUserName(), proxy.getFsProxyPassword());
+        HttpResponse response = HttpUtils.doGet(proxyInfo, getAdminSettingUrl, headers, null);
+        if (response != null && response.getJsonArray() != null) {
+            for (int i = 0; i < response.getJsonArray().size(); i++) {
+                JSONObject setting = (JSONObject) response.getJsonArray().get(i);
+                if(setting.getAsString("name").equals(Constants.UPLOAD_APP_TO_SHARED_ASSETS)){
+                    return setting.getAsString("value");
+                }
+            }
+        }
+        return null;
+    }
+
+    //get all valid workspaces from app upload
+    public JSONArray getAllValidWorkspaces(String mcUrl, AuthModel authModel, ProxySettings proxy) throws IOException {
         try {
             Map<String, String> headers = login(mcUrl, authModel, proxy);
             HttpUtils.ProxyInfo proxyInfo = proxy == null ? null : HttpUtils.setProxyCfg(proxy.getFsProxyAddress(), proxy.getFsProxyUserName(), proxy.getFsProxyPassword());
-            HttpResponse response = HttpUtils.doGet(proxyInfo, mcUrl + Constants.GET_ALL_WORKSPACES_URL, headers, "includeSharedAssets=true");
+            String queryString = "includeSharedAssets=true";
+            //Determine if allow upload to shared assert
+            String strAllowUploadToSharedAssert = isAllowUploadToSharedAssert(headers,mcUrl,proxy);
+            if(!StringUtils.isNullOrEmpty(strAllowUploadToSharedAssert) && strAllowUploadToSharedAssert.equalsIgnoreCase("true")){
+                queryString = "includeSharedAssets=true";
+            }else{
+                queryString = "includeSharedAssets=false";
+            }
+            HttpResponse response = HttpUtils.doGet(proxyInfo, mcUrl + Constants.GET_ALL_WORKSPACES_URL, headers, queryString);
             if (response != null && response.getJsonArray() != null) {
                 return response.getJsonArray();
             }
