@@ -309,11 +309,9 @@ public class JobConfigurationProxy {
             Map<String, String> headers = login(mcUrl, authModel, proxy);
             HttpUtils.ProxyInfo proxyInfo = proxy == null ? null : HttpUtils.setProxyCfg(proxy.getFsProxyAddress(), proxy.getFsProxyUserName(), proxy.getFsProxyPassword());
             String queryString = "includeSharedAssets=true";
-            //Determine if allow upload to shared assert
+            //Default value is true, so only update when setting exist and value is false.
             String strAllowUploadToSharedAssert = isAllowUploadToSharedAssert(headers,mcUrl,proxy);
-            if(!StringUtils.isNullOrEmpty(strAllowUploadToSharedAssert) && strAllowUploadToSharedAssert.equalsIgnoreCase("true")){
-                queryString = "includeSharedAssets=true";
-            }else{
+            if(!StringUtils.isNullOrEmpty(strAllowUploadToSharedAssert) && strAllowUploadToSharedAssert.equalsIgnoreCase("false")){
                 queryString = "includeSharedAssets=false";
             }
             HttpResponse response = HttpUtils.doGet(proxyInfo, mcUrl + Constants.GET_ALL_WORKSPACES_URL, headers, queryString);
