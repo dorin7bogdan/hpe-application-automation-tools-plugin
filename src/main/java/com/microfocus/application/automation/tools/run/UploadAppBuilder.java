@@ -260,14 +260,14 @@ public class UploadAppBuilder extends Builder {
         }
 
         /**
-         * Gets mc workspace list.
+         * Gets all valid workspace list.
          *
          * @param mcUrl the server name
          * @return the mc workspace list
          */
         @SuppressWarnings("squid:S2259")
         @JavaScriptMethod
-        public JSONArray getMcWorkspaces(String mcUrl, String authType, String mcUserName, String mcPassword, String mcTenantId, String mcExecToken,
+        public JSONArray getValidWorkspaces(String mcUrl, String authType, String mcUserName, String mcPassword, String mcTenantId, String mcExecToken,
                                                       boolean useProxy, String proxyAddress, boolean useAuthentication, String proxyUserName, String proxyPassword) {
             JSONArray workspaces = null;
             for (MCServerSettingsModel mcServer : this.getMcServers()) {
@@ -280,7 +280,7 @@ public class UploadAppBuilder extends Builder {
             ProxySettings proxySettings =new ProxySettings(useAuthentication, proxyAddress, proxyUserName, proxyPassword);
             try {
                 JobConfigurationProxy job = JobConfigurationProxy.getInstance();
-                workspaces = job.getAllMcWorkspaces(mcUrl, authModel, proxySettings);
+                workspaces = job.getAllValidWorkspaces(mcUrl, authModel, proxySettings);
             } catch (Exception e) {
                 e.printStackTrace();
             }

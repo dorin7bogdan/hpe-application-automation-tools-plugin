@@ -73,5 +73,6 @@ public class Constants {
     public final static String ACCESS_TOKEN = "access_token";
     public  final static String TOKEN_TYPE = "token_type";
     public final static String SHARED_ASSETS = "Shared assets";
-
+    public final static String USER_PERMISSION_CATEGORY ="USER_PERMISSION";
+    public final static String UPLOAD_APP_TO_SHARED_ASSETS = "USER_PERMISSION_UPLOAD_APP_TO_SHARED_ASSETS";
 }

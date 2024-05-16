@@ -90,7 +90,7 @@
               var useAuthentication = document.getElementsByName("uploadApp.fsUseAuthentication")[0].checked;
               var proxyUserName = document.getElementsByName("uploadApp.fsProxyUserName")[0].value;
               var proxyPassword = document.getElementsByName("uploadApp.fsProxyPassword")[0].value;
-              upload.getMcWorkspaces(mcUrl, authType, mcUserName, mcPassword, mcTenantId, mcExecToken, useProxy, proxyAddress, useAuthentication, proxyUserName, proxyPassword, function (r) {
+              upload.getValidWorkspaces(mcUrl, authType, mcUserName, mcPassword, mcTenantId, mcExecToken, useProxy, proxyAddress, useAuthentication, proxyUserName, proxyPassword, function (r) {
                      const workspaces = r.responseJSON;
                      var str = renderWorkspaces(workspaces,saveWorkspace);
                      event.target.previousElementSibling.innerHTML= str;
@@ -129,7 +129,7 @@
            var useAuthentication = document.getElementsByName("uploadApp.fsUseAuthentication")[0].checked;
            var proxyUserName = document.getElementsByName("uploadApp.fsProxyUserName")[0].value;
            var proxyPassword = document.getElementsByName("uploadApp.fsProxyPassword")[0].value;
-           upload.getMcWorkspaces(mcUrl, authType, mcUserName, mcPassword, mcTenantId, mcExecToken, useProxy, proxyAddress, useAuthentication, proxyUserName, proxyPassword, function (r){
+           upload.getValidWorkspaces(mcUrl, authType, mcUserName, mcPassword, mcTenantId, mcExecToken, useProxy, proxyAddress, useAuthentication, proxyUserName, proxyPassword, function (r){
                   const workspaces = r.responseJSON;
                   let items = document.getElementsByClassName("mcRefreshButton");
                   let len = items.length;
