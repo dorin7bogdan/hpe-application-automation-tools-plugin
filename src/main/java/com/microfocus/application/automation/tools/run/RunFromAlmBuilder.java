@@ -490,14 +490,20 @@ public class RunFromAlmBuilder extends Builder implements SimpleBuildStep {
                     getAlmServers().filter(s -> s.getAlmServerName().equals(almServerName)).findFirst().orElse(null);
         }
 
-        public ListBoxModel doFillAlmServerNameItems() {
+        public ListBoxModel doFillAlmServerNameItems(@AncestorInPath Item item) {
             ListBoxModel m = new ListBoxModel();
+            if (item == null || !item.hasPermission(Item.CONFIGURE)) {
+                return m;
+            }
             getAlmServers().forEachOrdered(s -> m.add(s.getAlmServerName()));
             return m;
         }
 
-        public ListBoxModel doFillAlmUserNameItems(@QueryParameter String almServerName) {
+        public ListBoxModel doFillAlmUserNameItems(@QueryParameter String almServerName, @AncestorInPath Item item) {
             ListBoxModel m = new ListBoxModel();
+            if (item == null || !item.hasPermission(Item.CONFIGURE)) {
+                return m;
+            }
             if (hasAlmServers()) {
                 AlmServerSettingsModel model = findAlmServer(almServerName);
                 if (model != null && !model.getAlmCredentials().isEmpty()) {
@@ -509,8 +515,11 @@ public class RunFromAlmBuilder extends Builder implements SimpleBuildStep {
             return m;
         }
 
-        public ListBoxModel doFillAlmClientIDItems(@QueryParameter String almServerName) {
+        public ListBoxModel doFillAlmClientIDItems(@QueryParameter String almServerName, @AncestorInPath Item item) {
             ListBoxModel m = new ListBoxModel();
+            if (item == null || !item.hasPermission(Item.CONFIGURE)) {
+                return m;
+            }
             if (hasAlmServers()) {
                 AlmServerSettingsModel model = findAlmServer(almServerName);
                 if (model != null && !model.getAlmSSOCredentials().isEmpty()) {
