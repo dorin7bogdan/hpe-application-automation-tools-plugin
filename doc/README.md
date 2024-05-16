@@ -20,8 +20,6 @@ A list of known bugs is available [here](https://issues.jenkins-ci.org/issues/?j
 
 [Release notes](#release-notes)
 
-[Changelog](#changelog)
-
 [Supported Integrations](#supported-integrations)
 
 [Prerequisites](#prerequisites)
@@ -68,23 +66,8 @@ Version CE 24.1.0 introduced the following enhancements and fixes:
   
 For information about enhancements introduced in previous versions, see [What's new in earlier versions](WhatsNewEarlier.md). 
 
-## Changelog
-
-The [Changelog ](https://wiki.jenkins.io/display/JENKINS/Changelog)page lists the bug fix changes in the versions of the plugin.
-
-
-- [Version 5.6.2](https://wiki.jenkins.io/display/JENKINS/Changelog#Version5.6.2(Dec19,2018))
-
-- [Version 5.6.1](https://wiki.jenkins.io/display/JENKINS/Changelog#Version5.6.1(Dec18,2018))
-
-- [Version 5.5.2](https://wiki.jenkins.io/display/JENKINS/Changelog#Version5.5.2Beta(Oct2,2018))
-
-- [Version 5.5.1](https://wiki.jenkins.io/display/JENKINS/Changelog#Version5.5.1(Sept12,2018))
-
-
 
 ## Supported Integrations
-
 
 
 This plugin supports the following OpenText product versions:

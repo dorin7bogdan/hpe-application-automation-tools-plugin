@@ -365,40 +365,31 @@
 			<artifactId>apache-httpcomponents-client-4-api</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.jayway.jsonpath</groupId>
-			<artifactId>json-path</artifactId>
-			<version>2.7.0</version>
-			<exclusions>
-				<!-- Provided by Jenkins core -->
-				<exclusion>
-					<groupId>org.ow2.asm</groupId>
-					<artifactId>asm</artifactId>
-				</exclusion>
-				<!-- Provided by Jenkins core -->
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-api</artifactId>
-				</exclusion>
-				<!-- Provided by Jenkins core -->
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-jdk14</artifactId>
-				</exclusion>
-			</exclusions>
+			<groupId>net.minidev</groupId>
+			<artifactId>json-smart</artifactId>
+			<version>2.5.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.ivy</groupId>
+			<artifactId>ivy</artifactId>
+			<version>2.5.2</version>
 		</dependency>
 		<!--workflow-aggregator-plugin : https://github.com/jenkinsci/workflow-aggregator-plugin
 		cloudbees doesn't support 2.6 therefore it is added manually -->
 		<dependency>
 			<groupId>org.jenkins-ci.plugins.workflow</groupId>
 			<artifactId>workflow-step-api</artifactId>
+			<version>625.vd896b_f445a_f8</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins.workflow</groupId>
 			<artifactId>workflow-api</artifactId>
+			<version>1144.v61c3180fa_03f</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins.workflow</groupId>
 			<artifactId>workflow-support</artifactId>
+			<version>813.vb_d7c3d2984a_0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -407,6 +398,7 @@
 		<dependency>
 			<groupId>org.jenkins-ci.plugins.workflow</groupId>
 			<artifactId>workflow-job</artifactId>
+			<version>1145.v7f2433caa07f</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -427,19 +419,28 @@
 		<dependency>
 			<groupId>org.jenkinsci.plugins</groupId>
 			<artifactId>pipeline-model-definition</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.apache.ivy</groupId>
+					<artifactId>ivy</artifactId>
+				</exclusion>
+			</exclusions>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins</groupId>
 			<artifactId>structs</artifactId>
+			<version>308.v852b473a2b8c</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins</groupId>
 			<artifactId>scm-api</artifactId>
+			<version>602.v6a_81757a_31d2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins</groupId>
 			<artifactId>script-security</artifactId>
+			<version>1158.v7c1b_73a_69a_08</version>
 			<scope>test</scope>
 		</dependency>
 		<!--workflow-aggregator-plugin-->
@@ -484,15 +485,62 @@
 		<dependency>
 			<groupId>org.jenkins-ci.plugins</groupId>
 			<artifactId>junit</artifactId>
+			<version>1119.1121.vc43d0fc45561</version>
+
+			<exclusions>			
+				<exclusion>
+					<groupId>io.jenkins.plugins</groupId>
+					<artifactId>font-awesome-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.jenkins.plugins</groupId>
+					<artifactId>echarts-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.jenkins.plugins</groupId>
+					<artifactId>plugin-util-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.jenkins.plugins</groupId>
+					<artifactId>checks-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.jenkins-ci.plugins</groupId>
+					<artifactId>display-url-api</artifactId>
+				</exclusion>
+			</exclusions> 
 		</dependency>
-
-
+		<dependency>
+			<groupId>io.jenkins.plugins</groupId>
+			<artifactId>font-awesome-api</artifactId>
+			<version>6.0.0-1</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jenkins.plugins</groupId>
+			<artifactId>echarts-api</artifactId>
+			<version>5.3.2-1</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jenkins.plugins</groupId>
+			<artifactId>plugin-util-api</artifactId>
+			<version>2.16.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jenkins.plugins</groupId>
+			<artifactId>checks-api</artifactId>
+			<version>1.7.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jenkins-ci.plugins</groupId>
+			<artifactId>display-url-api</artifactId>
+			<version>2.3.6</version>
+		</dependency>
 		<!-- Octane jenkins plugins -->
 
 		<dependency>
 			<artifactId>integrations-sdk</artifactId>
 			<groupId>com.hpe.adm.octane.ciplugins</groupId>
-			<version>2.24.1.6</version>
+			<version>2.24.1.7</version>
 		</dependency>
 
 		<!--BUILDER providers integration-->
@@ -511,7 +559,7 @@
 		<dependency>
 			<artifactId>maven-plugin</artifactId>
 			<groupId>org.jenkins-ci.main</groupId>
-			<version>3.15.1</version>
+			<version>3.19</version>
 		</dependency>
 		<dependency>
 			<artifactId>matrix-project</artifactId>
@@ -561,7 +609,7 @@
 		<dependency>
 			<artifactId>token-macro</artifactId>
 			<groupId>org.jenkins-ci.plugins</groupId>
-			<version>267.vcdaea6462991</version> <!-- TODO use version from BOM when possible -->
+			<version>293.v283932a_0a_b_49</version> <!-- TODO use version from BOM when possible -->
 			<optional>true</optional>
 		</dependency>
 		<dependency>
@@ -573,6 +621,7 @@
 		<dependency>
 			<groupId>org.jenkins-ci.plugins</groupId>
 			<artifactId>mailer</artifactId>
+			<version>414.vcc4c33714601</version>
 			<optional>true</optional>
 		</dependency>
 
