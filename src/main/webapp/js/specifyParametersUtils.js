@@ -40,7 +40,7 @@ if (typeof BUILDER_SELECTOR === "undefined") {
     BUILDER_SELECTOR = "div[name='builder'][descriptorid*='com.microfocus.application.automation.tools.run.RunFrom']";
 }
 
-function setupParamSpecification() {
+function setupParamSpecification(hasConfigPermission) {
     document.body.style.cursor = "wait";
     let main = null;
     if (document.location.href.indexOf("pipeline-syntax") > 0) {
@@ -49,11 +49,11 @@ function setupParamSpecification() {
         main = document.currentScript.parentElement.closest(BUILDER_SELECTOR);
     }
     if (main == null) {
-        setTimeout(() => { getFSContainerAndStartListening4Params(0); }, 500);
+        setTimeout(() => { getFSContainerAndStartListening4Params(hasConfigPermission, 0); }, 500);
     } else {
         setTimeout(() => {
             try {
-                startListening4Params(main);
+                startListening4Params(main, hasConfigPermission);
             } catch(e) {
                 console.error(e);
             } finally {
@@ -63,7 +63,7 @@ function setupParamSpecification() {
     }
 }
 
-function getFSContainerAndStartListening4Params(idxOfRetry) {
+function getFSContainerAndStartListening4Params(hasConfigPermission, idxOfRetry) {
     let divs = document.querySelectorAll(BUILDER_SELECTOR);
     if (divs == null || divs.length == 0) {
         if (idxOfRetry > 5) {
@@ -84,16 +84,16 @@ function getFSContainerAndStartListening4Params(idxOfRetry) {
     }
 }
 
-function startListening4Params(main) {
+function startListening4Params(main, hasConfigPermission) {
     if (main == null) {
         console.error("Failed to initialize Specific Params controls! Please retry or refresh the page.");
         return;
     }
-    loadParamInputs(main);
+    loadParamInputs(main, hasConfigPermission);
 
     const btnAddNewParam = main.querySelector("button[name='addNewParamBtn']");
     if (btnAddNewParam) {
-        if (_hasConfigPermission) {
+        if (hasConfigPermission) {
             btnAddNewParam.addEventListener('click', () => { addNewParam(main, true); });
         } else {
             btnAddNewParam.disabled = true;
@@ -104,7 +104,7 @@ function startListening4Params(main) {
         console.warn("Add parameter button is missing.");
     }
 
-    if (_hasConfigPermission) {
+    if (hasConfigPermission) {
         const updateMaxNumber4Spinner = (testInput) => {
             const rowInputs = main.querySelectorAll(".test-param > div > .num-of-test-spinner");
             const newMax = testInput.value.split("\n").filter(row => row !== "").length;
@@ -198,9 +198,9 @@ function generateAndPutJSONResult(container) {
     strParamRes.value = normalizeJsonFormat(JSON.stringify(inputJSON));
 }
 
-function cleanParamInput(container) {
+function cleanParamInput(container, hasConfigPermission) {
     if (this.checked) {
-        loadParamInputs(container);
+        loadParamInputs(container, hasConfigPermission);
     } else {
         const strParamRes = container.querySelector("input.json-params");
         if (!strParamRes) return console.warn("Param input JSON result hidden field is missing, reload the page.");
@@ -208,7 +208,7 @@ function cleanParamInput(container) {
     }
 }
 
-function addNewParam(container) {
+function addNewParam(container, hasConfigPermission) {
     const paramContainer = container.querySelector("ul[name='testParams']");
     const params = paramContainer.querySelectorAll("li[name='testParam']") || [];
     const nextIdx = params.length !== 0 ? parseInt(Array.from(params).reduce((prev, curr) => {
@@ -225,7 +225,7 @@ function addNewParam(container) {
         console.warn("Test input field is missing.");
     }
 
-    let htmlDelBtn = _hasConfigPermission ?
+    let htmlDelBtn = hasConfigPermission ?
         `<span class="yui-button danger" id="delParamInput_${nextIdx}" name="delParam"><span class="first-child"><button type="button" tabindex="0">&#9747;</button></span></span>`:
         "";
     const elem = `
@@ -310,7 +310,7 @@ if (typeof map4TypeAssociations === "undefined") {
     };
 }
 
-function loadParamInputs(container) {
+function loadParamInputs(container, hasConfigPermission) {
     const paramResultStr = container.querySelector("input.json-params");
 
     // on some browsers the value may return with extra-quotes
@@ -328,7 +328,7 @@ function loadParamInputs(container) {
     // has to be an object to be valid JSON input, otherwise because of security policies the JSON was altered
     if (typeof(json) === "string") json = JSON.parse("[]");
 
-    for (let i = 0; i < json.length; ++i) addNewParam(container);
+    for (let i = 0; i < json.length; ++i) addNewParam(container, hasConfigPermission);
 
     const testParams = container.querySelectorAll("li[name='testParam']");
 

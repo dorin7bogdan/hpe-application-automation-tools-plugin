@@ -31,9 +31,8 @@
   -->
 
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:cv="/lib/custom">
-
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:cv="/lib/custom">
+    <script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/js/specifyParametersUtils.js"/>
     <style>
         .test-params {
             list-style-type: none;
@@ -103,8 +102,6 @@
         <f:readOnlyTextbox field="parameterJson" clazz="json-params" value="${instance.parameterJson}" />
     </f:invisibleEntry>
 
-    <script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/js/specifyParametersUtils.js"/>
-
     <j:forEach var="paramGroup" items="${descriptor.mapping}" indexVar="i">
         <script type="text/javascript">
             addSeparatorToTypeList('${paramGroup.key}', ${i}, ${size(descriptor.mapping)});
@@ -122,7 +119,7 @@
     </j:forEach>
 
     <script type="text/javascript">
-        setupParamSpecification();
+        setupParamSpecification(${hasConfigPermission});
     </script>
 
 </j:jelly>

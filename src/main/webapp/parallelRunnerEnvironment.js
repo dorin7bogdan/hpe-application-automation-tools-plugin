@@ -622,7 +622,7 @@ function updateFsView(panel, chkParallelRunner) {
 	//this panel should be automatically shown/hidden, so comment-out it for now to see if all works fine
 	//ParallelRunnerEnv.setEnvironmentsVisibility(panel, isParallelRun);
 }
-function setupFsTask() {
+function setupFsTask(hasConfigPermission) {
 	let divMain = null;
 	if (document.location.href.indexOf("pipeline-syntax")>0) { // we are on pipeline-syntax page, where runFromFileBuilder step can be selected only once
 		divMain = document;
@@ -630,14 +630,14 @@ function setupFsTask() {
 		divMain = document.currentScript.parentElement.closest(RUN_FROM_FS_BUILDER_SELECTOR);
 	}
 	setTimeout(function() {
-		prepareFsTask(divMain)}, 100);
+		prepareFsTask(divMain, hasConfigPermission)}, 100);
 }
-function prepareFsTask(divMain) {
+function prepareFsTask(divMain, hasConfigPermission) {
 	if (divMain == null) { // this block is needed for IE, but also for non-IE browsers when adding more than one FS build step
 		let divs = document.querySelectorAll(RUN_FROM_FS_BUILDER_SELECTOR);
 		divMain = divs[divs.length - 1];
 	}
-	if (_hasConfigPermission) {
+	if (hasConfigPermission) {
 		setViewVisibility(divMain);
 	} else {
 		const chkParallelRunner = divMain.querySelector("input[type=checkbox][name=isParallelRunnerEnabled]");
