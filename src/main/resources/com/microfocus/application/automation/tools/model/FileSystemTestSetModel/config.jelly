@@ -32,6 +32,6 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:cv="/lib/custom">
 	<f:entry field="fileSystemTestSet">
-		<f:repeatableProperty field="fileSystemTestSet" minimum="1" add="+ EXECUTION SET"/>
+		<f:repeatableProperty field="fileSystemTestSet" minimum="1" add="+ EXECUTION SET" hasConfigPermission="${hasConfigPermission}"/>
 	</f:entry>
 </j:jelly>

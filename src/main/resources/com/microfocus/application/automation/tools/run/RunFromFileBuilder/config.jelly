@@ -33,10 +33,10 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:cv="/lib/custom">
 	<j:set var="hasConfigPermission" value="${descriptor.hasConfigurePermission}" />
+	<script type="text/javascript">
+		const _hasConfigPermission = ${hasConfigPermission};
+	</script>
 	<st:once>
-		<script type="text/javascript">
-			const _hasConfigPermission = ${hasConfigPermission};
-		</script>
 		<j:if test="${hasConfigPermission}">
 			<script type="text/javascript" src="${rootURL}/plugin/hp-application-automation-tools-plugin/configure.js"/>
 		</j:if>
@@ -165,13 +165,13 @@
 
 	<f:optionalBlock name="areParametersEnabled" title="Specify test parameters" inline="true" checked="${instance.areParametersEnabled}">
 		<f:entry field="specifyParametersModel">
-			<f:property field="specifyParametersModel"/>
+			<f:property field="specifyParametersModel" hasConfigPermission="${hasConfigPermission}"/>
 		</f:entry>
 	</f:optionalBlock>
 
 	<f:optionalBlock name="isParallelRunnerEnabled" title="UFT parallel running mode" inline="true" checked="${instance.isParallelRunnerEnabled}">
 		<f:entry field="fileSystemTestSetModel">
-			<f:property field="fileSystemTestSetModel"/>
+			<f:property field="fileSystemTestSetModel" hasConfigPermission="${hasConfigPermission}"/>
 		</f:entry>
 	</f:optionalBlock>
 
