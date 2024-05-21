@@ -36,9 +36,12 @@ import javax.annotation.Nonnull;
 
 import com.microfocus.application.automation.tools.model.SvServerSettingsModel;
 import com.microfocus.application.automation.tools.sv.runner.AbstractSvRunDescriptor;
+import hudson.model.*;
 import hudson.util.ListBoxModel;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.QueryParameter;
 
 public abstract class AbstractSvStepDescriptor<T extends AbstractSvRunDescriptor> extends AbstractStepDescriptorImpl {
 
@@ -72,7 +75,8 @@ public abstract class AbstractSvStepDescriptor<T extends AbstractSvRunDescriptor
     }
 
     @SuppressWarnings("unused")
-    public ListBoxModel doFillServerNameItems() {
-        return builderDescriptor.doFillServerNameItems();
+    public ListBoxModel doFillServerNameItems(@AncestorInPath Item project, 
+                                              @QueryParameter String serverName) {
+        return builderDescriptor.doFillServerNameItems(project, serverName);
     }
 }
