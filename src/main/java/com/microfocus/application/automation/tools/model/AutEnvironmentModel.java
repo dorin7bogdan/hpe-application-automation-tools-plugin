@@ -32,11 +32,11 @@
 
 package com.microfocus.application.automation.tools.model;
 
+import com.microfocus.application.automation.tools.JenkinsUtils;
 import com.microfocus.application.automation.tools.settings.AlmServerSettingsGlobalConfiguration;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
-import hudson.model.Hudson;
 import hudson.util.FormValidation;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -243,6 +243,8 @@ public class AutEnvironmentModel extends AbstractDescribableImpl<AutEnvironmentM
             return ret;
         }
 
+        public boolean getHasConfigurePermission() {
+            return JenkinsUtils.hasItemConfigurePermission();
+        }
     }
-
 }

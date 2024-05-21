@@ -30,13 +30,11 @@
  * ___________________________________________________________________
  */
 document.addEventListener('DOMContentLoaded', function() {
-
     var checkbox1 = document.getElementById('checkBox1');
 
     if (checkbox1.checked) {
         document.getElementsByName("fsTestType")[0].disabled = false;
         document.getElementsByName("selectedNode")[0].disabled = false;
-
     } else {
         document.getElementsByName("fsTestType")[0].disabled = true;
         document.getElementsByName("selectedNode")[0].disabled = true;
@@ -82,7 +80,6 @@ function selectCleanupTest(displayStyle) {
 }
 
 function selectValueCombo(selectObj) {
-
     var selectIndex = selectObj.selectedIndex;
     var selectValue = selectObj.options[selectIndex].text;
 

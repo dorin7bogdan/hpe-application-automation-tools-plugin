@@ -30,9 +30,8 @@
  ~ ___________________________________________________________________
   -->
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    <j:set var="hasConfigPermission" value="${descriptor.hasConfigurePermission}" />
     <!--
       ~ [JENKINS-64639]: This is a drawn table. Not change
       -->
@@ -62,14 +61,21 @@
         <f:entry>
             <label>ALM server</label>
             <f:entry field="almServerName">
-                <select name="autEnv.almServerName">
-                    <j:forEach var="almServer" items="${descriptor.almServers}">
-                        <f:option selected="${almServer.almServerName==instance.almServerName}"
-                                  value="${almServer.almServerName}">
-                            ${almServer.almServerName}
-                        </f:option>
-                    </j:forEach>
-                </select>
+                <j:choose>
+                    <j:when test="${hasConfigPermission}">
+                        <select name="autEnv.almServerName">
+                            <j:forEach var="almServer" items="${descriptor.almServers}">
+                                <f:option selected="${almServer.almServerName==instance.almServerName}"
+                                          value="${almServer.almServerName}">
+                                    ${almServer.almServerName}
+                                </f:option>
+                            </j:forEach>
+                        </select>
+                    </j:when>
+                    <j:otherwise>
+                        <f:textbox value="${instance.almServerName}"/>
+                    </j:otherwise>
+                </j:choose>
             </f:entry>
         </f:entry>
 
@@ -80,12 +86,14 @@
             </f:entry>
         </f:entry>
 
-         <f:entry>
-            <label>Password</label>
-            <f:entry field="almPassword">
-                <f:password/>
+        <j:if test="${hasConfigPermission}">
+             <f:entry>
+                <label>Password</label>
+                <f:entry field="almPassword">
+                    <f:password/>
+                </f:entry>
             </f:entry>
-        </f:entry>
+        </j:if>
 
          <f:entry>
             <label>Domain</label>

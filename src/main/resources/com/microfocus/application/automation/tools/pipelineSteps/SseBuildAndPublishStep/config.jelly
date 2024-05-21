@@ -31,6 +31,7 @@
   -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+    <j:set var="hasConfigPermission" value="${descriptor.hasConfigurePermission}" />
     <!--
       ~ [JENKINS-64639]: This table is only for drawing information.
       -->
@@ -65,13 +66,20 @@
       <td/>
     </tr>     
        <f:entry title="ALM server" field="almServerName">
-            <select name="sse.almServerName">
-                <j:forEach var="almServer" items="${descriptor.almServers}">
-                    <f:option selected="${almServer.almServerName==instance.almServerName}" value="${almServer.almServerName}">
-                        ${almServer.almServerName}
-                    </f:option>
-                </j:forEach>
-            </select>
+           <j:choose>
+               <j:when test="${hasConfigPermission}">
+                   <select name="sse.almServerName">
+                       <j:forEach var="almServer" items="${descriptor.almServers}">
+                           <f:option selected="${almServer.almServerName==instance.almServerName}" value="${almServer.almServerName}">
+                               ${almServer.almServerName}
+                           </f:option>
+                       </j:forEach>
+                   </select>
+               </j:when>
+               <j:otherwise>
+                   <f:textbox value="${instance.almServerName}"/>
+               </j:otherwise>
+           </j:choose>
         </f:entry>
         
         <f:entry name="sse.credentialsId" field="credentialsId" title="ALM Credentials">

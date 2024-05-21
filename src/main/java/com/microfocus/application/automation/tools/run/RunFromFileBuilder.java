@@ -1265,6 +1265,8 @@ public class RunFromFileBuilder extends Builder implements SimpleBuildStep {
         }
 
         public List<String> getEncodings() { return RunFromFileSystemModel.encodings; }
+
+        public boolean getHasConfigurePermission() { return JenkinsUtils.hasItemConfigurePermission(); }
     }
 
 }
