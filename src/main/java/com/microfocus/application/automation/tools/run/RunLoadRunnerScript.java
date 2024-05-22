@@ -56,6 +56,7 @@ import org.apache.commons.io.input.BOMInputStream;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
+import javax.xml.XMLConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
@@ -269,6 +270,7 @@ public class RunLoadRunnerScript extends Builder implements SimpleBuildStep {
         }
         try {
             TransformerFactory factory = TransformerFactory.newInstance();
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             StreamSource xslStream = new StreamSource(xsltOnNode.read());
             Transformer transformer = factory.newTransformer(xslStream);
 
