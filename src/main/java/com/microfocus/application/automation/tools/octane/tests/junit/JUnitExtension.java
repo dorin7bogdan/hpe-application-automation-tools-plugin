@@ -71,6 +71,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.hp.octane.integrations.utils.SdkConstants.JobParameters.OCTANE_CONFIG_ID_PARAMETER_NAME;
 
@@ -232,9 +233,10 @@ public class JUnitExtension extends OctaneTestsExtension {
 
 
 			if (HPRunnerType.UFT.equals(hpRunnerType) || HPRunnerType.UFT_MBT.equals(hpRunnerType)) {
-				List<Node> nodes = new ArrayList<>();
 
-				allWorkspaces.forEach(workspace-> nodes.add(JenkinsUtils.getCurrentNode(workspace)));
+				List<Node> nodes = allWorkspaces.stream()
+						.map(JenkinsUtils::getCurrentNode)
+						.collect(Collectors.toList());
 				nodes.forEach(node -> this.nodeNames.add(node != null && !node.getNodeName().isEmpty() ? node.getNodeName() : ""));
 				//extract folder names for created tests
 

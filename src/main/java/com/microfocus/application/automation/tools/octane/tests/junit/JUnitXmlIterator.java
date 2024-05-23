@@ -275,13 +275,16 @@ public class JUnitXmlIterator extends AbstractXmlIterator<JUnitTestResult> {
                         Optional<String> optional = createdTests.stream().filter(str -> str.contains(searchFor)).findFirst();
                         if (optional.isPresent()) {
                             String nodeTestString = optional.get();
-                            String node = nodeTestString.split("/")[0];
-                            if (nodeNames.contains(node)) {
-                                nodeName = node;
+                            if(nodeTestString.contains("/")){
+                                String node = nodeTestString.split("/")[0];
+                                if (nodeNames.contains(node)) {
+                                    nodeName = node;
+                                }
+
+                                cleanedTestName = nodeTestString.split("/")[1];
+                                createdTests.remove(nodeTestString);
                             }
 
-                            cleanedTestName = nodeTestString.split("/")[1];
-                            createdTests.remove(nodeTestString);
                         }
                         testReportCreated = optional.isPresent();
                     }
