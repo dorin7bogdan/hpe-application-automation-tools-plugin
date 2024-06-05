@@ -51,19 +51,25 @@ Starting with version 1.641 (or 1.625.3), Jenkins introduced the  **Content-Secu
 
 ## New Features and Enhancements
 
-Version CE 24.1.0 introduced the following enhancements and fixes:
+Version CE 24.2 introduced the following enhancements and fixes:
 
 **UFT One**
- - Added support for Cloud browser.
- - Fixed proxy issue for Digital Lab connections.
+- Added permission checks in ALM jobs configurations on all <doFill*Items> methods (CVE-2024-4211).
+- Added Job/ExtendedRead permission handing for FS / ALM / ALM Lab job configurations.
+- Fixed unexpected Test Suites Rerun Behavior related to reports for FS jobs.
 
 **UFT Digital Lab**
- - Added ability to open the ValueEdge Digital Lab wizard from Jenkins via an access key only.
+ - Admins can configure whether apps can be uploaded to the Shared assets. If it is not allowed, in the "Upload app to Digital Lab Server" build step there is no option to select Shared assets in the workspace selection menu.
 
 **ALM Octane**
-- Newly discovered units will automatically be allocated to a runner. A new folder will be created for each runner.
-- Bug fixes.
-  
+- Bug fixes
+
+**Service Virtualization**
+- Added permission checks in SV jobs for the server enumeration field (CVE-2024-4692)
+
+**Security Improvements**
+- fixed XXE vulnerabilities: CVE-2024-4189, CVE-2024-4184, CVE-2024-4690
+
 For information about enhancements introduced in previous versions, see [What's new in earlier versions](WhatsNewEarlier.md). 
 
 
