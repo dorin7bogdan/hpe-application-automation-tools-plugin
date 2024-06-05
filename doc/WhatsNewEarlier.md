@@ -3,7 +3,6 @@
 
 This page shows a history of the enhancements made to the OpenText Application Automation Tools Jenkins plugin.
 
-
 [What&#39;s New in version CE 24.1.0](#what&#39;s-new-in-version-CE-24&#46;1&#46;0)
 
 [What&#39;s New in version CE 23.4 ](#what&#39;s-new-in-version-CE-23&#46;4)

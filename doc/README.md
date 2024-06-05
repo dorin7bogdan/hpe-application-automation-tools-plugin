@@ -67,8 +67,6 @@ Version CE 24.2 introduced the following enhancements and fixes:
 **Service Virtualization**
 - Added permission checks in SV jobs for the server enumeration field (CVE-2024-4692)
 
-
-
 For information about enhancements introduced in previous versions, see [What's new in earlier versions](WhatsNewEarlier.md). 
 
 
