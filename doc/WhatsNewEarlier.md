@@ -3,7 +3,8 @@
 
 This page shows a history of the enhancements made to the OpenText Application Automation Tools Jenkins plugin.
 
-See the [Changelog ](https://wiki.jenkins.io/display/JENKINS/Changelog)for information about beta versions and recent patches.
+
+[What&#39;s New in version CE 24.1.0](#what&#39;s-new-in-version-CE-24&#46;1&#46;0)
 
 [What&#39;s New in version CE 23.4 ](#what&#39;s-new-in-version-CE-23&#46;4)
 
@@ -42,6 +43,20 @@ See the [Changelog ](https://wiki.jenkins.io/display/JENKINS/Changelog)for infor
 [What&#39;s New in version 6.0 ](#what&#39;s-new-in-version-6.0)
 
 [What&#39;s New in version 5.9 ](#what&#39;s-new-in-version-5.9)
+
+
+## What&#39;s New in version CE 24&#46;1&#46;0
+
+**UFT One**
+- Added support for Cloud browser.
+- Fixed proxy issue for Digital Lab connections.
+
+**UFT Digital Lab**
+- Added ability to open the ValueEdge Digital Lab wizard from Jenkins via an access key only.
+
+**ALM Octane**
+- Newly discovered units will automatically be allocated to a runner. A new folder will be created for each runner.
+- Bug fixes.
 
 ## What&#39;s New in version CE 23&#46;4
 
