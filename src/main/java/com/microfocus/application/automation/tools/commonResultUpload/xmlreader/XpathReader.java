@@ -38,6 +38,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -56,6 +57,8 @@ public class XpathReader {
     public XpathReader(FilePath filePath) throws IOException, InterruptedException, ParserConfigurationException,
             SAXException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+
         DocumentBuilder builder = null;
         builder = factory.newDocumentBuilder();
         doc = builder.parse(filePath.read());
@@ -64,6 +67,8 @@ public class XpathReader {
 
     public XpathReader(String filePath) throws ParserConfigurationException, IOException, SAXException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+
         DocumentBuilder builder = null;
         builder = factory.newDocumentBuilder();
         doc = builder.parse(new File(filePath));
@@ -72,6 +77,8 @@ public class XpathReader {
 
     public XpathReader(File file) throws ParserConfigurationException, IOException, SAXException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+
         DocumentBuilder builder = null;
         builder = factory.newDocumentBuilder();
         doc = builder.parse(file);

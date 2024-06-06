@@ -73,6 +73,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.annotation.Nonnull;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -386,6 +387,7 @@ public class RunResultRecorder extends Recorder implements Serializable, MatrixA
 			List<ReportMetaData> ReportInfoToCollect = new ArrayList<ReportMetaData>();
 
 			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+			dbFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
 			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 
 			Document doc = dBuilder.parse(resultsFile.read());
@@ -617,6 +619,7 @@ public class RunResultRecorder extends Recorder implements Serializable, MatrixA
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder builder = null;
 		try {
+			dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
 			builder = dbf.newDocumentBuilder();
 		} catch (ParserConfigurationException e) {
 			_logger.error("Failed creating xml doc report: " + e);
@@ -664,6 +667,7 @@ public class RunResultRecorder extends Recorder implements Serializable, MatrixA
 		document.normalize();
 
 		TransformerFactory tFactory = TransformerFactory.newInstance();
+		tFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
 		Transformer transformer = tFactory.newTransformer();
 		transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
 		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
@@ -1253,6 +1257,7 @@ public class RunResultRecorder extends Recorder implements Serializable, MatrixA
 		JobLrScenarioResult jobLrScenarioResult = new JobLrScenarioResult(slaFilePath.getBaseName());
 
 		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+		dbFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
 		DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 
 		Document doc = dBuilder.parse(slaFilePath.read());

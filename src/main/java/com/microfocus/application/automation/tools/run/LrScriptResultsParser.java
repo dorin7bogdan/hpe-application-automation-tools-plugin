@@ -41,6 +41,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -118,10 +119,14 @@ public class LrScriptResultsParser {
         Document doc;
         Document newDoc;
         try {
+            dbFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             dBuilder = dbFactory.newDocumentBuilder();
             doc = dBuilder.parse(scriptName.read());
 
-            newDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            newDoc = dbf.newDocumentBuilder().newDocument();
+
 
             doc.getDocumentElement().normalize();
             NodeList actionNodes = doc.getElementsByTagName("Action");
@@ -145,6 +150,7 @@ public class LrScriptResultsParser {
 
             TransformerFactory tFactory =
                     TransformerFactory.newInstance();
+            tFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             Transformer transformer =
                     tFactory.newTransformer();
 

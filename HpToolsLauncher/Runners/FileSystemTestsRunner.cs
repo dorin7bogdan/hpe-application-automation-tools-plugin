@@ -366,10 +366,10 @@ namespace HpToolsLauncher
             {
                 var start = DateTime.Now;
 
-                Dictionary<string, int> indexList = new Dictionary<string, int>();
                 foreach (var test in _tests)
                 {
-                    indexList[test.TestPath] = 0;
+                    if (!_idxOfRptDirsByTestPath.ContainsKey(test.TestPath))
+                        _idxOfRptDirsByTestPath[test.TestPath] = 0;
                 }
 
                 Exception dcomEx = null;
@@ -380,9 +380,9 @@ namespace HpToolsLauncher
                 for (int x = 0; x < _tests.Count; x++)
                 {
                     var test = _tests[x];
-                    if (indexList[test.TestPath] == 0)
+                    if (_idxOfRptDirsByTestPath[test.TestPath] == 0)
                     {
-                        indexList[test.TestPath] = 1;
+                        _idxOfRptDirsByTestPath[test.TestPath]++;
                     }
 
                     if (RunCancelled()) break;
@@ -489,7 +489,7 @@ namespace HpToolsLauncher
                         rerunList[test.TestPath]--;
                         if (Directory.Exists(Path.Combine(test.TestPath, REPORT1)))
                         {
-                            indexList[test.TestPath]++;
+                            _idxOfRptDirsByTestPath[test.TestPath]++;
                         }
                     }
 
@@ -500,7 +500,7 @@ namespace HpToolsLauncher
                     else
                     {
                         string uftReportDir = Path.Combine(test.TestPath, REPORT);
-                        string uftReportDirNew = Path.Combine(test.TestPath, string.Format("Report{0}", indexList[test.TestPath]));
+                        string uftReportDirNew = Path.Combine(test.TestPath, string.Format("Report{0}", _idxOfRptDirsByTestPath[test.TestPath]));
                         UpdateUftReportDir(uftReportDir, uftReportDirNew);
                     }
                     // Create or update the xml report. This function is called after each test execution in order to have a report available in case of job interruption

@@ -58,9 +58,7 @@ import hudson.util.VariableResolver;
 import jenkins.tasks.SimpleBuildStep;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.*;
 
 import com.microfocus.application.automation.tools.AlmToolsUtils;
 import com.microfocus.application.automation.tools.EncryptionUtils;
@@ -428,7 +426,7 @@ public class RunFromAlmBuilder extends Builder implements SimpleBuildStep {
             } catch (IOException e1) {
                 Util.displayIOException(e1, listener);
                 build.setResult(Result.FAILURE);
-    		} catch (InterruptedException e1) {
+            } catch (InterruptedException e1) {
                 listener.error("Failed running HpToolsAborter " + e1.getMessage());
             }
         }
@@ -463,7 +461,6 @@ public class RunFromAlmBuilder extends Builder implements SimpleBuildStep {
     // To expose this builder in the Snippet Generator.
     @Symbol("runFromAlmBuilder")
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-
         public DescriptorImpl() {
             load();
         }
@@ -493,14 +490,20 @@ public class RunFromAlmBuilder extends Builder implements SimpleBuildStep {
                     getAlmServers().filter(s -> s.getAlmServerName().equals(almServerName)).findFirst().orElse(null);
         }
 
-        public ListBoxModel doFillAlmServerNameItems() {
+        public ListBoxModel doFillAlmServerNameItems(@AncestorInPath Item item) {
             ListBoxModel m = new ListBoxModel();
+            if (item == null || !item.hasPermission(Item.CONFIGURE)) {
+                return m;
+            }
             getAlmServers().forEachOrdered(s -> m.add(s.getAlmServerName()));
             return m;
         }
 
-        public ListBoxModel doFillAlmUserNameItems(@QueryParameter String almServerName) {
+        public ListBoxModel doFillAlmUserNameItems(@QueryParameter String almServerName, @AncestorInPath Item item) {
             ListBoxModel m = new ListBoxModel();
+            if (item == null || !item.hasPermission(Item.CONFIGURE)) {
+                return m;
+            }
             if (hasAlmServers()) {
                 AlmServerSettingsModel model = findAlmServer(almServerName);
                 if (model != null && !model.getAlmCredentials().isEmpty()) {
@@ -509,12 +512,14 @@ public class RunFromAlmBuilder extends Builder implements SimpleBuildStep {
                     m.add(UftConstants.NO_USERNAME_DEFINED);
                 }
             }
-
             return m;
         }
 
-        public ListBoxModel doFillAlmClientIDItems(@QueryParameter String almServerName) {
+        public ListBoxModel doFillAlmClientIDItems(@QueryParameter String almServerName, @AncestorInPath Item item) {
             ListBoxModel m = new ListBoxModel();
+            if (item == null || !item.hasPermission(Item.CONFIGURE)) {
+                return m;
+            }
             if (hasAlmServers()) {
                 AlmServerSettingsModel model = findAlmServer(almServerName);
                 if (model != null && !model.getAlmSSOCredentials().isEmpty()) {
@@ -580,6 +585,9 @@ public class RunFromAlmBuilder extends Builder implements SimpleBuildStep {
 
         public List<CredentialsScope> getAlmCredentialScopes() {
             return Arrays.asList(CredentialsScope.values());
+        }
+        public boolean getHasConfigurePermission() {
+            return JenkinsUtils.hasItemConfigurePermission();
         }
     }
 

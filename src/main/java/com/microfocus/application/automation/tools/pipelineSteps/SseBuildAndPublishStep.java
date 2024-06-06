@@ -37,6 +37,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.cloudbees.plugins.credentials.matchers.IdMatcher;
+import com.microfocus.application.automation.tools.JenkinsUtils;
 import com.microfocus.application.automation.tools.model.AlmServerSettingsModel;
 import com.microfocus.application.automation.tools.results.RunResultRecorder;
 import com.microfocus.application.automation.tools.run.SseBuilder;
@@ -345,5 +346,7 @@ public class SseBuildAndPublishStep extends AbstractStepImpl {
         public List<EnumDescription> getReportArchiveModes() {
             return ResultsPublisherModel.archiveModes;
         }
+
+        public boolean getHasConfigurePermission() { return JenkinsUtils.hasItemConfigurePermission(); }
     }
 }

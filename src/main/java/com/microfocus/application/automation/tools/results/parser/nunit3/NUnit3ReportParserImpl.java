@@ -38,6 +38,7 @@ import com.microfocus.application.automation.tools.results.parser.antjunit.AntJU
 import com.microfocus.application.automation.tools.results.service.almentities.AlmTestSet;
 import hudson.FilePath;
 
+import javax.xml.XMLConstants;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
@@ -76,6 +77,7 @@ public class NUnit3ReportParserImpl implements ReportParser {
         FileOutputStream fileOutputStream = null;
         try {
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            transformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             Transformer nunitTransformer = transformerFactory.newTransformer(
                         new StreamSource(this.getClass().getResourceAsStream(NUNIT_TO_JUNIT_XSLFILE)));
             File junitTargetFile = new File(workspace.createTempFile(TEMP_JUNIT_FILE_PREFIX, TEMP_JUNIT_FILE_SUFFIX).toURI());

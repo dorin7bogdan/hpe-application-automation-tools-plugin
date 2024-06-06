@@ -31,6 +31,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 
 namespace HpToolsLauncher
 {
@@ -41,6 +42,7 @@ namespace HpToolsLauncher
         }
         protected bool _isRunCancelled = false;
         protected JunitXmlBuilder _xmlBuilder = new JunitXmlBuilder();
+        protected Dictionary<string, int> _idxOfRptDirsByTestPath = new Dictionary<string, int>();
 
         public bool RunWasCancelled
         {
@@ -52,6 +54,12 @@ namespace HpToolsLauncher
         {
             get { return _xmlBuilder; }
             set { _xmlBuilder = value; }
+        }
+
+        public Dictionary<string, int> IndexOfRptDirsByTestPath
+        {
+            get { return _idxOfRptDirsByTestPath; }
+            set { _idxOfRptDirsByTestPath = value; }
         }
 
         public virtual TestSuiteRunResults Run()

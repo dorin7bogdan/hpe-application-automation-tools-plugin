@@ -34,14 +34,12 @@ package com.microfocus.application.automation.tools;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.FilePath;
-import hudson.model.Node;
-import hudson.model.Run;
-
+import hudson.model.*;
+import org.jenkinsci.plugins.workflow.util.StaplerReferer;
 import javax.annotation.Nonnull;
 import java.util.Objects;
 
 public final class JenkinsUtils {
-
     private JenkinsUtils() {
         // no meaning instantiating
     }
@@ -64,5 +62,8 @@ public final class JenkinsUtils {
 
         return null;
     }
-
+    public static boolean hasItemConfigurePermission() {
+        Item item = StaplerReferer.findItemFromRequest(Item.class);
+        return item != null && item.hasPermission(Item.CONFIGURE);
+    }
 }

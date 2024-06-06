@@ -34,14 +34,18 @@ package com.microfocus.application.automation.tools.sv.runner;
 
 import javax.annotation.Nonnull;
 
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.microfocus.application.automation.tools.model.SvServerSettingsModel;
 import com.microfocus.application.automation.tools.settings.SvServerSettingsGlobalConfiguration;
-import hudson.model.AbstractProject;
+
+import hudson.model.*;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
-import jenkins.model.Jenkins;
+
 import org.apache.commons.lang.StringUtils;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.QueryParameter;
 
 public abstract class AbstractSvRunDescriptor extends BuildStepDescriptor<Builder> {
     private final String displayName;
@@ -67,8 +71,14 @@ public abstract class AbstractSvRunDescriptor extends BuildStepDescriptor<Builde
     }
 
     @SuppressWarnings("unused")
-    public ListBoxModel doFillServerNameItems() {
-        ListBoxModel items = new ListBoxModel();
+    public ListBoxModel doFillServerNameItems(@AncestorInPath Item project, 
+                                              @QueryParameter String serverName) {            
+        if (project == null || !project.hasPermission(Item.CONFIGURE)) {
+            return new StandardListBoxModel().includeCurrentValue(serverName);
+        }
+
+        StandardListBoxModel items = new StandardListBoxModel();
+
         SvServerSettingsModel[] servers = getServers();
         if (servers != null) {
             for (SvServerSettingsModel server : servers) {
