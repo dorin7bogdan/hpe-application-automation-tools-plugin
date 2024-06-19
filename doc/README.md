@@ -63,6 +63,9 @@ Version CE 24.2 introduced the following enhancements and fixes:
 
 **ALM Octane**
 - Bug fixes
+  - Fixed nga.log that unexpectedly stopped writing data
+  - Fixed the 'Test Run Report URL' field population when running tests on different machines in the same job
+  - Other fixes
 
 **Service Virtualization**
 - Added permission checks in SV jobs for the server enumeration field (CVE-2024-4692)
