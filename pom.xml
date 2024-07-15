@@ -68,7 +68,7 @@
 		<jenkins.version>2.452.2</jenkins.version>
 		<maven.exec.skip>false</maven.exec.skip>
 		<java.level>21</java.level>
-		<jenkins-test-harness.version>2.55</jenkins-test-harness.version> <!-- TODO newer versions require debugging an issue with open file handles -->
+		<jenkins-test-harness.version>2211.v29b_b_b_2e79c5a_</jenkins-test-harness.version> <!-- TODO newer versions than 2.55 require debugging an issue with open file handles -->
 	</properties>
 
 	<distributionManagement>
