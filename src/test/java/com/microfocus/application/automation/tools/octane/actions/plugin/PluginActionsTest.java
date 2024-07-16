@@ -32,7 +32,6 @@
 
 package com.microfocus.application.automation.tools.octane.actions.plugin;
 
-import com.gargoylesoftware.htmlunit.Page;
 import com.hp.octane.integrations.dto.general.CIJobsList;
 import com.hp.octane.integrations.dto.general.CIProviderSummaryInfo;
 import com.hp.octane.integrations.dto.general.CIServerTypes;
@@ -44,6 +43,7 @@ import com.microfocus.application.automation.tools.octane.configuration.Configur
 import com.microfocus.application.automation.tools.octane.tests.TestUtils;
 import hudson.model.*;
 import jenkins.model.Jenkins;
+import org.htmlunit.Page;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.xml.sax.SAXException;

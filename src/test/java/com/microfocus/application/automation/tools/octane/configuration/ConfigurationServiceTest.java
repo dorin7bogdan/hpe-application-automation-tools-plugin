@@ -32,7 +32,6 @@
 
 package com.microfocus.application.automation.tools.octane.configuration;
 
-import com.gargoylesoftware.htmlunit.html.*;
 import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.Messages;
 import com.microfocus.application.automation.tools.octane.OctanePluginTestBase;
@@ -41,6 +40,12 @@ import com.microfocus.application.automation.tools.octane.tests.ExtensionUtil;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import org.eclipse.jetty.server.Request;
+import org.htmlunit.html.HtmlCheckBoxInput;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlElementUtil;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlInput;
+import org.htmlunit.html.HtmlPage;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -178,7 +183,7 @@ public class ConfigurationServiceTest extends OctanePluginTestBase {
 	private HtmlElement findButton(HtmlElement form, String buttonText) {
 		List<HtmlElement> list = new LinkedList<>();
 		for (HtmlElement htmlElement : form.getElementsByTagName("button")) {
-			if (buttonText.equals(htmlElement.getFirstChild().asText())) {
+			if (buttonText.equals(htmlElement.getFirstChild().asNormalizedText())) {
 				list.add(htmlElement);
 			}
 		}
