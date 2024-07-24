@@ -48,10 +48,10 @@ This page shows a history of the enhancements made to the OpenText Application A
 
 **UFT One**
 - Added support for Cloud browser.
-- Fixed proxy issue for Digital Lab connections.
+- Fixed proxy issue for Functional Testing Lab for Mobile and Web connections.
 
-**UFT Digital Lab**
-- Added ability to open the ValueEdge Digital Lab wizard from Jenkins via an access key only.
+**Functional Testing Lab for Mobile and Web**
+- Added ability to open the ValueEdge Functional Testing Lab for Mobile and Web wizard from Jenkins via an access key only.
 
 **ALM Octane**
 - Newly discovered units will automatically be allocated to a runner. A new folder will be created for each runner.
@@ -63,9 +63,9 @@ Version CE 23.4 introduced the following enhancements and fixes:
 
 **UFT One**
  - Support for access key authentication to run parallel mobile tests.
- - Ability to run tests on public devices hosted by ValueEdge Digital Lab.
+ - Ability to run tests on public devices hosted by ValueEdge Functional Testing Lab for Mobile and Web.
 
-**UFT Digital Lab**
+**Functional Testing Lab for Mobile and Web**
  - Ability to upload an application to a specific workspace during a Jenkins pipeline cycle.
 
 **ALM Octane**
@@ -83,7 +83,7 @@ Version 23.3.0 introduced the following enhancements and fixes:
 
 **UFT One**
  - Company name rebranded to OpenText.
- - UFT Mobile renamed to Digital Lab.
+ - Digital Lab renamed to Functional Testing Lab for Mobile and Web.
  - Enhancement of File System jobs to work correctly inside Docker.
  - Bug fixes and optimizations.
 

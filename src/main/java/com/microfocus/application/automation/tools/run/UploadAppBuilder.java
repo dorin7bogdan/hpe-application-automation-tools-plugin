@@ -98,20 +98,20 @@ public class UploadAppBuilder extends Builder {
         }
         boolean allSuccess = true;
         if (mcServerSettingsModel == null) {
-            out.println("Failed to upload app to Digital Lab server. Cause: Digital Lab URL was not configured.");
+            out.println("Failed to upload app to Functional Testing Lab for Mobile and Web server. Cause: Functional Testing Lab for Mobile and Web URL was not configured.");
             return false;
         } else {
             mcServerUrl = mcServerSettingsModel.getProperties().getProperty("MobileHostAddress");
             Map<String, String> headers = job.login(mcServerUrl, uploadAppModel.getAuthModel(), uploadAppModel.getProxySettings());
             if (headers == null || headers.size() == 0) {
                 if (uploadAppModel.isUseProxy()) {
-                    out.println(String.format("Failed to upload app, Cause Digital Lab connection info is incorrect. url:%s, Proxy url:%s",
+                    out.println(String.format("Failed to upload app, Cause Functional Testing Lab for Mobile and Web connection info is incorrect. url:%s, Proxy url:%s",
                             mcServerUrl, uploadAppModel.getProxySettings().getFsProxyAddress()));
                 } else if (uploadAppModel.isUseAuthentication()) {
-                    out.println(String.format("Failed to upload app, Cause Digital Lab connection info is incorrect. url:%s, Proxy url:%s, proxy userName:%s",
+                    out.println(String.format("Failed to upload app, Cause Functional Testing Lab for Mobile and Web connection info is incorrect. url:%s, Proxy url:%s, proxy userName:%s",
                             mcServerUrl, uploadAppModel.getProxySettings().getFsProxyAddress(), uploadAppModel.getProxySettings().getFsProxyUserName()));
                 } else {
-                    out.println(String.format("Failed to upload app, Cause Digital Lab connection info is incorrect. url:%s", mcServerUrl));
+                    out.println(String.format("Failed to upload app, Cause Functional Testing Lab for Mobile and Web connection info is incorrect. url:%s", mcServerUrl));
                 }
                 build.setResult(Result.FAILURE);
                 return false;
@@ -192,7 +192,7 @@ public class UploadAppBuilder extends Builder {
                     }
                     out.println("uploaded app info: " + app.toJSONString());
                 } catch (FileNotFoundException fnf) {
-                    out.println(String.format("Failed to upload app to Digital Lab server. Cause: File: %s is not found.", path));
+                    out.println(String.format("Failed to upload app to Functional Testing Lab for Mobile and Web server. Cause: File: %s is not found.", path));
                     build.setResult(Result.FAILURE);
                     allSuccess = false;
                     continue;
@@ -248,7 +248,7 @@ public class UploadAppBuilder extends Builder {
         @Override
         public String getDisplayName() {
 
-            return "Upload app to Digital Lab (formerly UFT Mobile) Server";
+            return "Upload app to Functional Testing Lab for Mobile and Web (formerly Digital Lab) Server";
         }
 
         public boolean hasMCServers() {

@@ -133,7 +133,7 @@ namespace HpToolsLauncher
             _uftRunMode = uftRunMode;
 
             if (_digitalLab.ConnectionInfo != null)
-                ConsoleWriter.WriteLine("Digital Lab connection info is - " + _digitalLab.ConnectionInfo.ToString());
+                ConsoleWriter.WriteLine("Functional Testing Lab for Mobile and Web connection info is - " + _digitalLab.ConnectionInfo.ToString());
 
             if (reportPath != null)
             {
