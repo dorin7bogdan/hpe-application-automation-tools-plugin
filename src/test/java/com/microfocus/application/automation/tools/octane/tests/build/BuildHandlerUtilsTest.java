@@ -32,6 +32,7 @@
 
 package com.microfocus.application.automation.tools.octane.tests.build;
 
+import com.microfocus.application.automation.tools.model.LoggedJenkinsRule;
 import com.microfocus.application.automation.tools.octane.tests.CopyResourceSCM;
 import com.microfocus.application.automation.tools.octane.tests.TestUtils;
 import hudson.matrix.*;
@@ -52,7 +53,7 @@ import java.util.HashMap;
 public class BuildHandlerUtilsTest {
 
 	@ClassRule
-	public static final JenkinsRule jenkins = new JenkinsRule();
+	public static final JenkinsRule jenkins = new LoggedJenkinsRule();
 
 	@Test
 	public void testMatrixBuildType() throws Exception {
