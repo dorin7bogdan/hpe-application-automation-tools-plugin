@@ -51,7 +51,7 @@ public enum OperatingSystem {
         return os;
     }
 
-    private static void refreshOsVariablesForSlave() {
+    public static void refreshOsVariablesForSlave() {
         os = System.getProperty("os.name").toLowerCase();
         windows = os.contains(WINDOWS.name().toLowerCase());
         mac = os.contains(MAC.name().toLowerCase());
