@@ -39,6 +39,9 @@
     <artifactId>helloWorldRoot</artifactId>
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
+    <properties>
+        <enforcer.skip>true</enforcer.skip>
+    </properties>
 
     <modules>
         <module>helloWorld</module>
