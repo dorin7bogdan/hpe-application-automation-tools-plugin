@@ -35,94 +35,49 @@ package com.microfocus.application.automation.tools.common;
 import com.microfocus.application.automation.tools.common.utils.OperatingSystem;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-
-import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertFalse;
+import static junit.framework.TestCase.assertTrue;
 
 public class OperatingSystemTest {
-    private static String os;
 
-    public static void initializeOperatingSystemOs(final String os) throws NoSuchFieldException, IllegalAccessException {
-        changeStaticFinalField(os, "os");
-
-        if (os.toLowerCase().contains("windows")) {
-            setAllBooleanStaticFinalFields(true, false, false);
-        } else if (os.toLowerCase().contains("linux")) {
-            setAllBooleanStaticFinalFields(false, false, true);
-        } else if (os.toLowerCase().contains("mac")) {
-            setAllBooleanStaticFinalFields(false, true, false);
-        } else {
-            setAllBooleanStaticFinalFields(false, false, false);
-        }
+    public static void initializeOperatingSystemOs() {
+        OperatingSystem.refreshOsVariablesForSlave();
     }
-
-    private static void setAllBooleanStaticFinalFields(boolean isWindows, boolean isMac, boolean isLinux)
-            throws NoSuchFieldException, IllegalAccessException {
-        changeBooleanStaticFinalField(isWindows, "windows");
-        changeBooleanStaticFinalField(isMac, "mac");
-        changeBooleanStaticFinalField(isLinux, "linux");
-    }
-
-    private static void changeStaticFinalField(String value, String declaredField)
-            throws NoSuchFieldException, IllegalAccessException {
-        Field field = OperatingSystem.class.getDeclaredField(declaredField);
-        field.setAccessible(true);
-        Field modifiers = Field.class.getDeclaredField("modifiers");
-        modifiers.setAccessible(true);
-        modifiers.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-        field.set(null, value.toLowerCase());
-    }
-
-    private static void changeBooleanStaticFinalField(boolean value, String declaredField)
-            throws NoSuchFieldException, IllegalAccessException {
-        Field field = OperatingSystem.class.getDeclaredField(declaredField);
-        field.setAccessible(true);
-        Field modifiers = Field.class.getDeclaredField("modifiers");
-        modifiers.setAccessible(true);
-        modifiers.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-        field.set(null, value);
-    }
-
-    @BeforeClass
-    public static void setup() {
-        os = System.getProperty("os.name");
-    }
-
 
     @AfterClass
-    public static void tearDown() throws Exception {
-        initializeOperatingSystemOs(os);
+    public static void tearDown() {
+        OperatingSystem.refreshOsVariablesForSlave();
     }
 
 
     @Test
-    public void equalsCurrentOs_windows() throws NoSuchFieldException, IllegalAccessException {
-        initializeOperatingSystemOs("Windows 7");
+    public void equalsCurrentOs_windows(){
         Assert.assertTrue(OperatingSystem.WINDOWS.equalsCurrentOs());
     }
 
     @Test
-    public void equalsCurrentOs_linux() throws NoSuchFieldException, IllegalAccessException {
+    public void equalsCurrentOs_linux() {
         String os = "Linux";
-        initializeOperatingSystemOs(os);
-        assertEquals("Operating system should be " + os, true, OperatingSystem.isLinux());
+        System.setProperty("os.name",os);
+        OperatingSystem.refreshOsVariablesForSlave();
+        assertTrue("Operating system should be " + os, OperatingSystem.isLinux());
     }
 
     @Test
-    public void equalsCurrentOs_mac() throws NoSuchFieldException, IllegalAccessException {
+    public void equalsCurrentOs_mac() {
         String os = "Mac OS X";
-        initializeOperatingSystemOs(os);
-        assertEquals("Operating system should be " + os, true, OperatingSystem.isMac());
+        System.setProperty("os.name",os);
+        OperatingSystem.refreshOsVariablesForSlave();
+        assertTrue("Operating system should be " + os, OperatingSystem.isMac());
     }
 
     @Test
-    public void equalsCurrentOs_invalidOsReturnsFalse() throws NoSuchFieldException, IllegalAccessException {
+    public void equalsCurrentOs_invalidOsReturnsFalse() {
         String os = "Invalid OS";
-        initializeOperatingSystemOs("Invalid OS");
-        assertEquals("Operating system should be " + os, false, OperatingSystem.isWindows());
+        System.setProperty("os.name",os);
+        OperatingSystem.refreshOsVariablesForSlave();
+        assertFalse("Operating system should be " + os, OperatingSystem.isWindows());
     }
 }

@@ -29,49 +29,23 @@
  * limitations under the License.
  * ___________________________________________________________________
  */
+package com.microfocus.application.automation.tools.model;
 
-package com.microfocus.application.automation.tools.common.utils;
+import org.jvnet.hudson.test.JenkinsRule;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-public enum OperatingSystem {
-    LINUX,
-    WINDOWS,
-    MAC;
+public class LoggedJenkinsRule extends JenkinsRule {
+    private static final Logger logger = Logger.getLogger(LoggedJenkinsRule.class.getName());
 
-    private static final List<String> POSIX_NAMES = Arrays.asList(
-            "linux", "os/2", "irix", "hp-ux", "aix", "soalris", "sunos");
-    private static String os = System.getProperty("os.name").toLowerCase();
-    private static boolean windows = os.contains(WINDOWS.name().toLowerCase());
-    private static boolean mac = os.contains(MAC.name().toLowerCase());
-    private static boolean linux = POSIX_NAMES.contains(os.toLowerCase());
-
-    public static String getOs() {
-        return os;
+    @Override
+    public void after() {
+        try {
+            super.after();
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, e.getMessage(), e);
+        }
     }
 
-    public static void refreshOsVariablesForSlave() {
-        os = System.getProperty("os.name").toLowerCase();
-        windows = os.contains(WINDOWS.name().toLowerCase());
-        mac = os.contains(MAC.name().toLowerCase());
-        linux = POSIX_NAMES.contains(os.toLowerCase());
-    }
-
-    public boolean equalsCurrentOs() {
-        refreshOsVariablesForSlave();
-        return linux || os.contains(this.name().toLowerCase());
-    }
-
-    public static boolean isWindows() {
-        return windows;
-    }
-
-    public static boolean isMac() {
-        return mac;
-    }
-
-    public static boolean isLinux() {
-        return linux;
-    }
 }

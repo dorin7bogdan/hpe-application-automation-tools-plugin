@@ -33,6 +33,7 @@
 package com.microfocus.application.automation.tools.octane;
 
 import com.hp.octane.integrations.dto.DTOFactory;
+import com.microfocus.application.automation.tools.model.LoggedJenkinsRule;
 import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
 import hudson.util.Secret;
@@ -48,7 +49,7 @@ public abstract class OctanePluginTestBase {
 	protected static String ssp;
 
 	@ClassRule
-	public static final JenkinsRule rule = new JenkinsRule();
+	public static final JenkinsRule rule = new LoggedJenkinsRule();
 	public static final JenkinsRule.WebClient client = rule.createWebClient();
 
 	@BeforeClass

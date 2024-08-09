@@ -32,6 +32,7 @@
 
 package com.microfocus.application.automation.tools.octane.tests;
 
+import com.microfocus.application.automation.tools.model.LoggedJenkinsRule;
 import hudson.model.AbstractBuild;
 import hudson.model.FreeStyleProject;
 import org.junit.Assert;
@@ -48,7 +49,7 @@ import static org.junit.Assert.assertEquals;
 public class TestJenkinsDurationTest {
 
     @ClassRule
-    public static final JenkinsRule rule = new JenkinsRule();
+    public static final JenkinsRule rule = new LoggedJenkinsRule();
 
 
     @Test

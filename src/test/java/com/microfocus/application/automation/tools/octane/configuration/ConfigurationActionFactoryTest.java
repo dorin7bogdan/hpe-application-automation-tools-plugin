@@ -32,6 +32,7 @@
 
 package com.microfocus.application.automation.tools.octane.configuration;
 
+import com.microfocus.application.automation.tools.model.LoggedJenkinsRule;
 import com.microfocus.application.automation.tools.octane.tests.ExtensionUtil;
 import hudson.matrix.Axis;
 import hudson.matrix.AxisList;
@@ -49,7 +50,7 @@ import java.io.IOException;
 public class ConfigurationActionFactoryTest {
 
     @ClassRule
-    static final public JenkinsRule jenkins = new JenkinsRule();
+    static final public JenkinsRule jenkins = new LoggedJenkinsRule();
 
     private ConfigurationActionFactory configurationActionFactory;
 
@@ -69,6 +70,7 @@ public class ConfigurationActionFactoryTest {
         for (MatrixConfiguration configuration: matrixProject.getItems()) {
             Assert.assertEquals(0, configurationActionFactory.createFor(configuration).size());
         }
+
     }
 
     @Test

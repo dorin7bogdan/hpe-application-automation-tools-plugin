@@ -33,6 +33,7 @@
 package com.microfocus.application.automation.tools.octane.tests.detection;
 
 import com.microfocus.application.automation.tools.model.AlmServerSettingsModel;
+import com.microfocus.application.automation.tools.model.LoggedJenkinsRule;
 import com.microfocus.application.automation.tools.uft.model.FilterTestsModel;
 import com.microfocus.application.automation.tools.octane.tests.TestUtils;
 import com.microfocus.application.automation.tools.octane.tests.detection.ResultFieldsXmlReader.TestAttributes;
@@ -53,7 +54,6 @@ import org.mockito.Mockito;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,7 +61,7 @@ import java.util.UUID;
 public class UFTExtensionTest {
 
 	@ClassRule
-	public static final JenkinsRule rule = new JenkinsRule();
+	public static final JenkinsRule rule = new LoggedJenkinsRule();
 
 	private ResultFieldsDetectionService detectionService;
 
