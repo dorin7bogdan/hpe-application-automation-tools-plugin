@@ -64,7 +64,7 @@ namespace HpToolsLauncher
 
         public TestInfo(string testPath)
         {
-            TestPath = testPath;
+            TestPath = Path.GetFullPath(testPath);
         }
 
         public string GenerateAPITestXmlForTest(Dictionary<string, object> paramDict, bool printInputParams)
