@@ -44,22 +44,22 @@
     tags they use. Views are always organized according to its owner class,
     so it should be straightforward to find them.
   -->
-  <f:section title="Functional Testing Lab for Mobile and Web (formerly Digital Lab)">
-    <f:entry title="Functional Testing Lab for Mobile and Web server" description="Functional Testing Lab for Mobile and Web servers list">
-      <f:repeatable var="inst" items="${descriptor.installations}" add="Add Functional Testing Lab for Mobile and Web server">
+  <f:section title="Digital Lab (formerly UFT Mobile)">
+    <f:entry title="Digital Lab server" description="Digital Lab servers list">
+      <f:repeatable var="inst" items="${descriptor.installations}" add="Add Digital Lab server">
         <table width="100%">
           
-			<f:entry title="${%Functional Testing Lab for Mobile and Web server name}" field="mcServerUrl">
+			<f:entry title="${%Digital Lab server name}" field="mcServerUrl">
 				<f:textbox value="${inst.mcServerName}" name="mc.mcServerName" />
 			</f:entry>
 
-			<f:entry title="${%Functional Testing Lab for Mobile and Web server URL}" field="mcServerUrl">
+			<f:entry title="${%Digital Lab server URL}" field="mcServerUrl">
 				<f:textbox value="${inst.mcServerUrl}" name="mc.mcServerUrl" />
 			</f:entry>
 			
 			<f:entry title="">
 				<div align="right">
-				<f:repeatableDeleteButton value="Delete Functional Testing Lab for Mobile and Web server" />
+				<f:repeatableDeleteButton value="Delete Digital Lab server" />
 				</div>
 			</f:entry>
 			</table>
