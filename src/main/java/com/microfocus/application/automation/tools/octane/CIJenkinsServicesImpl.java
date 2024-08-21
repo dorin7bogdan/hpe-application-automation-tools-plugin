@@ -86,9 +86,6 @@ import hudson.security.ACLContext;
 import hudson.util.IOUtils;
 import jenkins.model.Jenkins;
 import org.acegisecurity.AccessDeniedException;
-import org.apache.commons.fileupload2.core.DiskFileItem;
-import org.apache.commons.fileupload2.core.DiskFileItemFactory;
-import org.apache.commons.fileupload2.core.FileItemFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.Logger;
@@ -810,23 +807,16 @@ public class CIJenkinsServicesImpl extends CIPluginServices {
             }
             if (!parameterHandled) {
                 if (paramDef instanceof FileParameterDefinition) {
-                    FileItemFactory<DiskFileItem> fif = DiskFileItemFactory.builder().get();
-
+                    File file = new File("");
                     try {
-
-                        DiskFileItem fi = fif.fileItemBuilder().setFieldName(paramDef.getName()).setFormField(false)
-                                .setContentType("text/plain").get();
-                        try {
-
-                            fi.getOutputStream().write(new byte[0]);
-                        } catch (IOException ioe) {
-                            logger.error("failed to create default value for file parameter '" + paramDef.getName() + "'", ioe);
+                        try (OutputStream outputStream = Files.newOutputStream(file.toPath())) {
+                            outputStream.write(new byte[0]);
                         }
-                        tmpValue = new FileParameterValue(paramDef.getName(), fi);
-                        result.add(tmpValue);
                     } catch (IOException ioe) {
-                        logger.error(ioe.getMessage());
+                        logger.error("failed to create default value for file parameter '" + paramDef.getName() + "'", ioe);
                     }
+                    tmpValue = new FileParameterValue(paramDef.getName(), file, file.getName());
+                    result.add(tmpValue);
 
 
                 } else {
