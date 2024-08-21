@@ -65,7 +65,7 @@
 		<concurrency>1</concurrency>
 		<msbuild.exe>C:\Windows\Microsoft.NET\Framework\v4.0.30319\msbuild.exe</msbuild.exe>
 		<msbuild.configuration>Release</msbuild.configuration>
-		<jenkins.version>2.452.1</jenkins.version>
+		<jenkins.version>2.426.3</jenkins.version>
 		<maven.exec.skip>false</maven.exec.skip>
 		<java.level>21</java.level>
 		<jenkins-test-harness.version>2205.v7e19cc98f9c7</jenkins-test-harness.version> <!-- TODO newer versions than 2.55 require debugging an issue with open file handles -->
@@ -351,8 +351,8 @@
 		<dependencies>
 			<dependency>
 				<groupId>io.jenkins.tools.bom</groupId>
-				<artifactId>bom-2.452.x</artifactId>
-				<version>3258.vcdcf15936a_fd</version>
+				<artifactId>bom-2.426.x</artifactId>
+				<version>3193.v330d8248d39e</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
