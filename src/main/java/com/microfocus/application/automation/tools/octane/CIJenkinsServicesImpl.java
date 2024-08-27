@@ -86,9 +86,6 @@ import hudson.security.ACLContext;
 import hudson.util.IOUtils;
 import jenkins.model.Jenkins;
 import org.acegisecurity.AccessDeniedException;
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileItemFactory;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.Logger;
@@ -810,15 +807,18 @@ public class CIJenkinsServicesImpl extends CIPluginServices {
             }
             if (!parameterHandled) {
                 if (paramDef instanceof FileParameterDefinition) {
-                    FileItemFactory fif = new DiskFileItemFactory();
-                    FileItem fi = fif.createItem(paramDef.getName(), "text/plain", false, "");
+                    File file = new File("");
                     try {
-                        fi.getOutputStream().write(new byte[0]);
+                        try (OutputStream outputStream = Files.newOutputStream(file.toPath())) {
+                            outputStream.write(new byte[0]);
+                        }
                     } catch (IOException ioe) {
                         logger.error("failed to create default value for file parameter '" + paramDef.getName() + "'", ioe);
                     }
-                    tmpValue = new FileParameterValue(paramDef.getName(), fi);
+                    tmpValue = new FileParameterValue(paramDef.getName(), file, file.getName());
                     result.add(tmpValue);
+
+
                 } else {
                     result.add(paramDef.getDefaultParameterValue());
                 }
