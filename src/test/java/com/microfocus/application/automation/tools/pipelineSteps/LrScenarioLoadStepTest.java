@@ -32,6 +32,7 @@
 
 package com.microfocus.application.automation.tools.pipelineSteps;
 
+import com.microfocus.application.automation.tools.model.LoggedJenkinsRule;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -52,7 +53,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 public class LrScenarioLoadStepTest {
 
     @Rule
-    public JenkinsRule jenkinsRule = new JenkinsRule();
+    public JenkinsRule jenkinsRule = new LoggedJenkinsRule();
 
 
     @Before

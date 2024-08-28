@@ -184,7 +184,8 @@ public class PluginMultiJobTest extends OctanePluginTestBase {
                         createPhaseJobsConfig("jobE")
                 ),
                 MultiJobBuilder.ContinuationCondition.SUCCESSFUL,
-                MultiJobBuilder.ExecutionType.SEQUENTIALLY
+                MultiJobBuilder.ExecutionType.SEQUENTIALLY,
+                null
         ));
         p.getBuildersList().add(new Shell(""));
         p.getBuildersList().add(new MultiJobBuilder(
@@ -194,7 +195,8 @@ public class PluginMultiJobTest extends OctanePluginTestBase {
                         createPhaseJobsConfig("jobD")
                 ),
                 MultiJobBuilder.ContinuationCondition.SUCCESSFUL,
-                MultiJobBuilder.ExecutionType.SEQUENTIALLY
+                MultiJobBuilder.ExecutionType.SEQUENTIALLY,
+                null
         ));
         p.getPublishersList().add(new BuildTrigger("jobA, jobB", Result.SUCCESS));
         p.getPublishersList().add(new hudson.plugins.parameterizedtrigger.BuildTrigger(Collections.singletonList(

@@ -56,8 +56,8 @@ public class HealthAnalyzerCommonTest {
     }
 
     @After
-    public void tearDown() throws Exception {
-        initializeOperatingSystemOs(os);
+    public void tearDown() {
+        initializeOperatingSystemOs();
     }
 
     @Test
@@ -69,10 +69,12 @@ public class HealthAnalyzerCommonTest {
 
     @Test
     public void runningMethodOnNonWindows_throwsException() throws Exception {
-        initializeOperatingSystemOs("Linux");
+        System.setProperty("os.name","Linux");
+        OperatingSystem.refreshOsVariablesForSlave();
         boolean returnValue = healthAnalyzerCommon.isRegistryExist(NON_EXISTING_REGISTRY);
         assertEquals("Operating system mismatch", false, returnValue);
-        initializeOperatingSystemOs(System.getProperty("os.name"));
+        System.setProperty("os.name",os);
+        OperatingSystem.refreshOsVariablesForSlave();
     }
 
     @Test

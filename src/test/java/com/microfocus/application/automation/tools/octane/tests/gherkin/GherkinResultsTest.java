@@ -154,7 +154,7 @@ public class GherkinResultsTest extends OctanePluginTestBase {
         MatrixProject matrixProject = rule.createProject(MatrixProject.class, projectName);
         matrixProject.setAxes(new AxisList(new Axis("osType", "Linux", "Windows")));
 
-        matrixProject.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -Dmaven.repo.local=%s\\m2-temp",
+        matrixProject.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -DargLine=\"--add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.text=ALL-UNNAMED --add-opens java.desktop/java.awt.font=ALL-UNNAMED\" -Dmaven.repo.local=%s\\m2-temp ",
                 TestUtils.getMavenHome(), System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
         matrixProject.getPublishersList().add(new CucumberTestResultsActionPublisher(""));
         matrixProject.setScm(new CopyResourceSCM("/helloCucumberWorld"));
@@ -181,7 +181,7 @@ public class GherkinResultsTest extends OctanePluginTestBase {
         String projectName = "root-job-" + UUID.randomUUID().toString();
         FreeStyleProject project = rule.createFreeStyleProject(projectName);
 
-        project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -Dmaven.repo.local=%s\\m2-temp",
+        project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -DargLine=\"--add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.text=ALL-UNNAMED --add-opens java.desktop/java.awt.font=ALL-UNNAMED\"",
                 TestUtils.getMavenHome(), System.getenv("TEMP")), mavenName, null, null, "-Dmaven.test.failure.ignore=true"));
         project.setScm(new CopyResourceSCM("/helloCucumberWorld"));
 
@@ -194,7 +194,7 @@ public class GherkinResultsTest extends OctanePluginTestBase {
         String projectName = "root-job-" + UUID.randomUUID().toString();
         FreeStyleProject project = rule.createFreeStyleProject(projectName);
 
-        project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -Dmaven.repo.local=%s\\m2-temp",
+        project.getBuildersList().add(new Maven(String.format("--settings \"%s\\conf\\settings.xml\" clean test -Dmaven.repo.local=%s\\m2-temp -DargLine=\"--add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.text=ALL-UNNAMED --add-opens java.desktop/java.awt.font=ALL-UNNAMED\"",
                 TestUtils.getMavenHome(),System.getenv("TEMP")), mavenName, "subFolder/pom.xml", null, "-Dmaven.test.failure.ignore=true"));
         project.setScm(new CopyResourceSCM("helloCucumberWorld", "subFolder"));
 
@@ -221,7 +221,7 @@ public class GherkinResultsTest extends OctanePluginTestBase {
         project.runHeadless();
 
         project.setMaven(mavenName);
-        project.setGoals(String.format("clean test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true",
+        project.setGoals(String.format("clean test --settings \"%s\\conf\\settings.xml\" -Dmaven.repo.local=%s\\m2-temp -Dmaven.test.failure.ignore=true -DargLine=\"--add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.text=ALL-UNNAMED --add-opens java.desktop/java.awt.font=ALL-UNNAMED\"",
                 TestUtils.getMavenHome(),System.getenv("TEMP")));
         if(subfolder) {
             project.setRootPOM("subFolder/pom.xml");
