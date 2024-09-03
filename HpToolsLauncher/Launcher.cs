@@ -30,6 +30,7 @@
  * ___________________________________________________________________
  */
 
+using HpToolsLauncher.Common;
 using HpToolsLauncher.Properties;
 using HpToolsLauncher.RTS;
 using HpToolsLauncher.TestRunners;
@@ -51,6 +52,13 @@ namespace HpToolsLauncher
 
     public class Launcher
     {
+        private const string MINUS_ONE = "-1";
+        private const string ZERO = "0";
+        private const string ONE = "1";
+        private const string TRUE = "true";
+        private const string FALSE = "false";
+        private const string YES = "yes";
+        private const string NO = "no";
         private IAssetRunner _runner;
         private IXmlBuilder _xmlBuilder;
         private bool _ciRun = false;
@@ -63,8 +71,10 @@ namespace HpToolsLauncher
         private const string RERUN_ALL_TESTS = "Rerun the entire set of tests";
         private const string RERUN_SPECIFIC_TESTS = "Rerun specific tests in the build";
         private const string RERUN_FAILED_TESTS = "Rerun only failed tests";
-        private const string ONE = "1";
         private const string CLEANUP_TEST = "CleanupTest";
+        private const string LEAVE_UFT_OPEN_IF_VISIBLE = "leaveUftOpenIfVisible";
+        private const string FS_UFT_RUN_MODE = "fsUftRunMode";
+        private static readonly string[] _one_true_yes = [ONE, TRUE, YES];
 
         public const string ClassName = "HPToolsFileSystemRunner";
 
@@ -590,14 +600,27 @@ namespace HpToolsLauncher
                     SummaryDataLogger summaryDataLogger = GetSummaryDataLogger();
                     List<ScriptRTSModel> scriptRTSSet = GetScriptRtsSet();
                     string resultsFilename = _ciParams["resultsFilename"];
-                    string uftRunMode = _ciParams.GetOrDefault("fsUftRunMode", "Fast");
+                    UftProps uftProps;
+                    string leaveUftOpen = _ciParams.GetOrDefault(LEAVE_UFT_OPEN_IF_VISIBLE).Trim().ToLower();
+                    bool leaveUftOpenIfVisible = leaveUftOpen.In(_one_true_yes);
+                    if (_ciParams.ContainsKey(FS_UFT_RUN_MODE))
+                    {
+                        string strUftRunMode = _ciParams[FS_UFT_RUN_MODE].Trim();
+                        Enum.TryParse(strUftRunMode, out UftRunMode uftRunMode);
+                        uftProps = new(leaveUftOpenIfVisible, digitalLab, uftRunMode, uftRunAsUser);
+                    }
+                    else
+                    {
+                        uftProps = new(leaveUftOpenIfVisible, digitalLab, uftRunAsUser: uftRunAsUser);
+                    }
+
                     if (validTests.Count > 0)
                     {
-                        runner = new FileSystemTestsRunner(validTests, GetValidParams(), printInputParams, timeout, uftRunMode, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVars, digitalLab, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding, uftRunAsUser);
+                        runner = new FileSystemTestsRunner(validTests, GetValidParams(), printInputParams, timeout, uftProps, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVars, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding);
                     }
                     else if (cleanupAndRerunTests.Count > 0)
                     {
-                        runner = new FileSystemTestsRunner(cleanupAndRerunTests, printInputParams, timeout, uftRunMode, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVars, digitalLab, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding, uftRunAsUser);
+                        runner = new FileSystemTestsRunner(cleanupAndRerunTests, printInputParams, timeout, uftProps, pollingInterval, perScenarioTimeOutMinutes, ignoreErrorStrings, jenkinsEnvVars, parallelRunnerEnvironments, displayController, analysisTemplate, summaryDataLogger, scriptRTSSet, reportPath, resultsFilename, _encoding);
                     }
                     else
                     {

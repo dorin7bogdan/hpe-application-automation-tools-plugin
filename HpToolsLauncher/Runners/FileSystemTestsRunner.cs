@@ -41,6 +41,7 @@ using HpToolsLauncher.RTS;
 using System.Threading;
 using System.Linq;
 using HpToolsLauncher.Utils;
+using HpToolsLauncher.Common;
 
 namespace HpToolsLauncher
 {
@@ -57,7 +58,7 @@ namespace HpToolsLauncher
         private SummaryDataLogger _summaryDataLogger;
         private List<ScriptRTSModel> _scriptRTSSet;
         private TimeSpan _timeout = TimeSpan.MaxValue;
-        private string _uftRunMode;
+        private readonly UftProps _uftProps;
         private Stopwatch _stopwatch = null;
         private string _abortFilename = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\stop" + Launcher.UniqueTimeStamp + ".txt";
         private string _encoding;
@@ -73,9 +74,7 @@ namespace HpToolsLauncher
         //saves runners for cleaning up at the end.
         private Dictionary<TestType, IFileSysTestRunner> _colRunnersForCleanup = new Dictionary<TestType, IFileSysTestRunner>();
 
-        private DigitalLab _digitalLab;
         private bool _printInputParams;
-        private RunAsUser _uftRunAsUser;
         private IFileSysTestRunner _runner = null;
 
         private const string REPORT = "Report";
@@ -86,11 +85,9 @@ namespace HpToolsLauncher
 
         private void InitCommonFields(bool printInputParams,
                                     TimeSpan timeout,
-                                    string uftRunMode,
                                     int controllerPollingInterval,
                                     TimeSpan perScenarioTimeOutMinutes,
                                     List<string> ignoreErrorStrings,
-                                    DigitalLab digitalLab,
                                     Dictionary<string, List<string>> parallelRunnerEnvironments,
                                     bool displayController,
                                     string analysisTemplate,
@@ -98,9 +95,7 @@ namespace HpToolsLauncher
                                     List<ScriptRTSModel> scriptRtsSet,
                                     string reportPath,
                                     string xmlResultsFullFileName,
-                                    string encoding,
-                                    RunAsUser uftRunAsUser,
-                                    bool useUftLicense = false)
+                                    string encoding)
         {
             //search if we have any testing tools installed
             if (!Helper.IsTestingToolsInstalled(TestStorageType.FileSystem))
@@ -117,23 +112,18 @@ namespace HpToolsLauncher
             _perScenarioTimeOutMinutes = perScenarioTimeOutMinutes;
             _ignoreErrorStrings = ignoreErrorStrings;
 
-            _useUFTLicense = useUftLicense;
             _displayController = displayController;
             _analysisTemplate = analysisTemplate;
             _summaryDataLogger = summaryDataLogger;
             _scriptRTSSet = scriptRtsSet;
             _printInputParams = printInputParams;
 
-            _digitalLab = digitalLab;
-
             _parallelRunnerEnvironments = parallelRunnerEnvironments;
             _xmlBuilder.XmlName = xmlResultsFullFileName;
             _encoding = encoding;
-            _uftRunAsUser = uftRunAsUser;
-            _uftRunMode = uftRunMode;
 
-            if (_digitalLab.ConnectionInfo != null)
-                ConsoleWriter.WriteLine("Digital Lab connection info is - " + _digitalLab.ConnectionInfo.ToString());
+            if (_uftProps.DigitalLab.ConnectionInfo != null)
+                ConsoleWriter.WriteLine("Digital Lab connection info is - " + _uftProps.DigitalLab.ConnectionInfo.ToString());
 
             if (reportPath != null)
             {
@@ -146,7 +136,7 @@ namespace HpToolsLauncher
         /// </summary>
         /// <param name="sources"></param>
         /// <param name="timeout"></param>
-        /// <param name="uftRunMode"></param>
+        /// <param name="uftProps"></param>
         /// <param name="scriptRtsSet"></param>
         /// <param name="reportPath"></param>
         /// <param name="controllerPollingInterval"></param>
@@ -164,12 +154,11 @@ namespace HpToolsLauncher
                                     List<TestParameter> @params,
                                     bool printInputParams,
                                     TimeSpan timeout,
-                                    string uftRunMode,
+                                    UftProps uftProps,
                                     int controllerPollingInterval,
                                     TimeSpan perScenarioTimeOutMinutes,
                                     List<string> ignoreErrMsgs,
                                     Dictionary<string, string> jenkinsEnvVars,
-                                    DigitalLab digitalLab,
                                     Dictionary<string, List<string>> parallelRunnerEnvs,
                                     bool displayController,
                                     string analysisTemplate,
@@ -177,11 +166,10 @@ namespace HpToolsLauncher
                                     List<ScriptRTSModel> scriptRtsSet,
                                     string reportPath,
                                     string xmlResultsFullFileName,
-                                    string encoding,
-                                    RunAsUser uftRunAsUser,
-                                    bool useUftLicense = false)
+                                    string encoding)
         {
-            InitCommonFields(printInputParams, timeout, uftRunMode, controllerPollingInterval, perScenarioTimeOutMinutes, ignoreErrMsgs, digitalLab, parallelRunnerEnvs, displayController, analysisTemplate, summaryDataLogger, scriptRtsSet, reportPath, xmlResultsFullFileName, encoding, uftRunAsUser, useUftLicense);
+            _uftProps = uftProps;
+            InitCommonFields(printInputParams, timeout, controllerPollingInterval, perScenarioTimeOutMinutes, ignoreErrMsgs, parallelRunnerEnvs, displayController, analysisTemplate, summaryDataLogger, scriptRtsSet, reportPath, xmlResultsFullFileName, encoding);
 
             _tests = GetListOfTestInfo(sources, @params, jenkinsEnvVars);
 
@@ -214,12 +202,11 @@ namespace HpToolsLauncher
         public FileSystemTestsRunner(List<TestInfo> tests,
                                     bool printInputParams,
                                     TimeSpan timeout,
-                                    string uftRunMode,
+                                    UftProps uftProps,
                                     int controllerPollingInterval,
                                     TimeSpan perScenarioTimeOutMinutes,
                                     List<string> ignoreErrMsgs,
                                     Dictionary<string, string> jenkinsEnvVars,
-                                    DigitalLab digitalLab,
                                     Dictionary<string, List<string>> parallelRunnerEnvs,
                                     bool displayController,
                                     string analysisTemplate,
@@ -227,12 +214,10 @@ namespace HpToolsLauncher
                                     List<ScriptRTSModel> scriptRtsSet,
                                     string reportPath,
                                     string xmlResultsFullFileName,
-                                    string encoding,
-                                    RunAsUser uftRunAsUser,
-                                    bool useUftLicense = false)
+                                    string encoding)
         {
-            InitCommonFields(printInputParams, timeout, uftRunMode, controllerPollingInterval, perScenarioTimeOutMinutes, ignoreErrMsgs, digitalLab, parallelRunnerEnvs, displayController, analysisTemplate, summaryDataLogger, scriptRtsSet, reportPath, xmlResultsFullFileName, encoding, uftRunAsUser, useUftLicense);
-
+            _uftProps = uftProps;
+            InitCommonFields(printInputParams, timeout, controllerPollingInterval, perScenarioTimeOutMinutes, ignoreErrMsgs, parallelRunnerEnvs, displayController, analysisTemplate, summaryDataLogger, scriptRtsSet, reportPath, xmlResultsFullFileName, encoding);
             _tests = tests;
             if (_tests == null || _tests.Count == 0)
             {
@@ -419,7 +404,7 @@ namespace HpToolsLauncher
                                 throw dcomEx;
                         }
 
-                        if (prevTestOutParams != null && prevTestOutParams.Count > 0)
+                        if (prevTestOutParams?.Count > 0)
                         {
                             foreach (var param in test.Params)
                             {
@@ -430,12 +415,8 @@ namespace HpToolsLauncher
                             }
                             prevTestOutParams = null;
                         }
-                        Dictionary<string, string> outParams = null;
-                        runResult = RunHpToolsTest(test, type, ref errorReason, out outParams);
-                        if (outParams != null && outParams.Count > 0)
-                            prevTestOutParams = outParams;
-                        else
-                            prevTestOutParams = null;
+                        runResult = RunHpToolsTest(test, type, ref errorReason, out Dictionary<string, string> outParams);
+                        prevTestOutParams = outParams;
                     }
                     catch (Exception ex)
                     {
@@ -474,11 +455,11 @@ namespace HpToolsLauncher
                     if (runResult.TestState == TestState.Passed && runResult.HasWarnings)
                     {
                         runResult.TestState = TestState.Warning;
-                        ConsoleWriter.WriteLine(Resources.FsRunnerTestDoneWarnings);
+                        ConsoleWriter.WriteLineWithTime(Resources.FsRunnerTestDoneWarnings);
                     }
                     else
                     {
-                        ConsoleWriter.WriteLine(string.Format(Resources.FsRunnerTestDone, runResult.TestState));
+                        ConsoleWriter.WriteLineWithTime(string.Format(Resources.FsRunnerTestDone, runResult.TestState));
                     }
 
                     UpdateCounters(runResult.TestState, ts);
@@ -504,6 +485,7 @@ namespace HpToolsLauncher
                         UpdateUftReportDir(uftReportDir, uftReportDirNew);
                     }
                     // Create or update the xml report. This function is called after each test execution in order to have a report available in case of job interruption
+                    ConsoleWriter.WriteLineWithTime("Create Or Update Partial Xml Report ...");
                     _xmlBuilder.CreateOrUpdatePartialXmlReport(ts, runResult, isNewTestSuite && x==0);
                     ConsoleWriter.WriteLineWithTime("Test complete: " + runResult.TestPath + "\n-------------------------------------------------------------------------------------------------------");
                 }
@@ -658,17 +640,17 @@ namespace HpToolsLauncher
             switch (type)
             {
                 case TestType.ST:
-                    _runner = new ApiTestRunner(this, _timeout - _stopwatch.Elapsed, _encoding, _printInputParams, _uftRunAsUser);
+                    _runner = new ApiTestRunner(this, _timeout - _stopwatch.Elapsed, _encoding, _printInputParams, _uftProps.UftRunAsUser);
                     break;
                 case TestType.QTP:
-                    _runner = new GuiTestRunner(this, _useUFTLicense, _timeout - _stopwatch.Elapsed, _uftRunMode, _digitalLab, _printInputParams, _uftRunAsUser);
+                    _runner = new GuiTestRunner(this, _uftProps, _timeout - _stopwatch.Elapsed, _printInputParams);
                     break;
                 case TestType.LoadRunner:
                     AppDomain.CurrentDomain.AssemblyResolve += Helper.HPToolsAssemblyResolver;
                     _runner = new PerformanceTestRunner(this, _timeout, _pollingInterval, _perScenarioTimeOutMinutes, _ignoreErrorStrings, _displayController, _analysisTemplate, _summaryDataLogger, _scriptRTSSet);
                     break;
                 case TestType.ParallelRunner:
-                    _runner = new ParallelTestRunner(this, _digitalLab.ConnectionInfo, _parallelRunnerEnvironments, _uftRunAsUser);
+                    _runner = new ParallelTestRunner(this, _uftProps.DigitalLab.ConnectionInfo, _parallelRunnerEnvironments, _uftProps.UftRunAsUser);
                     break;
                 default:
                     _runner = null;

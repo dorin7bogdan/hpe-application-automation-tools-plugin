@@ -44,6 +44,7 @@ using System.Threading;
 using Resources = HpToolsLauncher.Properties.Resources;
 using AuthType = HpToolsLauncher.McConnectionInfo.AuthType;
 using static HpToolsLauncher.McConnectionInfo;
+using HpToolsLauncher.Common;
 
 namespace HpToolsLauncher
 {
@@ -106,6 +107,7 @@ namespace HpToolsLauncher
         private bool _printInputParams;
         private bool _isCancelledByUser;
         private RunAsUser _uftRunAsUser;
+        private readonly bool _leaveUftOpenIfVisible;
 
         /// <summary>
         /// constructor
@@ -113,19 +115,20 @@ namespace HpToolsLauncher
         /// <param name="runNotifier"></param>
         /// <param name="useUftLicense"></param>
         /// <param name="timeLeftUntilTimeout"></param>
-        public GuiTestRunner(IAssetRunner runNotifier, bool useUftLicense, TimeSpan timeLeftUntilTimeout, string uftRunMode, DigitalLab digitalLab, bool printInputParams, RunAsUser uftRunAsUser)
+        public GuiTestRunner(IAssetRunner runNotifier, UftProps uftProps, TimeSpan timeLeftUntilTimeout, bool printInputParams)
         {
             _timeLeftUntilTimeout = timeLeftUntilTimeout;
-            _uftRunMode = uftRunMode;
+            _uftRunMode = uftProps.UftRunMode?.ToString();
             _stopwatch = Stopwatch.StartNew();
             _runNotifier = runNotifier;
-            _useUFTLicense = useUftLicense;
-            _mcConnection = digitalLab.ConnectionInfo;
-            _mobileInfo = digitalLab.JobSettings;
-            _dlCloudBrowser = digitalLab.CloudBrowser;
-            _dlExecDescription = digitalLab.ExecDescription;
+            _useUFTLicense = uftProps.UseUftLicense;
+            _mcConnection = uftProps.DigitalLab.ConnectionInfo;
+            _mobileInfo = uftProps.DigitalLab.JobSettings;
+            _dlCloudBrowser = uftProps.DigitalLab.CloudBrowser;
+            _dlExecDescription = uftProps.DigitalLab.ExecDescription;
             _printInputParams = printInputParams;
-            _uftRunAsUser = uftRunAsUser;
+            _uftRunAsUser = uftProps.UftRunAsUser;
+            _leaveUftOpenIfVisible = uftProps.LeaveUftOpenIfVisible;
         }
 
         #region QTP
@@ -143,7 +146,7 @@ namespace HpToolsLauncher
             var testPath = testinf.TestPath;
             TestRunResults runDesc = new() { TestType = TestType.QTP };
             ConsoleWriter.ActiveTestRun = runDesc;
-            ConsoleWriter.WriteLineWithTime("Running: " + testPath);
+            ConsoleWriter.WriteLineWithTime($"Running: {testPath}");
 
             runDesc.TestPath = testPath;
 
@@ -162,6 +165,7 @@ namespace HpToolsLauncher
 
             _runCancelled = runCancelled;
 
+            ConsoleWriter.WriteLineWithTime("Checking if QTP is installed ...");
             if (!Helper.IsQtpInstalled())
             {
                 runDesc.TestState = TestState.Error;
@@ -171,6 +175,7 @@ namespace HpToolsLauncher
                 return runDesc;
             }
 
+            ConsoleWriter.WriteLineWithTime("Checking if QTP process can start ...");
             if (!Helper.CanUftProcessStart(out string reason))
             {
                 runDesc.TestState = TestState.Error;
@@ -185,6 +190,7 @@ namespace HpToolsLauncher
             {
                 lock (_lockObject)
                 {
+                    ConsoleWriter.WriteLineWithTime("Creating QTP application instance ...");
                     _qtpApplication = Activator.CreateInstance(_qtType) as Application;
                     if (_uftRunAsUser != null)
                     {
@@ -217,7 +223,16 @@ namespace HpToolsLauncher
                         runDesc.ReportLocation = GetReportLocation(testinf, testPath);
                     }
                     // Check for required Addins
-                    LoadNeededAddins(testPath);
+                    if (_qtpApplication.Launched && _qtpApplication.Visible && _leaveUftOpenIfVisible)
+                    {
+                        ConsoleWriter.WriteLineWithTime("QTP already launched and visible.");
+                        //no action
+                    }
+                    else
+                    {
+                        ConsoleWriter.WriteLineWithTime("Loading required Addins ...");
+                        LoadNeededAddins(testPath);
+                    }
 
                     // set Mc connection and other mobile info into rack if neccesary
                     //SetMobileInfo();
@@ -232,6 +247,7 @@ namespace HpToolsLauncher
                             return runDesc;
                         }
                         // Launch application after set Addins
+                        ConsoleWriter.WriteLineWithTime($"Launching QTP application in hidden mode ...");
                         _qtpApplication.Launch();
                         _qtpApplication.Visible = false;
                     }
@@ -266,11 +282,14 @@ namespace HpToolsLauncher
                 return runDesc;
             }*/
 
-            _qtpApplication.UseLicenseOfType(_useUFTLicense ? tagUnifiedLicenseType.qtUnifiedFunctionalTesting : tagUnifiedLicenseType.qtNonUnified);
+            var licType = _useUFTLicense ? tagUnifiedLicenseType.qtUnifiedFunctionalTesting : tagUnifiedLicenseType.qtNonUnified;
+            ConsoleWriter.WriteLineWithTime($"Set QTP to use license of type [{licType}] ...");
+            _qtpApplication.UseLicenseOfType(licType);
 
             Dictionary<string, object> paramDict;
             try
             {
+                ConsoleWriter.WriteLineWithTime($"Getting parameter dictionary ...");
                 paramDict = testinf.GetParameterDictionaryForQTP();
             }
             catch (ArgumentException)
@@ -351,7 +370,12 @@ namespace HpToolsLauncher
                 {
                     //if we don't have a qtp instance, create one
                     _qtpApplication ??= Activator.CreateInstance(_qtType) as Application;
-                    _qtpApplication.Quit();
+                    if (_qtpApplication.Launched && !(_qtpApplication.Visible && _leaveUftOpenIfVisible))
+                    {
+                        ConsoleWriter.WriteLineWithTime("Closing QTP application ...");
+                        _qtpApplication.Quit();
+                        ConsoleWriter.WriteLineWithTime("QTP successfully closed.");
+                    }
                 }
             }
             catch
@@ -385,6 +409,7 @@ namespace HpToolsLauncher
             {
                 HashSet<string> colCurrentTestAddins = [];
 
+                ConsoleWriter.WriteLineWithTime($"Getting associated Addins for [{fileName}] ...");
                 var testAddinsObj = _qtpApplication.GetAssociatedAddinsForTest(fileName);
                 IEnumerable<string> testAddins = ((object[])testAddinsObj)?.Cast<string>();
 
@@ -424,6 +449,7 @@ namespace HpToolsLauncher
                 {
                     if (_qtpApplication.Launched && _uftRunAsUser == null)
                         _qtpApplication.Quit();
+                    ConsoleWriter.WriteLineWithTime($"Set active Addins for current test ...");
                     _qtpApplication.SetActiveAddins(ref testAddinsObj, out object _);
                 }
             }
@@ -495,10 +521,10 @@ namespace HpToolsLauncher
                     Launcher.ExitCode = Launcher.ExitCodeEnum.Aborted;
                     return result;
                 }
-                ConsoleWriter.WriteLine(string.Format(Resources.FsRunnerRunningTest, testResults.TestPath));
+                ConsoleWriter.WriteLineWithTime(string.Format(Resources.FsRunnerRunningTest, testResults.TestPath));
 
                 _qtpApplication.Test.Run(options, false, _qtpParameters);
-                Console.WriteLine($"Status = {_qtpApplication.GetStatus()}");
+                ConsoleWriter.WriteLineWithTime($"Status = {_qtpApplication.GetStatus()}");
 
                 result.ReportPath = Path.Combine(testResults.ReportLocation, REPORT);
                 int slept = 0;
@@ -608,13 +634,24 @@ namespace HpToolsLauncher
 
         private void CleanUpAndKillQtp()
         {
-            //error during run, process may have crashed (need to cleanup, close QTP and qtpRemote for next test to run correctly)
-            CleanUp();
+            //if we don't have a qtp instance, create one
+            _qtpApplication ??= Activator.CreateInstance(_qtType) as Application;
 
-            //kill the qtp automation, to make sure it will run correctly next time
-            Process[] processes = Process.GetProcessesByName("qtpAutomationAgent");
-            Process qtpAuto = processes.Where(p => p.SessionId == Process.GetCurrentProcess().SessionId).FirstOrDefault();
-            qtpAuto?.Kill();
+            //if the app is running, close it.
+            if (_qtpApplication.Launched && _qtpApplication.Visible && _leaveUftOpenIfVisible)
+            {
+                //leave UFT open, the user can close it manually if needed
+            }
+            else
+            {
+                //error during run, process may have crashed (need to cleanup, close QTP and qtpRemote for next test to run correctly)
+                CleanUp();
+
+                //kill the qtp automation, to make sure it will run correctly next time
+                Process[] processes = Process.GetProcessesByName("qtpAutomationAgent");
+                Process qtpAuto = processes.Where(p => p.SessionId == Process.GetCurrentProcess().SessionId).FirstOrDefault();
+                qtpAuto?.Kill();
+            }
         }
 
         private bool HandleOutputArguments(ref string errorReason, out Dictionary<string, string> outParams)
@@ -671,6 +708,7 @@ namespace HpToolsLauncher
                     errorReason = string.Format("DLConnection not supported on UFT One {0}", qtpVersion.ToString(2));
                     return false;
                 }
+                ConsoleWriter.WriteLineWithTime($"Set Digital Lab Connection options ...");
                 try
                 {
                     string url = $"{(_mcConnection.UseSSL ? "https" : "http")}://{_mcConnection.HostAddress}";
@@ -697,6 +735,7 @@ namespace HpToolsLauncher
         {
             if (_dlCloudBrowser != null)
             {
+                ConsoleWriter.WriteLineWithTime("Preparing cloud browser settings ...");
                 if (qtpVersion < new Version(2023, 4))
                 {
                     errorReason = string.Format(Resources.CloudBrowserNotSupported, qtpVersion.ToString(2));
@@ -736,12 +775,15 @@ namespace HpToolsLauncher
                     return false;
                 }
 
+                ConsoleWriter.WriteLineWithTime($"Opening test [{path}] ...");
                 _qtpApplication.Open(path, true, false);
                 Test test = _qtpApplication.Test;
 
                 if (!_dlExecDescription.IsNullOrEmpty())
                 {
+                    ConsoleWriter.WriteLineWithTime(@$"Set test option {MOBILE_EXEC_ORIGINAL_TOOL} to ""{FTE}"" ...");
                     _qtpApplication.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_ORIGINAL_TOOL, FTE);
+                    ConsoleWriter.WriteLineWithTime(@$"Set test option {MOBILE_EXEC_DESCRIPTION} to ""{_dlExecDescription}"" ...");
                     _qtpApplication.TDPierToTulip.SetTestOptionsVal(MOBILE_EXEC_DESCRIPTION, _dlExecDescription);
                 }
 
@@ -767,8 +809,10 @@ namespace HpToolsLauncher
                     throw;
                 }
 
+                ConsoleWriter.WriteLineWithTime($"Getting input parameters ...");
                 _qtpParamDefs = test.ParameterDefinitions;
                 _qtpParameters = _qtpParamDefs.GetParameters();
+                ConsoleWriter.WriteLineWithTime($"Input parameters count = {_qtpParamDefs.Count}.");
 
                 // handle all parameters (index starts with 1 !!!)
                 for (int i = 1; i <= _qtpParamDefs.Count; i++)
@@ -820,8 +864,8 @@ namespace HpToolsLauncher
                 // specify data table path
                 if (testInfo.DataTablePath != null)
                 {
+                    ConsoleWriter.WriteLineWithTime("Using external data table: " + testInfo.DataTablePath);
                     test.Settings.Resources.DataTablePath = testInfo.DataTablePath;
-                    ConsoleWriter.WriteLine("Using external data table: " + testInfo.DataTablePath);
                 }
 
                 // specify iteration mode
