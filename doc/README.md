@@ -51,29 +51,16 @@ Starting with version 1.641 (or 1.625.3), Jenkins introduced the  **Content-Secu
 
 ## New Features and Enhancements
 
-Version CE 24.2 introduced the following enhancements and fixes:
+Version CE 24.3 introduced the following enhancements and fixes:
 
-**UFT One**
-- Added permission checks in ALM jobs configurations on all <doFill*Items> methods (CVE-2024-4211).
-- Added Job/ExtendedRead permission handing for FS / ALM / ALM Lab job configurations.
-- Fixed unexpected Test Suites Rerun Behavior related to reports for FS jobs.
-
-**UFT Digital Lab**
- - Admins can configure whether apps can be uploaded to the Shared assets. If it is not allowed, in the "Upload app to Digital Lab Server" build step there is no option to select Shared assets in the workspace selection menu.
+**Java 21**
+- Starting with version 24.3 version fo the plugin, Java 21 will be required to run
 
 **ALM Octane**
 - Bug fixes
-  - Fixed nga.log that unexpectedly stopped writing data
-  - Fixed the 'Test Run Report URL' field population when running tests on different machines in the same job
-  - Other fixes
 
-**Service Virtualization**
-- Added permission checks in SV jobs for the server enumeration field (CVE-2024-4692)
 
-**Security Improvements**
-- fixed XXE vulnerabilities: CVE-2024-4189, CVE-2024-4184, CVE-2024-4690
-
-For information about enhancements introduced in previous versions, see [What's new in earlier versions](WhatsNewEarlier.md). 
+For information about enhancements introduced in previous versions, see [What's new in earlier versions](https://github.com/jenkinsci/hpe-application-automation-tools-plugin/blob/latest/doc/WhatsNewEarlier.md). 
 
 
 ## Supported Integrations
