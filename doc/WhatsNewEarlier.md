@@ -3,6 +3,8 @@
 
 This page shows a history of the enhancements made to the OpenText Application Automation Tools Jenkins plugin.
 
+[What&#39;s New in version CE 24.2](#what&#39;s-new-in-version-CE-24&#46;2)
+
 [What&#39;s New in version CE 24.1.0](#what&#39;s-new-in-version-CE-24&#46;1&#46;0)
 
 [What&#39;s New in version CE 23.4 ](#what&#39;s-new-in-version-CE-23&#46;4)
@@ -43,6 +45,28 @@ This page shows a history of the enhancements made to the OpenText Application A
 
 [What&#39;s New in version 5.9 ](#what&#39;s-new-in-version-5.9)
 
+
+## What&#39;s New in version CE 24&#46;2
+
+**UFT One**
+- Added permission checks in ALM jobs configurations on all <doFill*Items> methods (CVE-2024-4211).
+- Added Job/ExtendedRead permission handing for FS / ALM / ALM Lab job configurations.
+- Fixed unexpected Test Suites Rerun Behavior related to reports for FS jobs.
+
+**UFT Digital Lab**
+- Admins can configure whether apps can be uploaded to the Shared assets. If it is not allowed, in the "Upload app to Digital Lab Server" build step there is no option to select Shared assets in the workspace selection menu.
+
+**ALM Octane**
+- Bug fixes
+  - Fixed nga.log that unexpectedly stopped writing data
+  - Fixed the 'Test Run Report URL' field population when running tests on different machines in the same job
+  - Other fixes
+
+**Service Virtualization**
+- Added permission checks in SV jobs for the server enumeration field (CVE-2024-4692)
+
+**Security Improvements**
+- fixed XXE vulnerabilities: CVE-2024-4189, CVE-2024-4184, CVE-2024-4690
 
 ## What&#39;s New in version CE 24&#46;1&#46;0
 
