@@ -145,7 +145,8 @@ public class BranchesPublisher extends Recorder implements SimpleBuildStep {
 
         try {
             //GET BRANCHES FROM CI SERVER
-            FetchHandler fetchHandler = FetchFactory.getHandler(ScmTool.fromValue(myScmTool), authenticationStrategy);
+            String secret = GitFetchUtils.getCredentialsPassword(credentials);
+            FetchHandler fetchHandler = FetchFactory.getHandler(ScmTool.fromValue(myScmTool), authenticationStrategy, secret);
 
             OctaneClient octaneClient = OctaneSDK.getClientByInstanceId(myConfigurationId);
             logConsumer.printLog("ALM Octane " + octaneClient.getConfigurationService().getConfiguration().getLocationForLog() + ", workspace - " + myWorkspaceId);
@@ -211,6 +212,7 @@ public class BranchesPublisher extends Recorder implements SimpleBuildStep {
             fp.setPageSize(getIntegerValueParameter(parameterAction, "branches_page_size"));
             fp.setActiveBranchDays(getIntegerValueParameter(parameterAction, "branches_active_branch_days"));
             fp.setMaxBranchesToFill(getIntegerValueParameter(parameterAction, "branches_max_branches_to_fill"));
+            fp.setSearchBranchOctaneRootRepositoryId(getIntegerValueParameter(parameterAction, "search_branch_octane_root_repository_id"));
         }
 
         logConsumer.accept("Repository URL       : " + fp.getRepoUrl());

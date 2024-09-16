@@ -145,7 +145,8 @@ public class PullRequestPublisher extends Recorder implements SimpleBuildStep {
         StandardCredentials credentials = GitFetchUtils.getCredentialsById(myCredentialsId, run, taskListener.getLogger());
         AuthenticationStrategy authenticationStrategy = GitFetchUtils.getAuthenticationStrategy(credentials);
 
-        FetchHandler fetchHandler = FetchFactory.getHandler(ScmTool.fromValue(myScmTool), authenticationStrategy);
+        String secret = GitFetchUtils.getCredentialsPassword(credentials);
+        FetchHandler fetchHandler = FetchFactory.getHandler(ScmTool.fromValue(myScmTool), authenticationStrategy, secret);
         try {
             OctaneClient octaneClient = OctaneSDK.getClientByInstanceId(myConfigurationId);
             logConsumer.printLog("ALM Octane " + octaneClient.getConfigurationService().getConfiguration().getLocationForLog() + ", workspace - " + myWorkspaceId);
@@ -205,6 +206,7 @@ public class PullRequestPublisher extends Recorder implements SimpleBuildStep {
             fp.setMaxPRsToFetch(getIntegerValueParameter(parameterAction, "pullrequests_max_pr_to_collect"));
             fp.setMaxCommitsToFetch(getIntegerValueParameter(parameterAction, "pullrequests_max_commits_to_collect"));
             fp.setMinUpdateTime(getLongValueParameter(parameterAction, "pullrequests_min_update_time"));
+            fp.setSearchBranchOctaneRootRepositoryId(getIntegerValueParameter(parameterAction, "search_branch_octane_root_repository_id"));
         }
         if (fp.getMinUpdateTime() == PullRequestFetchParameters.DEFAULT_MIN_UPDATE_DATE) {
             long lastUpdateTime = OctaneSDK.getClientByInstanceId(myConfigurationId).getPullRequestAndBranchService().getPullRequestLastUpdateTime(myWorkspaceId, fp.getRepoUrl());
