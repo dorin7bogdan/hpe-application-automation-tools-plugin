@@ -46,7 +46,8 @@
     You can change the behaviour of this step by adding the following parameters to the job:
     <ul>
         <li><b>branches_active_branch_days</b>: Only active branches can be added/updated to ALM Octane. Default is 60 days.</li><br>
-        <li><b>branches_max_branches_to_fill</b>: Relevant for GitHub repository only. Max branches to collect data. If data is not collected from a branch, it cannot be added to ALM Octane. Default is 1000.</li><br>
+        <li><b>branches_max_branches_to_fill</b>: Relevant for GitHub and GitLab repository only. Max branches to collect data. If data is not collected from a branch, it cannot be added to ALM Octane. Default is 1000.</li><br>
+        <li><b>search_branch_octane_root_repository_id</b>: The plugin will look through the branches that are linked to the SCM Repository with the configured Id. If a branch has the same name as one of those branches, they will be considered as duplicates and new branches won't be created in ALM Octane.</li><br>
     </ul>
 
     <br>
@@ -77,6 +78,11 @@
         <tr>
             <td>Github Server</td>
             <td>User/password and PAT</td>
+        </tr>
+        <tr>
+            <td>GitLab</td>
+            <td>PAT only</td>
+            <td>Click on your profile icon -> Edit Profile -> Access tokens -> Add new token (Assign the read_api and the read_repository permissions)</td>
         </tr>
         </tbody>
     </table>

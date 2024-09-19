@@ -133,6 +133,18 @@ public class GitFetchUtils {
         return authenticationStrategy;
     }
 
+    public static String getCredentialsPassword(StandardCredentials credentials) {
+        if (credentials == null) {
+            return "";
+        } else if (credentials instanceof StringCredentials) {
+            return ((StringCredentials) credentials).getSecret().getPlainText();
+        } else if (credentials instanceof StandardUsernamePasswordCredentials) {
+            return ((StandardUsernamePasswordCredentials) credentials).getPassword().getPlainText();
+        } else {
+            return "";
+        }
+    }
+
     public static void updateRepoTemplates(PullRequestAndBranchService pullRequestAndBranchService, FetchHandler fetcherHandler, String repoHttpUrlForTemplates, String repoUrlForOctane, Long workspaceId, Consumer<String> logConsumer) {
         //update repo templates
         try {
