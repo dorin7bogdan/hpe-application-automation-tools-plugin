@@ -495,6 +495,7 @@ public class JUnitXmlIterator extends AbstractXmlIterator<JUnitTestResult> {
         externalURL = "";
         description = "";
         uftResultFilePath = "";
+        externalRunId = "";
         moduleName = moduleNameFromFile;
         uftResultData = null;
     }
