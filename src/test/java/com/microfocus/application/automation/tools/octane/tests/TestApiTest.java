@@ -37,6 +37,7 @@ import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.tests.TestsResult;
 import com.hp.octane.integrations.services.WorkerPreflight;
 import com.hp.octane.integrations.services.rest.RestService;
+import com.hp.octane.integrations.utils.CIPluginSDKUtils;
 import com.microfocus.application.automation.tools.model.OctaneServerSettingsModel;
 import com.microfocus.application.automation.tools.octane.OctaneServerMock;
 import com.microfocus.application.automation.tools.octane.configuration.ConfigurationService;
@@ -163,12 +164,12 @@ public class TestApiTest {
 
 		@Override
 		public boolean ownsUrlToProcess(String url) {
-			return url.endsWith("/jobs/" + testsJobName + "/tests-result-preflight");
+			return url.endsWith("/jobs/" + CIPluginSDKUtils.urlEncodeBase64(testsJobName) + "/tests-result-preflight");
 		}
 
 		@Override
 		public void handle(String s, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
-			if (baseRequest.getPathInfo().endsWith("/jobs/" + testsJobName + "/tests-result-preflight")) {
+			if (baseRequest.getPathInfo().endsWith("/jobs/" + CIPluginSDKUtils.urlEncodeBase64(testsJobName) + "/tests-result-preflight")) {
 				response.setStatus(HttpServletResponse.SC_OK);
 				response.getWriter().write(String.valueOf(true));
 			}
