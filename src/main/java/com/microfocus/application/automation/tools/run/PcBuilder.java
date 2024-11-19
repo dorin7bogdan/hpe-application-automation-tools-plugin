@@ -856,7 +856,7 @@ public class PcBuilder extends Builder implements SimpleBuildStep {
 
     private void provideStepResultStatus(Result resultStatus, Run<?, ?> build) {
         String runIdStr =
-                (runId > 0) ? String.format(" (LRE RunID: %s)", String.valueOf(runId)) : "";
+                (runId > 0) ? String.format(" (RunID: %s)", String.valueOf(runId)) : "";
         logger.println(String.format("%s - %s%s: %s\n- - -",
                 DateFormatter.getDateTime(),
                 Messages.ResultStatus(),
@@ -1087,7 +1087,7 @@ public class PcBuilder extends Builder implements SimpleBuildStep {
 
         public FormValidation doCheckPcServerName(@QueryParameter String value) {
 
-            return validateString(value, "LRE Server");
+            return validateString(value, "Server");
         }
 
         public FormValidation doCheckAlmDomain(@QueryParameter String value) {
