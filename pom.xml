@@ -271,7 +271,7 @@
                     <mapping>
                         <java>SLASHSTAR_STYLE</java>
                         <xml>XML_STYLE</xml>
-                        <properties>PROPERTIES_STYLE</properties>
+                        <properties>SCRIPT_STYLE</properties>
                         <xsd>XML_STYLE</xsd>
                         <js>SLASHSTAR_STYLE</js>
                         <scss>SLASHSTAR_STYLE</scss>
