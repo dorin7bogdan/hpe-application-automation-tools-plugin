@@ -263,7 +263,7 @@
                         <include>**/*.js</include>
                         <include>**/*.scss</include>
                         <include>**/*.jsx</include>
-                        <!--<include>**/*.cs</include>-->
+                        <include>**/*.cs</include>
                     </includes>
                     <!-- Define the comment styles for different file types -->
                     <mapping>
