@@ -95,7 +95,7 @@ Version CE 23.4 introduced the following enhancements and fixes:
 **ALM Octane**
 - Bug fixes.
 
-**LoadRunner Enterprise**
+**OpenText Enterprise Performance Engineering**
  - Parameterization support for the Timeslot duration.
 
 ## What&#39;s New in version 23&#46;3&#46;0
@@ -244,9 +244,9 @@ Version 7.1 introduced the following enhancements:
 
 - More user-friendly layout
 
-**LoadRunner Entrerprise**
+**OpenText Enterprise Performance Engineering**
 
-- Security fix: Beginning with Jenkins version 2.303.3, the LoadRunner Enterprise build step requires the security fix introduced in this release
+- Security fix: Beginning with Jenkins version 2.303.3, the OpenText Enterprise Performance Engineering build step requires the security fix introduced in this release
 
 **ALM Octane**
 
@@ -281,7 +281,7 @@ Version 7.0 introduced the following enhancements:
 - Run Results enhancements, including the use of MTBX files for test execution
 - Defect fix - Layout issues were handled
 
-**LoadRunner Enterprise**
+**OpenText Enterprise Performance Engineering**
 
 - Defect fix - It is now possible to browse for the Test ID in the Jenkins plugin.
 
@@ -320,9 +320,9 @@ Versions 6.7 and 6.8 introduced the following enhancements:
 - Added the option to inject pull requests to ALM Octane with repository in SSH format.
 - Auto-fill: After injection of pull-requests, templates related to SCM repositories are auto-filled in ALM Octane (Settings > Spaces-> DevOps > SCM Repositories).
 
-**LRE (LoadRunner Enterprise)**
+**OpenText Enterprise Performance Engineering**
 
-- The build step “Execute performance test using LoadRunner Enterprise” can authenticate to LoadRunner Enterprise using an access key (available from LoadRunner Enterprise 2021 R1).
+- The build step “Execute performance test using OpenText Enterprise Performance Engineering” can authenticate to LoadRunner Enterprise using an access key (available from LoadRunner Enterprise 2021 R1).
 
 ## What&#39;s New in version 6.6
 

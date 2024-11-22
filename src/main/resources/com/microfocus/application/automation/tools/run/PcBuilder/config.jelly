@@ -149,7 +149,7 @@
                 var popup = window.open(scheme + "://" + pcServerAndTenant[0] + "/loadtest/"  + pcServerAndTenant[1]);
                 popup.opener = null;
             } else {
-                alert("LoadRunner Enterprise Server name is missing.");
+                alert("Server name is missing.");
             }
             return false;
         }
@@ -214,7 +214,7 @@
 	<f:entry title="Description" field="description">
 		<f:textbox name="pc.description" value="${instance.pcModel.description}" />
 	</f:entry>
-	<f:entry title="LRE Server" field="pcServerName">
+	<f:entry title="Server" field="pcServerName">
 		<f:textbox name="pc.pcServerName" value="${instance.pcModel.pcServerName}" />
 	</f:entry>
 	<f:entry title="&#160;">
@@ -225,7 +225,7 @@
         <f:checkbox title="Use Token For Authentication" field="authenticateWithToken" name="pcgit.authenticateWithToken" checked="${instance.pcModel.authenticateWithToken}" />
     </f:entry>
 
-    <f:entry name="pc.credentialsId" field="credentialsId" title="LRE Credentials">
+    <f:entry name="pc.credentialsId" field="credentialsId" title="Credentials">
         <c:select expressionAllowed="true" />
     </f:entry>
 	<f:entry title="Domain" field="almDomain">

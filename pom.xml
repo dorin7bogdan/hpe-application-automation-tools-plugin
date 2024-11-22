@@ -45,7 +45,7 @@
 	<packaging>hpi</packaging>
 	<name>OpenText Application Automation Tools</name>
 	<description>The plugin integrates Jenkins with the following OpenText products - Service Virtualization,
-		LoadRunner, LoadRunner Enterprise, Unified Functional Testing, QuickTest Professional, Service Test, Unified Functional Testing Mobile,
+		LoadRunner, OpenText Enterprise Performance Engineering, Unified Functional Testing, QuickTest Professional, Service Test, Unified Functional Testing Mobile,
 		Application Lifecycle Management and Application Lifecycle Management Octane.
 	</description>
 	<url>https://github.com/jenkinsci/hpe-application-automation-tools-plugin/blob/latest/doc/README.md</url>
@@ -155,7 +155,7 @@
 			<name>Daniel Danan</name>
 			<email>daniel.danan@microfocus.com</email>
 			<roles>
-				<role>LoadRunner Enterprise</role>
+				<role>OpenText Enterprise Performance Engineering</role>
 			</roles>
 		</developer>
 		<developer>

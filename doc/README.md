@@ -68,19 +68,19 @@ For information about enhancements introduced in previous versions, see [What's 
 
 This plugin supports the following OpenText product versions:
 
-| OpenText tool                                    | Supported versions                                           | Find more information...                                     |
-| :-------------------------------------------------- | :----------------------------------------------------------- | ------------------------------------------------------------ |
-| ALM (Application Lifecycle Management)              | 12.xx, 15.x, 16.x, 17.x, 24.x                                                  | [ALM Integration  page](https://admhelp.microfocus.com/alm/en/latest/online_help/Content/jenkins-integration.htm)                  |
-| ALM Lab Management                                  | 12.xx, 15.x, 16.x, 17.x, 24.x                                                | [ALM Integration page](https://admhelp.microfocus.com/alm/en/latest/online_help/Content/jenkins-integration.htm#mt-item-3) |
-| ALM Octane                                          | 12.53.20 and higher (12.55.4 or later required for direct UFT One integration and for LoadRunner Enterprise integration using pipelines) | [ALM Octane Help Center](https://admhelp.microfocus.com/octane/en/latest/Online/Content/AdminGuide/jenkins-integration.htm) |
-| LoadRunner Enterprise                               | 12.xx (12.53 or higher required for trend reports), 2020 and higher     | [LoadRunner Enterprise Help Center](https://admhelp.microfocus.com/lre/en/latest/online_help/Content/PC/Continuous-Integration-Jenkins.htm) |
-| LoadRunner Professional                             | 12.xx, 2020 and higher                                       | [LoadRunner Professional Integration page](https://admhelp.microfocus.com/lr/en/latest/help/WebHelp/Content/Controller/c_jenkins.htm)             |
-| Model-based Testing                                 | 16.0.300 and higher  | [Model-Based Testing Help Center](https://admhelp.microfocus.com/mbt) |
-| Service Virtualization                              | 3.80 and higher                                              | [Service Virtualization Help Center](https://admhelp.microfocus.com/sv/en/latest/Help/Content/UG/c_continuous_integration.htm) |
-| UFT Developer                                       | 14.03 and higher                                             | [UFT Developer Help Center](https://admhelp.microfocus.com/uftdev/en/latest/HelpCenter/Content/HowTo/CI_Tools.htm)<br />Blog: [Integrate LeanFT with Jenkins in just a few simple steps](https://community.microfocus.com/adtd/b/sws-alm/posts/integrating-leanft-with-jenkins-in-just-a-few-simple-steps) |
-| Digital Lab (UFT Mobile)                                          | 2.0 and higher                                               | [Digital Lab Integration page](https://admhelp.microfocus.com/digitallab/en/latest/Content/CI_jenkins.htm) |
-| UFT One                                             | 12.xx and 14.03 and higher                                   | [UFT One Help Center](https://admhelp.microfocus.com/uft/en/latest/UFT_Help/Content/User_Guide/Jenkins.htm) |
-| ValueEdge                                             |                               | [ValueEdge Help Center](https://admhelp.microfocus.com/valuedge) |
+| OpenText tool                               | Supported versions                                           | Find more information...                                     |
+|:--------------------------------------------| :----------------------------------------------------------- | ------------------------------------------------------------ |
+| ALM (Application Lifecycle Management)      | 12.xx, 15.x, 16.x, 17.x, 24.x                                                  | [ALM Integration  page](https://admhelp.microfocus.com/alm/en/latest/online_help/Content/jenkins-integration.htm)                  |
+| ALM Lab Management                          | 12.xx, 15.x, 16.x, 17.x, 24.x                                                | [ALM Integration page](https://admhelp.microfocus.com/alm/en/latest/online_help/Content/jenkins-integration.htm#mt-item-3) |
+| ALM Octane                                  | 12.53.20 and higher (12.55.4 or later required for direct UFT One integration and for LoadRunner Enterprise integration using pipelines) | [ALM Octane Help Center](https://admhelp.microfocus.com/octane/en/latest/Online/Content/AdminGuide/jenkins-integration.htm) |
+| OpenText Enterprise Performance Engineering | 12.xx (12.53 or higher required for trend reports), 2020 and higher     | [LoadRunner Enterprise Help Center](https://admhelp.microfocus.com/lre/en/latest/online_help/Content/PC/Continuous-Integration-Jenkins.htm) |
+| LoadRunner Professional                     | 12.xx, 2020 and higher                                       | [LoadRunner Professional Integration page](https://admhelp.microfocus.com/lr/en/latest/help/WebHelp/Content/Controller/c_jenkins.htm)             |
+| Model-based Testing                         | 16.0.300 and higher  | [Model-Based Testing Help Center](https://admhelp.microfocus.com/mbt) |
+| Service Virtualization                      | 3.80 and higher                                              | [Service Virtualization Help Center](https://admhelp.microfocus.com/sv/en/latest/Help/Content/UG/c_continuous_integration.htm) |
+| UFT Developer                               | 14.03 and higher                                             | [UFT Developer Help Center](https://admhelp.microfocus.com/uftdev/en/latest/HelpCenter/Content/HowTo/CI_Tools.htm)<br />Blog: [Integrate LeanFT with Jenkins in just a few simple steps](https://community.microfocus.com/adtd/b/sws-alm/posts/integrating-leanft-with-jenkins-in-just-a-few-simple-steps) |
+| Digital Lab (UFT Mobile)                    | 2.0 and higher                                               | [Digital Lab Integration page](https://admhelp.microfocus.com/digitallab/en/latest/Content/CI_jenkins.htm) |
+| UFT One                                     | 12.xx and 14.03 and higher                                   | [UFT One Help Center](https://admhelp.microfocus.com/uft/en/latest/UFT_Help/Content/User_Guide/Jenkins.htm) |
+| ValueEdge                                   |                               | [ValueEdge Help Center](https://admhelp.microfocus.com/valuedge) |
 
 ## Prerequisites
 
@@ -194,20 +194,20 @@ To set up a pipeline test job for your OpenText testing tool:
 
 The available Pipeline job types are: loadRunnerTest, uftScenarioLoad, runFromFSBuilder, runFromAlmBuilder, sseBuild, sseBuildAndPublish, pcBuild, svChangeModeStep, svDeployStep, svExportStep, svUndeployStep, and publishMFTestResults
 
-| Product                | Pipeline step name           | Description                                                        |
-| ---------------------- | ---------------------------- | ------------------------------------------------------------------ |
-| LoadRunner Professional| loadRunnerTest               | Run LoadRunner Professional tests from a file system scenario file.|
-| UFT One                | uftScenarioLoad              | Run a UFT scenario. **Deprecated**, but backwards compatibility exists.|
-| UFT One                | runFromFSBuilder             | Execute UFT One Tests from the file system.                        |
-| ALM                    | runFromAlmBuilder            | Execute functional tests from ALM.                                 |
-| ALM Lab Management     | sseBuild                     | Execute tests using ALM Lab Management.                            |
-| ALM Lab Management     | sseBuildAndPublish           | Execute tests using ALM Lab Management and publish test results.   |
-| LoadRunner Enterprise  | pcBuild                      | Execute tests using LoadRunner Enterprise.                         |
-| Service Virtualization | svChangeModeStep             | Change the mode of a virtual service.                              |
-| Service Virtualization | svDeployStep                 | Deploy a virtual service.                                          |
-| Service Virtualization | svExportStep                 | Export a virtual service.                                          |
-| Service Virtualization | svUndeployStep               | Undeploy a virtual service.                                        |
-| UFT One, ALM, ALM LM   | publishMicroFocusTestResults | Publish Test Results for FS, ALM and ALM Lab Management executions. |                                   |
+| Product                | Pipeline step name           | Description                                                             |
+| ---------------------- | ---------------------------- |-------------------------------------------------------------------------|
+| LoadRunner Professional| loadRunnerTest               | Run LoadRunner Professional tests from a file system scenario file.     |
+| UFT One                | uftScenarioLoad              | Run a UFT scenario. **Deprecated**, but backwards compatibility exists. |
+| UFT One                | runFromFSBuilder             | Execute UFT One Tests from the file system.                             |
+| ALM                    | runFromAlmBuilder            | Execute functional tests from ALM.                                      |
+| ALM Lab Management     | sseBuild                     | Execute tests using ALM Lab Management.                                 |
+| ALM Lab Management     | sseBuildAndPublish           | Execute tests using ALM Lab Management and publish test results.        |
+| OpenText Enterprise Performance EngineeringOpenText Enterprise Performance Engineering.        |
+| Service Virtualization | svChangeModeStep             | Change the mode of a virtual service.                                   |
+| Service Virtualization | svDeployStep                 | Deploy a virtual service.                                               |
+| Service Virtualization | svExportStep                 | Export a virtual service.                                               |
+| Service Virtualization | svUndeployStep               | Undeploy a virtual service.                                             |
+| UFT One, ALM, ALM LM   | publishMicroFocusTestResults | Publish Test Results for FS, ALM and ALM Lab Management executions.     |                                   |
 
 Pipeline jobs are not supported for Digital Lab (formerly UFT Mobile) uploads, ALM test uploader, and ALM AUT job types.
 

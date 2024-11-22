@@ -107,10 +107,10 @@ public class PcClient {
                     logger.println(String.format("%s - %s", DateFormatter.getDateTime(), Messages.UsingPCCredentialsBuildParameters()));
                 else
                     logger.println(String.format("%s - %s", DateFormatter.getDateTime(), Messages.UsingPCCredentialsConfiguration()));
-                logger.println(String.format("%s - %s\n[LRE Server='%s://%s/loadtest/%s', %s='%s']", DateFormatter.getDateTime(), Messages.TryingToLogin(), model.isHTTPSProtocol(), restProxy.GetPcServer(), restProxy.GetTenant(), model.isAuthenticateWithToken() ? "ClientIdKey" : "User", usernamePCPasswordCredentials.getUsername()));
+                logger.println(String.format("%s - %s\n[Server='%s://%s/loadtest/%s', %s='%s']", DateFormatter.getDateTime(), Messages.TryingToLogin(), model.isHTTPSProtocol(), restProxy.GetPcServer(), restProxy.GetTenant(), model.isAuthenticateWithToken() ? "ClientIdKey" : "User", usernamePCPasswordCredentials.getUsername()));
                 loggedIn = restProxy.authenticate(usernamePCPasswordCredentials.getUsername(), usernamePCPasswordCredentials.getPassword().getPlainText());
             } else {
-                logger.println(String.format("%s - %s\n[LRE Server='%s://%s/loadtest/%s', %s='%s']", DateFormatter.getDateTime(), Messages.TryingToLogin(), model.isHTTPSProtocol(), restProxy.GetPcServer(), restProxy.GetTenant(), model.isAuthenticateWithToken() ? "ClientIdKey" : "User", PcBuilder.usernamePCPasswordCredentials.getUsername()));
+                logger.println(String.format("%s - %s\n[Server='%s://%s/loadtest/%s', %s='%s']", DateFormatter.getDateTime(), Messages.TryingToLogin(), model.isHTTPSProtocol(), restProxy.GetPcServer(), restProxy.GetTenant(), model.isAuthenticateWithToken() ? "ClientIdKey" : "User", PcBuilder.usernamePCPasswordCredentials.getUsername()));
                 loggedIn = restProxy.authenticate(PcBuilder.usernamePCPasswordCredentials.getUsername(), PcBuilder.usernamePCPasswordCredentials.getPassword().getPlainText());
             }
         } catch (PcException e) {
@@ -408,7 +408,7 @@ public class PcClient {
             try {
 
                 if (threeStrikes < 3) {
-                    logger.println(String.format("%s - Cannot get response from LRE about the state of the Run (ID=%s) %s time(s) consecutively",
+                    logger.println(String.format("%s - Cannot get response from the server about the state of the Run (ID=%s) %s time(s) consecutively",
                             DateFormatter.getDateTime(),
                             runId,
                             (3 - threeStrikes)));
