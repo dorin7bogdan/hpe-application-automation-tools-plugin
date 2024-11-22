@@ -254,7 +254,7 @@
 					<!-- Path to your license header -->
                     <header>${project.basedir}/LICENSE.txt</header>
                     <strictCheck>false</strictCheck>
-                    <!-- Apply to .java, .cs, .xml, .xsd, .js, .jsx, .scss and .properties files -->
+                    <!-- Apply to .java, .cs, .xml, .xsd, .js, .jsx, .html,.scss and .properties files -->
                     <includes>
                         <include>**/*.java</include>
                         <include>**/*.xml</include>
@@ -264,6 +264,7 @@
                         <include>**/*.scss</include>
                         <include>**/*.jsx</include>
                         <include>**/*.cs</include>
+                        <include>**/*.html</include>
                     </includes>
                     <!-- Define the comment styles for different file types -->
                     <mapping>
@@ -275,6 +276,7 @@
                         <scss>SLASHSTAR_STYLE</scss>
                         <resx>XML_STYLE</resx>
                         <jsx>SLASHSTAR_STYLE</jsx>
+                        <html>XML_STYLE</html>
                     </mapping>
                     <properties>
 						<!-- Properties dynamically inserted into the license header -->
