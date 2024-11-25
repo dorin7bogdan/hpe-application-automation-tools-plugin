@@ -80,10 +80,8 @@
         <jenkins-test-harness.version>2205.v7e19cc98f9c7
         </jenkins-test-harness.version> <!-- TODO newer versions than 2.55 require debugging an issue with open file handles -->
 
-		<!-- The starting year for copyright information -->
-		<copyright.start.year>2012</copyright.start.year>
 		<!-- The ending year for copyright information -->
-		<copyright.end.year>2025</copyright.end.year>
+		<copyright.end.year>2026</copyright.end.year>
 	</properties>
 
     <distributionManagement>
@@ -269,6 +267,9 @@
                         <include>**/*.xsl</include>
                         <include>**/*.jelly</include>
                     </includes>
+                    <excludes>
+                        <exclude>**/work/**</exclude>
+                    </excludes>
                     <!-- Define the comment styles for different file types -->
                     <mapping>
                         <java>SLASHSTAR_STYLE</java>
@@ -287,12 +288,12 @@
                     </mapping>
                     <properties>
 						<!-- Properties dynamically inserted into the license header -->
-						<copyright.start.year>${copyright.start.year}</copyright.start.year>
 						<copyright.end.year>${copyright.end.year}</copyright.end.year>
                     </properties>
                 </configuration>
                 <executions>
                     <execution>
+                        <phase>process-resources</phase>
                         <goals>
 							<!-- Goal to apply the license headers to source files -->
                             <goal>format</goal>
