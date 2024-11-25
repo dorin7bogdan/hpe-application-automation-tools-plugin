@@ -175,7 +175,7 @@ public class BranchesPublisher extends Recorder implements SimpleBuildStep {
             run.setResult(Result.FAILURE);
         } catch (IllegalStateException e) {
             logConsumer.printLog("ALM Octane branch collector failed : " + e.getMessage());
-            if (e.getMessage().contains("Duplicate key")) {
+            if (e.getMessage() != null && e.getMessage().contains("Duplicate key")) {
                 run.setResult(Result.UNSTABLE);
             } else {
                 run.setResult(Result.FAILURE);
