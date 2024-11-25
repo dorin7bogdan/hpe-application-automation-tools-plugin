@@ -81,7 +81,7 @@
         </jenkins-test-harness.version> <!-- TODO newer versions than 2.55 require debugging an issue with open file handles -->
 
 		<!-- The ending year for copyright information -->
-		<copyright.end.year>2026</copyright.end.year>
+		<copyright.end.year>2025</copyright.end.year>
 	</properties>
 
     <distributionManagement>
