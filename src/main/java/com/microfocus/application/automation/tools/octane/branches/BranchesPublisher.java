@@ -177,6 +177,14 @@ public class BranchesPublisher extends Recorder implements SimpleBuildStep {
                     .collect(Collectors.joining(System.lineSeparator() + "  - ", " Exceptions are : " + System.lineSeparator() + "  - ", ""));
             logConsumer.printLog("ALM Octane branch collector failed : " + e.getMessage() + exceptions);
             run.setResult(Result.FAILURE);
+        } catch (IllegalStateException e) {
+            logConsumer.printLog("ALM Octane branch collector failed : " + e.getMessage());
+            if (e.getMessage() != null && e.getMessage().contains("Duplicate key")) {
+                run.setResult(Result.UNSTABLE);
+            } else {
+                run.setResult(Result.FAILURE);
+                e.printStackTrace(taskListener.getLogger());
+            }
         } catch (Exception e) {
             logConsumer.printLog("ALM Octane branch collector failed : " + e.getMessage());
             e.printStackTrace(taskListener.getLogger());
