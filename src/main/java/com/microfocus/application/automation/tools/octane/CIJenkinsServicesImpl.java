@@ -246,27 +246,29 @@ public class CIJenkinsServicesImpl extends CIPluginServices {
     public PipelineNode getPipeline(String rootJobCiId) {
         ACLContext securityContext = startImpersonation();
         try {
-            PipelineNode result;
-            boolean hasRead = Jenkins.get().hasPermission(Item.READ);
-            if (!hasRead) {
+            Item item = getItemByRefId(rootJobCiId);
+            // Verify that the user has permission to access the job(Read permission for a specific job or global read)
+            if (!Jenkins.get().hasPermission(Item.READ) && !item.hasPermission(Item.READ)) {
+                logger.warn("Insufficient permissions to access jobRefId: '{}'.", rootJobCiId);
                 throw new PermissionException(HttpStatus.SC_FORBIDDEN);
             }
 
-            Item item = getItemByRefId(rootJobCiId);
             if (item == null) {
-                logger.warn("Failed to get project from jobRefId: '" + rootJobCiId + "' check plugin user Job Read/Overall Read permissions / project name");
+                logger.warn("Failed to get project from jobRefId: '" + rootJobCiId + "' check plugin user Job Read/" +
+                        "Overall Read permissions / project name");
                 throw new ConfigurationException(HttpStatus.SC_NOT_FOUND);
-            } else if (item instanceof Job) {
-                result = ModelFactory.createStructureItem((Job) item);
-            } else {
-                result = createPipelineNodeFromJobName(item.getFullName());
-                if (item.getClass().getName().equals(JobProcessorFactory.WORKFLOW_MULTI_BRANCH_JOB_NAME)) {
-                    WorkflowMultiBranchProject parentItem = (WorkflowMultiBranchProject) item;
-                    if(!parentItem.isDisabled()) {
-                        addParametersAndDefaultBranchFromConfig(item, result);
-                        result.setMultiBranchType(MultiBranchType.MULTI_BRANCH_PARENT);
-                    } else result = null;
-                }
+            }
+
+            if (item instanceof Job) {
+                return ModelFactory.createStructureItem((Job) item);
+            }
+            PipelineNode result = createPipelineNodeFromJobName(item.getFullName());
+            if (item.getClass().getName().equals(JobProcessorFactory.WORKFLOW_MULTI_BRANCH_JOB_NAME)) {
+                WorkflowMultiBranchProject parentItem = (WorkflowMultiBranchProject) item;
+                if (!parentItem.isDisabled()) {
+                    addParametersAndDefaultBranchFromConfig(item, result);
+                    result.setMultiBranchType(MultiBranchType.MULTI_BRANCH_PARENT);
+                } else result = null;
             }
             return result;
         } finally {
