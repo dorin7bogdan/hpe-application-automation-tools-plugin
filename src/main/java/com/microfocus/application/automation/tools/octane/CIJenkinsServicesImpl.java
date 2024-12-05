@@ -247,16 +247,17 @@ public class CIJenkinsServicesImpl extends CIPluginServices {
         ACLContext securityContext = startImpersonation();
         try {
             Item item = getItemByRefId(rootJobCiId);
-            // Verify that the user has permission to access the job(Read permission for a specific job or global read)
-            if (!Jenkins.get().hasPermission(Item.READ) && !item.hasPermission(Item.READ)) {
-                logger.warn("Insufficient permissions to access jobRefId: '{}'.", rootJobCiId);
-                throw new PermissionException(HttpStatus.SC_FORBIDDEN);
-            }
 
             if (item == null) {
                 logger.warn("Failed to get project from jobRefId: '" + rootJobCiId + "' check plugin user Job Read/" +
                         "Overall Read permissions / project name");
                 throw new ConfigurationException(HttpStatus.SC_NOT_FOUND);
+            }
+
+            // Verify that the user has permission to access the job(Read permission for a specific job or global read)
+            if (!Jenkins.get().hasPermission(Item.READ) && !item.hasPermission(Item.READ)) {
+                logger.warn("Insufficient permissions to access jobRefId: '{}'.", rootJobCiId);
+                throw new PermissionException(HttpStatus.SC_FORBIDDEN);
             }
 
             if (item instanceof Job) {
