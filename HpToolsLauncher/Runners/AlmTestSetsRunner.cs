@@ -27,11 +27,12 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Text;
 using System.Threading;
 using HpToolsLauncher.Properties;
 using Mercury.TD.Client.Ota.QC9;
-
+using Microsoft.Win32;
 
 //using Mercury.TD.Client.Ota.Api;
 
@@ -39,6 +40,15 @@ namespace HpToolsLauncher
 {
     public class AlmTestSetsRunner : RunnerBase, IDisposable
     {
+        private const string ALM_CLIENT_PATH = "ALM_CLIENT_PATH";
+        private const string REGSVR32_EXE = "regsvr32.exe";
+        private static readonly string[] _filesToRegister = new string[] { "OTAClient.dll", "SharedLoginModule.dll", "WebClient.dll", "wexectrl.exe" };
+        private static readonly string[] _CLSIDs = new string[] { "{C5CBD7B2-490C-45f5-8C40-B8C3D108E6D7}", "{DA0D834A-2BA1-4565-9E79-2BBC2B45AC9E}", "{52596835-C6ED-41A1-8713-E2F7CD2EBE8B}", "{F9A09099-1CF7-4965-8616-A5E69288BA8A}" };
+        private const string _DLL = ".dll";
+        private const string _EXE = ".exe";
+        private const string SOFTWARE_WOW6432_CLASSES_CLSID_0 = @"Software\WOW6432Node\Classes\CLSID\{0}";
+        private const string FILE_ISNT_REGISTERED = @"{0} is not registered / found in HKLM\{1}.";
+
         QcRunMode m_runMode = QcRunMode.RUN_LOCAL;
         double m_timeout = -1;
         bool m_blnConnected = false;
@@ -136,6 +146,8 @@ namespace HpToolsLauncher
             m_qcFilterByStatuses = filterByStatuses;
             m_qcInitialTestRun = initialTestRun;
 
+            RegisterAlmComponents();
+
             //if sso enable use the Jenkins credentials
             Connected = ConnectToProject(qcServer, qcUser, qcPassword, qcDomain, qcProject);
             TestSets = qcTestSets;
@@ -227,12 +239,12 @@ namespace HpToolsLauncher
         /// </summary>
         private void CreateTdConnection()
         {
-
+            Console.WriteLine("CreateTdConnection ...");
             Type type = Type.GetTypeFromProgID("TDApiOle80.TDConnection");
 
             if (type == null)
             {
-                ConsoleWriter.WriteLine(GetAlmNotInstalledError());
+                ConsoleWriter.WriteLine("Type.GetTypeFromProgID(\"TDApiOle80.TDConnection\") failed");
                 Environment.Exit((int)Launcher.ExitCodeEnum.Failed);
             }
 
@@ -242,12 +254,10 @@ namespace HpToolsLauncher
                 this.tdConnection = conn as ITDConnection2;
                 this.tdConnection.KeepConnection = true;
                 // set credentials
-
-
             }
-            catch (FileNotFoundException ex)
+            catch (FileNotFoundException)
             {
-                ConsoleWriter.WriteLine(GetAlmNotInstalledError());
+                ConsoleWriter.WriteLine("Activator.CreateInstance(type) failed");
                 Environment.Exit((int)Launcher.ExitCodeEnum.Failed);
             }
         }
@@ -1252,13 +1262,14 @@ namespace HpToolsLauncher
                 return false;
             }
 
+            Console.WriteLine(string.Format("ConnectToProject: {0} {1} {2}", QCServerURL, QCDomain, QCProject));
             try
             {
                 TdConnection.InitConnectionEx(QCServerURL);
             }
             catch (Exception ex)
             {
-                ConsoleWriter.WriteLine(ex.Message);
+                ConsoleWriter.WriteLine("TdConnection.InitConnectionEx failed: " + ex.Message);
             }
 
             if (!TdConnection.Connected)
@@ -1273,7 +1284,7 @@ namespace HpToolsLauncher
             }
             catch (Exception ex)
             {
-                ConsoleWriter.WriteLine(ex.Message);
+                ConsoleWriter.WriteLine("TdConnection.Login failed: " + ex.Message);
             }
 
             if (!TdConnection.LoggedIn)
@@ -1288,7 +1299,7 @@ namespace HpToolsLauncher
             }
             catch (Exception ex)
             {
-
+                ConsoleWriter.WriteLine("TdConnection.Connect failed: " + ex.Message);
             }
 
             if (!TdConnection.ProjectConnected)
@@ -1445,6 +1456,130 @@ namespace HpToolsLauncher
             return false;
         }
 
+        private void RegisterAlmComponents()
+        {
+            try
+            {
+                string workDir = GetAlmClientPath().TrimEnd('\\');
+                if (!string.IsNullOrEmpty(workDir))
+                {
+                    Console.WriteLine("Registering ALM client components...");
+                    foreach (string f in _filesToRegister)
+                    {
+                        DoRegisterDll(workDir, f);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ConsoleWriter.WriteLine("Error trying to register ALM client components: " + ex.Message);
+            }
+
+            Console.WriteLine("Checking ALM client components...");
+            for (int x = 0; x < _CLSIDs.Length; x++)
+            {
+                CheckIfClsidIsRegistered(_CLSIDs[x], _filesToRegister[x]);
+            }
+        }
+
+        private static bool DoRegisterDll(string workDir, string fileName)
+        {
+            string fileFullPath = Path.Combine(workDir, fileName);
+            if (!File.Exists(fileFullPath))
+            {
+                throw new FileNotFoundException("The specified DLL file was not found.", fileFullPath);
+            }
+
+            try
+            {
+                string extension = Path.GetExtension(fileName).ToLower();
+                string dllOrExeFileName, args;
+                if (extension == _DLL)
+                {
+                    dllOrExeFileName = REGSVR32_EXE;
+                    args = string.Format(@"/s {0}", fileName);
+                }
+                else if (extension == _EXE)
+                {
+                    dllOrExeFileName = fileName;
+                    args = "/regserver";
+                }
+                else
+                {
+                    Console.WriteLine("Warning: Unsupported file type: " + fileName);
+                    return false;
+                }
+
+                ProcessStartInfo psi = new ProcessStartInfo();
+                psi.FileName = dllOrExeFileName;
+                psi.Arguments = args;
+                psi.UseShellExecute = false;
+                psi.CreateNoWindow = true;
+                psi.RedirectStandardOutput = true;
+                psi.RedirectStandardError = true;
+                psi.WorkingDirectory = workDir;
+
+                using (Process process = Process.Start(psi))
+                {
+                    process.WaitForExit();
+                    return process.ExitCode == 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error registering DLL: " + ex.Message);
+                return false;
+            }
+        }
+
+        private string GetAlmClientPath()
+        {
+            try
+            {
+                string val = Environment.GetEnvironmentVariable(ALM_CLIENT_PATH, EnvironmentVariableTarget.User);
+                if (string.IsNullOrEmpty(val))
+                {
+                    val = Environment.GetEnvironmentVariable(ALM_CLIENT_PATH, EnvironmentVariableTarget.Machine);
+                }
+                return val;
+            }
+            catch (SecurityException)
+            {
+                throw new UnauthorizedAccessException("Insufficient permissions to read system environment variables.");
+            }
+        }
+
+        private static void CheckIfClsidIsRegistered(string clsid, string filename)
+        {
+            try
+            {
+                string registryPath = string.Format(SOFTWARE_WOW6432_CLASSES_CLSID_0, clsid);
+                using (RegistryKey key = Registry.LocalMachine.OpenSubKey(registryPath))
+                {
+                    bool isRegistered = key != null && key.SubKeyCount > 0;
+                    if (!isRegistered)
+                    {
+                        Console.WriteLine(FILE_ISNT_REGISTERED, filename, registryPath);
+                    }
+                }
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Console.WriteLine("Access denied to registry: " + ex.Message);
+            }
+            catch (SecurityException ex)
+            {
+                Console.WriteLine("Security exception: " + ex.Message);
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine("IO exception occurred: " + ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("An unexpected error occurred: " + ex.Message);
+            }
+        }
     }
 
     public class QCFailure
