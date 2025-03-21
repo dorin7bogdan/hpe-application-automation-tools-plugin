@@ -146,7 +146,7 @@ namespace HpToolsLauncher
             m_qcFilterByStatuses = filterByStatuses;
             m_qcInitialTestRun = initialTestRun;
 
-            RegisterAlmComponents();
+            RegisterAlmComponents(enmQcRunMode);
 
             //if sso enable use the Jenkins credentials
             Connected = ConnectToProject(qcServer, qcUser, qcPassword, qcDomain, qcProject);
@@ -1456,29 +1456,32 @@ namespace HpToolsLauncher
             return false;
         }
 
-        private void RegisterAlmComponents()
+        private void RegisterAlmComponents(QcRunMode runMode)
         {
-            try
+            if (runMode == QcRunMode.RUN_LOCAL)
             {
-                string workDir = GetAlmClientPath().TrimEnd('\\');
-                if (!string.IsNullOrEmpty(workDir))
+                try
                 {
-                    ConsoleWriter.WriteLine("Registering ALM client components...");
-                    foreach (string f in _filesToRegister)
+                    string workDir = GetAlmClientPath().TrimEnd('\\');
+                    if (!string.IsNullOrEmpty(workDir))
                     {
-                        DoRegisterDll(workDir, f);
+                        ConsoleWriter.WriteLine("Registering ALM client components...");
+                        foreach (string f in _filesToRegister)
+                        {
+                            DoRegisterDll(workDir, f);
+                        }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                ConsoleWriter.WriteErrLine($"Error trying to register ALM client components: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    ConsoleWriter.WriteErrLine($"Error trying to register ALM client components: {ex.Message}");
+                }
 
-            Console.WriteLine("Checking ALM client components...");
-            for (int x = 0; x < _CLSIDs.Length; x++)
-            {
-                CheckIfClsidIsRegistered(_CLSIDs[x], _filesToRegister[x]);
+                Console.WriteLine("Checking ALM client components...");
+                for (int x = 0; x < _CLSIDs.Length; x++)
+                {
+                    CheckIfClsidIsRegistered(_CLSIDs[x], _filesToRegister[x]);
+                }
             }
         }
 
