@@ -225,7 +225,6 @@ namespace HpToolsLauncher
                     }
                 }
                  
-                Console.WriteLine("Run on host: "+ RunHost);
                 TestSuiteRunResults desc = RunTestSet(tsDir, tsName, testParameters, Timeout, RunMode, RunHost, m_qcFilterSelected, m_qcFilterByName, m_qcFilterByStatuses);
                 if (desc != null)
                     activeRunDesc.AppendResults(desc);
@@ -251,9 +250,7 @@ namespace HpToolsLauncher
             try
             {
                 object conn = Activator.CreateInstance(type);
-                this.tdConnection = conn as ITDConnection2;
-                this.tdConnection.KeepConnection = true;
-                // set credentials
+                tdConnection = conn as ITDConnection13;
             }
             catch (FileNotFoundException)
             {
@@ -539,7 +536,7 @@ namespace HpToolsLauncher
             {
                 //need to run this to install everything needed http://AlmServer:8080/qcbin/start_a.jsp?common=true
                 //start the scheduler
-                Scheduler = targetTestSet.StartExecution("");
+                Scheduler = targetTestSet.StartExecution(string.Empty);
             }
             catch (Exception ex)
             {
@@ -918,7 +915,6 @@ namespace HpToolsLauncher
         private void WriteTestRunSummary(ITSTest prevTest)
         {
             int prevRunId = ConsoleWriter.ActiveTestRun.PrevRunId;
-
             int runid = GetTestRunId(prevTest);
             if (runid > prevRunId)
             {
@@ -931,7 +927,7 @@ namespace HpToolsLauncher
                     ConsoleWriter.WriteLine(stepsString);
 
                 string linkStr = GetTestRunLink(prevTest, runid);
-                if (linkStr.Equals(""))
+                if (linkStr.Equals(string.Empty))
                 {
                     Console.WriteLine("You are using an old version of QC. Please update ALM QC.");
                 }
@@ -1274,7 +1270,7 @@ namespace HpToolsLauncher
 
             if (!TdConnection.Connected)
             {
-                ConsoleWriter.WriteErrLine("Alm not connected : " + QCServerURL);
+                ConsoleWriter.WriteErrLine("Alm not connected: " + QCServerURL);
                 ConsoleWriter.WriteErrLine(string.Format(Resources.AlmRunnerServerUnreachable, QCServerURL));
                 return false;
             }
@@ -1302,7 +1298,11 @@ namespace HpToolsLauncher
                 ConsoleWriter.WriteLine("TdConnection.Connect failed: " + ex.Message);
             }
 
-            if (!TdConnection.ProjectConnected)
+            if (TdConnection.ProjectConnected)
+            {
+                tdConnection.KeepConnection = true;
+            }
+            else
             {
                 ConsoleWriter.WriteErrLine(Resources.AlmRunnerErrorConnectToProj);
                 return false;
