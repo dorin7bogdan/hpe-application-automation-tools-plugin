@@ -32,6 +32,7 @@
 
 using HpToolsLauncher.Properties;
 using HpToolsLauncher.TestRunners;
+using HpToolsLauncher.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -100,7 +101,7 @@ namespace HpToolsLauncher
         }
         private static string ReplaceString(string str, string oldValue, string newValue, StringComparison comparison)
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
 
             int previousIndex = 0;
             int index = str.IndexOf(oldValue, comparison);
@@ -139,29 +140,24 @@ namespace HpToolsLauncher
                 }
             }
 
-            List<TestInfo> retval = new List<TestInfo>();
-            XDocument doc = XDocument.Parse(xmlContent);
-
-            XmlSchemaSet schemas = new XmlSchemaSet();
-
-            var assembly = Assembly.GetExecutingAssembly();
-
-            var schemaStream = assembly.GetManifestResourceStream("HpToolsLauncher.MtbxSchema.xsd");
-
-            XmlSchema schema = XmlSchema.Read(schemaStream, null);
-
-            schemas.Add(schema);
-
-            string validationMessages = "";
-            doc.Validate(schemas, (o, e) =>
-            {
-                validationMessages += e.Message + Environment.NewLine;
-            });
-
-            if (!string.IsNullOrWhiteSpace(validationMessages))
-                ConsoleWriter.WriteLine("mtbx schema validation errors: " + validationMessages);
+            List<TestInfo> retval = [];
             try
             {
+                XDocument doc = XDocument.Parse(xmlContent);
+                XmlSchemaSet schemas = new();
+                var assembly = Assembly.GetExecutingAssembly();
+                var schemaStream = assembly.GetManifestResourceStream("HpToolsLauncher.MtbxSchema.xsd");
+                XmlSchema schema = XmlSchema.Read(schemaStream, null);
+                schemas.Add(schema);
+
+                string validationMessages = "";
+                doc.Validate(schemas, (o, e) =>
+                {
+                    validationMessages += e.Message + Environment.NewLine;
+                });
+
+                if (!validationMessages.IsNullOrWhiteSpace())
+                    ConsoleWriter.WriteLine("mtbx schema validation errors: " + validationMessages);
                 var root = doc.Root;
                 foreach (var test in GetElements(root, "Test"))
                 {
@@ -186,18 +182,26 @@ namespace HpToolsLauncher
                     // optional report path attribute
                     XAttribute xReportPath = GetAttribute(test, "reportPath");
                     string reportPath = null;
-
                     if (xReportPath != null)
                     {
                         reportPath = xReportPath.Value;
                     }
 
-                    TestInfo testInfo = new TestInfo(path, name, testGroupName)
+                    // optional runid attribute
+                    XAttribute xRunId = GetAttribute(test, "runid");
+                    int runid = 0;
+                    if (xRunId != null)
                     {
-                        ReportPath = reportPath
+                        runid = int.Parse(xRunId.Value);
+                    }
+
+                    TestInfo testInfo = new(path, name, testGroupName)
+                    {
+                        ReportPath = reportPath,
+                        RunId = runid
                     };
 
-                    HashSet<string> paramNames = new HashSet<string>();
+                    HashSet<string> paramNames = [];
 
                     foreach (var param in GetElements(test, "Parameter"))
                     {
@@ -260,7 +264,7 @@ namespace HpToolsLauncher
             }
             catch (Exception ex)
             {
-                ConsoleWriter.WriteException("Problem while parsing Mtbx file", ex);
+                ConsoleWriter.WriteException("Error parsing Mtbx file", ex);
             }
             return retval;
         }

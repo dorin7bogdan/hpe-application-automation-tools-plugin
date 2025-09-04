@@ -339,7 +339,7 @@ namespace HpToolsLauncher
         public override TestSuiteRunResults Run()
         {
             //create a new Run Results object
-            TestSuiteRunResults activeRunDesc = new TestSuiteRunResults();
+            TestSuiteRunResults activeRunDesc = new();
             bool isNewTestSuite;
             testsuite ts = _xmlBuilder.TestSuites.GetTestSuiteOrDefault(activeRunDesc.SuiteName, JunitXmlBuilder.ClassName, out isNewTestSuite);
             ts.tests += _tests.Count;
@@ -351,7 +351,7 @@ namespace HpToolsLauncher
             {
                 var start = DateTime.Now;
 
-                Dictionary<string, int> indexList = new Dictionary<string, int>();
+                Dictionary<string, int> indexList = [];
                 foreach (var test in _tests)
                 {
                     indexList[test.TestPath] = 0;

@@ -234,6 +234,22 @@ public partial class testcase
 
     private string statusField;
 
+    private string runidField;
+
+    /// <remarks/>
+    [System.Xml.Serialization.XmlAttributeAttribute()]
+    public string runid
+    {
+        get
+        {
+            return this.runidField;
+        }
+        set
+        {
+            this.runidField = value;
+        }
+    }
+
     /// <remarks/>
     public string skipped
     {

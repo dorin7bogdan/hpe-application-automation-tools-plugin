@@ -111,6 +111,8 @@ namespace HpToolsLauncher
                         DateTime dtStartOfStep;
                         dtStartOfStep = DateTime.Now;
                         qtpApp.Launch();
+                        ConsoleWriter.WriteLine(string.Format("UFT Launch took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
+                        dtStartOfStep = DateTime.Now;
                         GetMobileAndWebSettings(qtpApp, firstUnderlyingTest, out bool hasMobileSettings, out bool hasWebSettings);
                         ConsoleWriter.WriteLine(string.Format("Get Mobile and/or Web Settings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
                         dtStartOfStep = DateTime.Now;

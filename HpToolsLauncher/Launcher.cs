@@ -477,7 +477,7 @@ namespace HpToolsLauncher
                     int pollingInterval = 30;
                     if (_ciParams.ContainsKey("controllerPollingInterval"))
                         pollingInterval = int.Parse(_ciParams["controllerPollingInterval"]);
-                    ConsoleWriter.WriteLine("Controller Polling Interval: " + pollingInterval + " seconds");
+                    //ConsoleWriter.WriteLine("Controller Polling Interval: " + pollingInterval + " seconds");
 
                     TimeSpan perScenarioTimeOutMinutes = TimeSpan.MaxValue;
                     if (_ciParams.ContainsKey("PerScenarioTimeOut"))
@@ -486,7 +486,7 @@ namespace HpToolsLauncher
                         if (strTimeoutInMinutes.Trim() != "-1" && int.TryParse(strTimeoutInMinutes, out int intTimoutInMinutes))
                             perScenarioTimeOutMinutes = TimeSpan.FromMinutes(intTimoutInMinutes);
                     }
-                    ConsoleWriter.WriteLine("PerScenarioTimeout: " + perScenarioTimeOutMinutes.ToString(@"dd\:\:hh\:mm\:ss") + " minutes");
+                    //ConsoleWriter.WriteLine("PerScenarioTimeout: " + perScenarioTimeOutMinutes.ToString(@"dd\:\:hh\:mm\:ss") + " minutes");
 
                     char[] delimiter = ['\n'];
                     List<string> ignoreErrorStrings = [];

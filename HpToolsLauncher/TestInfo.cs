@@ -202,7 +202,7 @@ namespace HpToolsLauncher
             IterationInfo = test.IterationInfo;
         }
 
-        private List<TestParameterInfo> _params = new List<TestParameterInfo>();
+        private List<TestParameterInfo> _params = [];
         string _testName;
         string _testGroup;
         string _dataTablePath;
@@ -231,6 +231,7 @@ namespace HpToolsLauncher
         public string ReportPath { get; set; }
 
         public string TestId { get; set; }
+        public int RunId { get; set; }
 
         public List<TestParameterInfo> Params
         {

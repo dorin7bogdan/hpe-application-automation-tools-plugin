@@ -95,8 +95,9 @@
                 </xs:complexType>
               </xs:element>
             </xs:sequence>
-            <xs:attribute type="xs:string" name="name" use="optional"/>
-            <xs:attribute type="xs:string" name="path" use="required"/>
+            <xs:attribute type="xs:integer" name="runid" use="optional"/>
+			<xs:attribute type="xs:string" name="name" use="optional"/>
+			<xs:attribute type="xs:string" name="path" use="required"/>
             <xs:attribute type="xs:string" name="reportPath" use="optional"/>
           </xs:complexType>
         </xs:element>

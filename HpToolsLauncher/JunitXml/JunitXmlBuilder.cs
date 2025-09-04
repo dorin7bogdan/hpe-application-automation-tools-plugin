@@ -31,6 +31,7 @@
  */
 
 using HpToolsLauncher.Utils;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Xml;
@@ -50,16 +51,14 @@ namespace HpToolsLauncher
 
         public const string ClassName = "HPToolsFileSystemRunner";
         public const string RootName = "uftRunnerRoot";
-        private const string ALL_TESTS_FORMAT = "All-Tests.{0}";
-        private const string DOT = ".";
-        private const string UNDERSCORE = "_";
         private const string PASS = "pass";
         private const string FAIL = "fail";
         private const string ERROR = "error";
         private const string WARNING = "warning";
 
-        private readonly XmlSerializer _serializer = new XmlSerializer(typeof(testsuites));
-        private readonly testsuites _testSuites = new testsuites();
+        private readonly XmlSerializer _serializer = new(typeof(testsuites));
+        private readonly testsuites _testSuites = new();
+        private static readonly char[] _slashes = ['/', '\\'];
 
         public JunitXmlBuilder()
         {
@@ -77,7 +76,7 @@ namespace HpToolsLauncher
         /// <param name="results"></param>
         public void CreateXmlFromRunResults(TestSuiteRunResults results)
         {
-            testsuite uftts = new testsuite
+            testsuite uftts = new()
             {
                 errors = results.NumErrors,
                 tests = results.NumTests,
@@ -94,7 +93,7 @@ namespace HpToolsLauncher
                 }
                 else
                 {
-                    testcase ufttc = CovertUFTRunResultsToTestcase(testRes);
+                    testcase ufttc = ConvertUFTRunResultsToTestcase(testRes);
                     uftts.AddTestCase(ufttc);
                 }
             }
@@ -123,7 +122,7 @@ namespace HpToolsLauncher
         /// <param name="addToTestSuites">flag to indicate if the first param testsuite must be added to the collection</param>
         public void CreateOrUpdatePartialXmlReport(testsuite ts, TestRunResults testRes, bool addToTestSuites)
         {
-            testcase tc = CovertUFTRunResultsToTestcase(testRes);
+            testcase tc = ConvertUFTRunResultsToTestcase(testRes);
             ts.AddTestCase(tc);
             if (addToTestSuites)
             {
@@ -155,7 +154,7 @@ namespace HpToolsLauncher
                         if (childNode.Attributes != null && childNode.Attributes["FullName"] != null)
                         {
                             testRes.TestGroup = testRes.TestPath;
-                            testcase lrtc = CovertUFTRunResultsToTestcase(testRes);
+                            testcase lrtc = ConvertUFTRunResultsToTestcase(testRes);
                             lrtc.name = childNode.Attributes["FullName"].Value;
                             if (childNode.InnerText.ToLowerInvariant().Contains("failed"))
                             {
@@ -187,41 +186,46 @@ namespace HpToolsLauncher
             return lrts;
         }
 
-        private testcase CovertUFTRunResultsToTestcase(TestRunResults testRes)
+        private testcase ConvertUFTRunResultsToTestcase(TestRunResults testRes)
         {
-            testcase tc = new testcase
+            string fullPathParentFolder = Path.GetDirectoryName(testRes.TestPath.TrimEnd(_slashes));
+            string classname;
+            try
+            {
+                classname = new Uri(fullPathParentFolder).AbsoluteUri;
+            }
+            catch
+            {
+                classname = fullPathParentFolder;
+            }
+
+            testcase tc = new()
             {
                 systemout = testRes.ConsoleOut,
                 systemerr = testRes.ConsoleErr,
                 report = testRes.ReportLocation,
-                classname = string.Format(ALL_TESTS_FORMAT, testRes.TestGroup == null ? string.Empty : testRes.TestGroup.Replace(DOT, UNDERSCORE)),
-                name = testRes.TestPath,
+                classname = classname,
+                name = testRes.TestName.IsNullOrEmpty() ? new DirectoryInfo(testRes.TestPath).Name : testRes.TestName,
                 type = testRes.TestType.ToString(),
                 time = testRes.Runtime.TotalSeconds.ToString(CultureInfo.InvariantCulture)
             };
+            if (testRes.TestInfo.RunId > 0)
+            {
+                tc.runid = $"{testRes.TestInfo.RunId}";
+            }
 
-            if (!string.IsNullOrWhiteSpace(testRes.FailureDesc))
+            if (!testRes.FailureDesc.IsNullOrWhiteSpace())
                 tc.AddFailure(new failure { message = testRes.FailureDesc });
 
-            switch (testRes.TestState)
+            tc.status = testRes.TestState switch
             {
-                case TestState.Passed:
-                    tc.status = PASS;
-                    break;
-                case TestState.Failed:
-                    tc.status = FAIL;
-                    break;
-                case TestState.Error:
-                    tc.status = ERROR;
-                    break;
-                case TestState.Warning:
-                    tc.status = WARNING;
-                    break;
-                default:
-                    tc.status = PASS;
-                    break;
-            }
-            if (!string.IsNullOrWhiteSpace(testRes.ErrorDesc))
+                TestState.Passed => PASS,
+                TestState.Failed => FAIL,
+                TestState.Error => ERROR,
+                TestState.Warning => WARNING,
+                _ => PASS,
+            };
+            if (!testRes.ErrorDesc.IsNullOrWhiteSpace())
                 tc.AddError(new error { message = testRes.ErrorDesc });
             return tc;
         }

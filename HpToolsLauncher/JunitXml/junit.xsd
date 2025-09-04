@@ -75,6 +75,7 @@
         <xs:element ref="system-out" minOccurs="0" maxOccurs="unbounded"/>
         <xs:element ref="system-err" minOccurs="0" maxOccurs="unbounded"/>
       </xs:sequence>
+	  <xs:attribute name="runid" type="xs:string" use="optional"/>
       <xs:attribute name="name" type="xs:string" use="required"/>
       <xs:attribute name="assertions" type="xs:string" use="optional"/>
       <xs:attribute name="time" type="xs:string" use="optional"/>
