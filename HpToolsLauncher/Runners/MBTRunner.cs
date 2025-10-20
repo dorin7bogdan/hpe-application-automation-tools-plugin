@@ -101,6 +101,9 @@ namespace HpToolsLauncher
                     }
 
                     ResetKvpListsValues();
+                    DateTime dtStartOfQtp = DateTime.Now;
+                    qtpApp.Launch();
+                    ConsoleWriter.WriteLine(string.Format("UFT Launch took {0:0.0} secs", (DateTime.Now - dtStartOfQtp).TotalSeconds));
                     DateTime dtStartOfTest = DateTime.Now;
                     ConsoleWriter.WriteLine($"Creation of {mbtTest.Name} *****************************");
                     string[] addins = LoadNeededAddins(qtpApp, mbtTest.UnderlyingTests);
@@ -109,9 +112,6 @@ namespace HpToolsLauncher
                     {
                         string firstUnderlyingTest = mbtTest.UnderlyingTests.FirstOrDefault(t => !t.IsNullOrEmpty());
                         DateTime dtStartOfStep;
-                        dtStartOfStep = DateTime.Now;
-                        qtpApp.Launch();
-                        ConsoleWriter.WriteLine(string.Format("UFT Launch took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
                         dtStartOfStep = DateTime.Now;
                         GetMobileAndWebSettings(qtpApp, firstUnderlyingTest, out bool hasMobileSettings, out bool hasWebSettings);
                         ConsoleWriter.WriteLine(string.Format("Get Mobile and/or Web Settings took {0:0.0} secs", (DateTime.Now - dtStartOfStep).TotalSeconds));
