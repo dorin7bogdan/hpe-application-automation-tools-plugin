@@ -42,6 +42,9 @@ namespace HpToolsLauncher
     public class JunitXmlBuilder : IXmlBuilder
     {
         private string _xmlName = "APIResults.xml";
+        private const string ALL_TESTS_FORMAT = "All-Tests.{0}";
+        private const string DOT = ".";
+        private const string UNDERSCORE = "_";
 
         public string XmlName
         {
@@ -188,24 +191,13 @@ namespace HpToolsLauncher
 
         private testcase ConvertUFTRunResultsToTestcase(TestRunResults testRes)
         {
-            string fullPathParentFolder = Path.GetDirectoryName(testRes.TestPath.TrimEnd(_slashes));
-            string classname;
-            try
-            {
-                classname = new Uri(fullPathParentFolder).AbsoluteUri;
-            }
-            catch
-            {
-                classname = fullPathParentFolder;
-            }
-
             testcase tc = new()
             {
                 systemout = testRes.ConsoleOut,
                 systemerr = testRes.ConsoleErr,
                 report = testRes.ReportLocation,
-                classname = classname,
-                name = testRes.TestName.IsNullOrEmpty() ? new DirectoryInfo(testRes.TestPath).Name : testRes.TestName,
+                classname = string.Format(ALL_TESTS_FORMAT, testRes.TestGroup == null ? string.Empty : testRes.TestGroup.Replace(DOT, UNDERSCORE)),
+                name = testRes.TestPath,
                 type = testRes.TestType.ToString(),
                 time = testRes.Runtime.TotalSeconds.ToString(CultureInfo.InvariantCulture)
             };
