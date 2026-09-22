@@ -46,6 +46,8 @@ import java.io.Serializable;
 public class MiAgentGlobalConfiguration extends GlobalConfiguration implements Serializable {
 
     private boolean executionRecordingEnabled = true;
+    private int maxBuildsToKeep = 50;
+    private int maxDaysToKeep = 7;
 
     public MiAgentGlobalConfiguration() {
         load();
@@ -71,6 +73,24 @@ public class MiAgentGlobalConfiguration extends GlobalConfiguration implements S
 
     public void setExecutionRecordingEnabled(boolean executionRecordingEnabled) {
         this.executionRecordingEnabled = executionRecordingEnabled;
+        save();
+    }
+
+    public int getMaxBuildsToKeep() {
+        return maxBuildsToKeep;
+    }
+
+    public void setMaxBuildsToKeep(int maxBuildsToKeep) {
+        this.maxBuildsToKeep = maxBuildsToKeep;
+        save();
+    }
+
+    public int getMaxDaysToKeep() {
+        return maxDaysToKeep;
+    }
+
+    public void setMaxDaysToKeep(int maxDaysToKeep) {
+        this.maxDaysToKeep = maxDaysToKeep;
         save();
     }
 }

@@ -61,6 +61,7 @@ import com.microfocus.application.automation.tools.run.MiAgentPreflightBuilder;
 import com.microfocus.application.automation.tools.run.RunFromCodelessBuilder;
 import com.microfocus.application.automation.tools.run.RunFromFileBuilder;
 import com.microfocus.application.automation.tools.run.RunFromMiAgentBuilder;
+import com.microfocus.application.automation.tools.settings.MiAgentGlobalConfiguration;
 import hudson.model.*;
 import hudson.tasks.ArtifactArchiver;
 import hudson.tasks.BuildWrapper;
@@ -450,7 +451,8 @@ public class TestExecutionJobCreatorService {
 		addAutonomousTesterAssignedNode(proj);
 		addTimestamper(proj);
 		addConcurrentBuildFlag(proj);
-		proj.setBuildDiscarder(new LogRotator(-1, MIAgentConstants.MAX_BUILDS_TO_KEEP, -1, -1));
+		MiAgentGlobalConfiguration configuration = MiAgentGlobalConfiguration.getInstance();
+		proj.setBuildDiscarder(new LogRotator(-1, configuration.getMaxBuildsToKeep(), -1, configuration.getMaxDaysToKeep()));
 
 		// Build steps - preflight check, then MI Agent converter + runner
 		proj.getBuildersList().add(new MiAgentPreflightBuilder());

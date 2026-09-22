@@ -43,5 +43,11 @@
         <f:entry title="Enable execution recording" field="executionRecordingEnabled">
             <f:checkbox checked="${instance.executionRecordingEnabled}"/>
         </f:entry>
+        <f:entry title="Maximum builds to keep per job" field="maxBuildsToKeep">
+            <f:number name="maxBuildsToKeep" value="${instance.maxBuildsToKeep}" default="50" style="width: 60px;"/>
+        </f:entry>
+        <f:entry title="Maximum days to keep builds" field="maxDaysToKeep">
+            <f:number name="maxDaysToKeep" value="${instance.maxDaysToKeep}" default="7" style="width: 60px;"/>
+        </f:entry>
     </f:section>
 </j:jelly>
