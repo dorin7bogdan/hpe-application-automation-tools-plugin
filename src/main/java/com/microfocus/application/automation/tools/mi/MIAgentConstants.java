@@ -42,7 +42,6 @@ import hudson.model.Run;
 public final class MIAgentConstants {
     public static final String RESULT_FOLDER = "mi-agent-results";
     public static final String MANIFEST_FILE_NAME = "manifest.json";
-    public static final String CONFIG_FILE_NAME = "conf.json";
     public static final String RUN_STEPS_RESULT_FILE_NAME = "run_steps_result.json";
     public static final int MAX_BUILDS_TO_KEEP = 50;
 

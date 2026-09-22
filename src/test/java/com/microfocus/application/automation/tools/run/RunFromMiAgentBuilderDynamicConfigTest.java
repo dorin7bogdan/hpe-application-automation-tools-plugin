@@ -42,7 +42,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.octane.integrations.executor.TestsToRunConverter;
 import com.microfocus.application.automation.tools.mi.AuTeLlmCredentials;
-import com.microfocus.application.automation.tools.mi.MIAgentConstants;
 import com.microfocus.application.automation.tools.model.LoggedJenkinsRule;
 import hudson.EnvVars;
 import hudson.FilePath;
@@ -182,7 +181,7 @@ public class RunFromMiAgentBuilderDynamicConfigTest {
         ArgumentCaptor<Map> envsCaptor = ArgumentCaptor.forClass(Map.class);
         verify(procStarter).envs(envsCaptor.capture());
         assertFalse(envsCaptor.getValue().containsKey("RUN_STEP_FILE_PATH"));
-        assertFalse(new File(buildWorkspace, MIAgentConstants.CONFIG_FILE_NAME).exists());
+        assertFalse(new File(buildWorkspace, "conf.json").exists());
     }
 
     /**

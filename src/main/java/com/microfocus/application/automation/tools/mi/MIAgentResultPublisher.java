@@ -98,7 +98,6 @@ public class MIAgentResultPublisher extends Recorder implements SimpleBuildStep,
 
     private static final String RESULT_FOLDER = MIAgentConstants.RESULT_FOLDER;
     private static final String MANIFEST_NAME = MIAgentConstants.MANIFEST_FILE_NAME;
-    private static final String CONFIG_FILE_NAME = MIAgentConstants.CONFIG_FILE_NAME;
     private static final String RUN_STEPS_RESULT_FILE = MIAgentConstants.RUN_STEPS_RESULT_FILE_NAME;
     private static final Pattern SCREENSHOT_RE = Pattern.compile("^screenshot_(?<stepId>[^_]+)_");
     private static final List<String> SUPPORTED_MANIFEST_VERSIONS = List.of("1.0");
@@ -123,7 +122,6 @@ public class MIAgentResultPublisher extends Recorder implements SimpleBuildStep,
     private String configurationId;
     private String workspaceId;
     private boolean failBuildOnPublishError = true;
-    private boolean cleanupTempFiles = true;
     private transient OctaneClientProvider octaneClientProvider;
     private transient OctaneRequestExecutor octaneRequestExecutor;
 
@@ -153,15 +151,6 @@ public class MIAgentResultPublisher extends Recorder implements SimpleBuildStep,
 
     public boolean isFailBuildOnPublishError() {
         return failBuildOnPublishError;
-    }
-
-    public boolean isCleanupTempFiles() {
-        return cleanupTempFiles;
-    }
-
-    @DataBoundSetter
-    public void setCleanupTempFiles(boolean cleanupTempFiles) {
-        this.cleanupTempFiles = cleanupTempFiles;
     }
 
     void setOctaneClientProvider(OctaneClientProvider octaneClientProvider) {
@@ -245,38 +234,8 @@ public class MIAgentResultPublisher extends Recorder implements SimpleBuildStep,
             log.println(ERROR_PREFIX + " " + formatExceptionDetails(e));
             run.setResult(failBuildOnPublishError ? Result.FAILURE : Result.UNSTABLE);
         } finally {
-            if (cleanupTempFiles) {
-                cleanupTemporaryFiles(workspace, resultRoot, log);
-            }
             run.addAction(new MIAgentPublishSummaryAction(summary));
             log.println(summary.getMessage());
-        }
-    }
-
-    private void cleanupTemporaryFiles(FilePath workspace,
-                                       FilePath resultRoot,
-                                       PrintStream log) throws InterruptedException {
-        List<String> cleanupFailures = new ArrayList<>();
-        try {
-            resultRoot.deleteRecursive();
-        } catch (IOException e) {
-            cleanupFailures.add("result files: " + e.getMessage());
-        }
-
-        FilePath configFile = workspace.child(CONFIG_FILE_NAME);
-        try {
-            if (configFile.exists()) {
-                configFile.delete();
-            }
-        } catch (IOException e) {
-            cleanupFailures.add(CONFIG_FILE_NAME + ": " + e.getMessage());
-        }
-
-        if (cleanupFailures.isEmpty()) {
-            log.println("Cleaned up MI Agent temporary result files.");
-        } else {
-            String details = String.join("; ", cleanupFailures);
-            log.println(WARN_PREFIX + " Temporary result file cleanup failed; publication status was not affected: " + details);
         }
     }
 
