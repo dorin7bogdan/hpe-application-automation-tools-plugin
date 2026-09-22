@@ -39,14 +39,13 @@ package com.microfocus.application.automation.tools.run;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.octane.integrations.executor.TestsToRunConverter;
-import com.microfocus.application.automation.tools.mi.CommonConstants;
+import com.microfocus.application.automation.tools.mi.MIAgentConstants;
 import com.microfocus.application.automation.tools.mi.MIAgentBuildAction;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.Action;
 import hudson.model.FreeStyleBuild;
-import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import net.minidev.json.JSONArray;
@@ -57,6 +56,7 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentCaptor;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -100,18 +100,16 @@ public class RunFromMiAgentBuilderTest {
         assertEquals("2001", action.getConfigurationId());
         assertEquals("1001", action.getWorkspaceId());
         verify(build, never()).setResult(any());
-        assertTrue(!new File(tempFolder.getRoot(), CommonConstants.RESULT_FOLDER).exists());
+        assertTrue(!new File(tempFolder.getRoot(), MIAgentConstants.RESULT_FOLDER).exists());
     }
 
-    @Test
-    public void perform_invalidConvertedPayload_setsFailure() throws Exception {
+    @Test(expected = IOException.class)
+    public void perform_invalidConvertedPayload_throwsIOException() throws Exception {
         Run<?, ?> build = mockBuild("[]", null);
         TaskListener listener = mockListener();
 
         RunFromMiAgentBuilder builder = new RunFromMiAgentBuilder();
         builder.perform(build, new FilePath(tempFolder.getRoot()), mock(Launcher.class), listener);
-
-        verify(build).setResult(Result.FAILURE);
     }
 
     @Test
@@ -128,7 +126,8 @@ public class RunFromMiAgentBuilderTest {
 
         builder.perform(build, new FilePath(tempFolder.getRoot()), mock(Launcher.class), listener);
 
-        File manifestFile = new File(tempFolder.getRoot(), CommonConstants.RESULT_FOLDER + "\\" + CommonConstants.MANIFEST_FILE_NAME);
+        File manifestFile = new File(tempFolder.getRoot(),
+                MIAgentConstants.RESULT_FOLDER + "\\" + build.getNumber() + "\\" + MIAgentConstants.MANIFEST_FILE_NAME);
         assertTrue(manifestFile.exists());
 
         JsonNode manifest = MAPPER.readTree(Files.readString(manifestFile.toPath(), StandardCharsets.UTF_8));
@@ -155,7 +154,7 @@ public class RunFromMiAgentBuilderTest {
     }
 
     @Test
-    public void normalizeRunStepsInput_deepCopiesNestedObjects() throws Exception {
+    public void toRunStep_deepCopiesNestedObjectsAndSkipsMissingObjectFields() throws Exception {
         RunFromMiAgentBuilder builder = new RunFromMiAgentBuilder();
 
         JSONObject runData = new JSONObject();
@@ -170,10 +169,11 @@ public class RunFromMiAgentBuilderTest {
         runSteps.put("data", steps);
         runData.put("run_steps", runSteps);
 
-        Method normalizeMethod = RunFromMiAgentBuilder.class.getDeclaredMethod("normalizeRunStepsInput", JSONObject.class);
-        normalizeMethod.setAccessible(true);
-        JSONObject normalized = (JSONObject) normalizeMethod.invoke(builder, runData);
+        Method toRunStep = RunFromMiAgentBuilder.class.getDeclaredMethod("toRunStep", JSONObject.class);
+        toRunStep.setAccessible(true);
+        JSONObject normalized = (JSONObject) toRunStep.invoke(builder, runData);
 
+        // Mutating the source afterwards must not affect the already-copied object fields.
         ((JSONObject) ((JSONArray) ((JSONObject) runData.get("run_steps")).get("data")).get(0)).put("id", "changed");
 
         assertEquals("1042", normalized.get("id"));
@@ -182,8 +182,46 @@ public class RunFromMiAgentBuilderTest {
 
         JSONObject runDataWithoutRunSteps = new JSONObject();
         runDataWithoutRunSteps.put("id", "2001");
-        JSONObject normalizedWithoutRunSteps = (JSONObject) normalizeMethod.invoke(builder, runDataWithoutRunSteps);
-        assertNotNull(normalizedWithoutRunSteps.get("run_steps"));
+        JSONObject normalizedWithoutRunSteps = (JSONObject) toRunStep.invoke(builder, runDataWithoutRunSteps);
+        assertNull("Object fields absent from the source are left out, not defaulted", normalizedWithoutRunSteps.get("run_steps"));
+    }
+
+    @Test
+    public void toRunStep_fansOutVendorAndConvertsModelParametersToObject() throws Exception {
+        RunFromMiAgentBuilder builder = new RunFromMiAgentBuilder();
+
+        JSONObject parameter = new JSONObject();
+        parameter.put("Name", "temperature");
+        parameter.put("Value", "0.2");
+        JSONArray modelParameters = new JSONArray();
+        modelParameters.add(parameter);
+
+        JSONObject executorModel = new JSONObject();
+        executorModel.put("MODEL_PARAMETERS", modelParameters);
+
+        JSONObject llmConfiguration = new JSONObject();
+        llmConfiguration.put("VENDOR", "GEMINI");
+        llmConfiguration.put("executor_model", executorModel);
+
+        JSONObject auTesterConfiguration = new JSONObject();
+        auTesterConfiguration.put("llm_configuration", llmConfiguration);
+
+        JSONObject runData = new JSONObject();
+        runData.put("id", "3001");
+        runData.put("au_tester_configuration", auTesterConfiguration);
+
+        Method toRunStep = RunFromMiAgentBuilder.class.getDeclaredMethod("toRunStep", JSONObject.class);
+        toRunStep.setAccessible(true);
+        JSONObject normalized = (JSONObject) toRunStep.invoke(builder, runData);
+
+        JSONObject normalizedLlmConfiguration = (JSONObject)
+                ((JSONObject) normalized.get("au_tester_configuration")).get("llm_configuration");
+        JSONObject normalizedExecutorModel = (JSONObject) normalizedLlmConfiguration.get("executor_model");
+
+        assertEquals("GEMINI", normalizedExecutorModel.get("LLM_EXECUTOR_VENDOR"));
+        Object normalizedParameters = normalizedExecutorModel.get("MODEL_PARAMETERS");
+        assertTrue(normalizedParameters instanceof JSONObject);
+        assertEquals("0.2", ((JSONObject) normalizedParameters).get("temperature"));
     }
 
     @Test
@@ -261,27 +299,22 @@ public class RunFromMiAgentBuilderTest {
         File sharedWorkspace = tempFolder.newFolder("shared-workspace-missing-exe");
         File runnerWorkspace = new File(sharedWorkspace, "runner-3");
         assertTrue(runnerWorkspace.mkdir());
-        File runFolderDir = new File(runnerWorkspace, "mi-agent-results\\1042");
-        assertTrue(runFolderDir.mkdirs());
-        File runSteps = new File(runFolderDir, "run_steps.json");
-        Files.writeString(runSteps.toPath(), "{}", StandardCharsets.UTF_8);
 
         Method executeMethod = RunFromMiAgentBuilder.class.getDeclaredMethod(
-                "executeRunner", FilePath.class, FilePath.class, FilePath.class,
-                Launcher.class, PrintStream.class, Run.class);
+                "executeRunner", JSONObject.class, Run.class, FilePath.class, Launcher.class, TaskListener.class, PrintStream.class);
         executeMethod.setAccessible(true);
 
         try {
             executeMethod.invoke(
                     builder,
-                    new FilePath(runFolderDir),
-                    new FilePath(runSteps),
+                    new JSONObject(),
+                    mock(FreeStyleBuild.class),
                     new FilePath(runnerWorkspace),
                     mock(Launcher.class),
-                    new PrintStream(System.out),
-                    mock(FreeStyleBuild.class));
+                    mockListener(),
+                    new PrintStream(System.out));
         } catch (java.lang.reflect.InvocationTargetException e) {
-            assertTrue(e.getCause() instanceof java.io.IOException);
+            assertTrue(e.getCause() instanceof IOException);
             assertTrue(e.getCause().getMessage().contains("${WORKSPACE}/../mi-agent.exe"));
             return;
         }
@@ -290,6 +323,7 @@ public class RunFromMiAgentBuilderTest {
 
     private Run<?, ?> mockBuild(String convertedTests, MIAgentBuildAction existingAction) throws Exception {
         Run<?, ?> build = mock(FreeStyleBuild.class);
+        when(build.getNumber()).thenReturn(42);
         if (existingAction != null) {
             when(build.getAction(MIAgentBuildAction.class)).thenReturn(existingAction);
         }

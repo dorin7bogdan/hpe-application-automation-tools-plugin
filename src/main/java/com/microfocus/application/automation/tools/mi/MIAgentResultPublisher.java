@@ -96,10 +96,10 @@ public class MIAgentResultPublisher extends Recorder implements SimpleBuildStep,
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private static final String RESULT_FOLDER = CommonConstants.RESULT_FOLDER;
-    private static final String MANIFEST_NAME = CommonConstants.MANIFEST_FILE_NAME;
-    private static final String CONFIG_FILE_NAME = CommonConstants.CONFIG_FILE_NAME;
-    private static final String RUN_STEPS_RESULT_FILE = CommonConstants.RUN_STEPS_RESULT_FILE_NAME;
+    private static final String RESULT_FOLDER = MIAgentConstants.RESULT_FOLDER;
+    private static final String MANIFEST_NAME = MIAgentConstants.MANIFEST_FILE_NAME;
+    private static final String CONFIG_FILE_NAME = MIAgentConstants.CONFIG_FILE_NAME;
+    private static final String RUN_STEPS_RESULT_FILE = MIAgentConstants.RUN_STEPS_RESULT_FILE_NAME;
     private static final Pattern SCREENSHOT_RE = Pattern.compile("^screenshot_(?<stepId>[^_]+)_");
     private static final List<String> SUPPORTED_MANIFEST_VERSIONS = List.of("1.0");
     private static final String APP_JSON = "application/json";
@@ -189,7 +189,7 @@ public class MIAgentResultPublisher extends Recorder implements SimpleBuildStep,
         log.println("Autonomous-Tester result publisher started.");
 
         MIAgentPublishSummary summary = new MIAgentPublishSummary();
-        FilePath resultRoot = workspace.child(RESULT_FOLDER);
+        FilePath resultRoot = MIAgentConstants.resultRootForBuild(workspace, run);
         try {
             if (!resultRoot.exists()) {
                 summary.setStatus(MIAgentPublishSummary.Status.NO_RESULTS);

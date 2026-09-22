@@ -104,13 +104,13 @@ public class MIAgentResultPublisherTest {
         Run<?, ?> run = mock(FreeStyleBuild.class);
         TaskListener listener = mockListener();
         FilePath workspace = new FilePath(tempFolder.getRoot());
-        FilePath resultRoot = workspace.child(CommonConstants.RESULT_FOLDER);
+        FilePath resultRoot = workspace.child(MIAgentConstants.RESULT_FOLDER);
         resultRoot.mkdirs();
 
         JSONObject manifest = new JSONObject();
         manifest.put("schemaVersion", "2.0");
         manifest.put("runs", new JSONArray());
-        resultRoot.child(CommonConstants.MANIFEST_FILE_NAME)
+        resultRoot.child(MIAgentConstants.MANIFEST_FILE_NAME)
                 .write(manifest.toJSONString(), StandardCharsets.UTF_8.name());
 
         MIAgentResultPublisher publisher = new MIAgentResultPublisher();
@@ -126,9 +126,9 @@ public class MIAgentResultPublisherTest {
         Run<?, ?> run = mock(FreeStyleBuild.class);
         TaskListener listener = mockListener();
         FilePath workspace = new FilePath(tempFolder.getRoot());
-        FilePath resultRoot = workspace.child(CommonConstants.RESULT_FOLDER);
+        FilePath resultRoot = workspace.child(MIAgentConstants.RESULT_FOLDER);
         FilePath runFolder = resultRoot.child("1042");
-        FilePath configFile = workspace.child(CommonConstants.CONFIG_FILE_NAME);
+        FilePath configFile = workspace.child(MIAgentConstants.CONFIG_FILE_NAME);
         runFolder.mkdirs();
         configFile.write("{}", StandardCharsets.UTF_8.name());
 
@@ -157,7 +157,7 @@ public class MIAgentResultPublisherTest {
         JSONObject manifest = new JSONObject();
         manifest.put("schemaVersion", "1.0");
         manifest.put("runs", runs);
-        resultRoot.child(CommonConstants.MANIFEST_FILE_NAME)
+        resultRoot.child(MIAgentConstants.MANIFEST_FILE_NAME)
                 .write(manifest.toJSONString(), StandardCharsets.UTF_8.name());
 
         OctaneClient client = mockOctaneClient("http://octane.example", "1001");
@@ -189,7 +189,7 @@ public class MIAgentResultPublisherTest {
         Run<?, ?> run = mock(FreeStyleBuild.class);
         TaskListener listener = mockListener();
         FilePath workspace = new FilePath(tempFolder.getRoot());
-        FilePath resultRoot = workspace.child(CommonConstants.RESULT_FOLDER);
+        FilePath resultRoot = workspace.child(MIAgentConstants.RESULT_FOLDER);
         FilePath runFolder = resultRoot.child("1142");
         runFolder.mkdirs();
 
@@ -231,7 +231,7 @@ public class MIAgentResultPublisherTest {
         JSONObject manifest = new JSONObject();
         manifest.put("schemaVersion", "1.0");
         manifest.put("runs", runs);
-        resultRoot.child(CommonConstants.MANIFEST_FILE_NAME)
+        resultRoot.child(MIAgentConstants.MANIFEST_FILE_NAME)
                 .write(manifest.toJSONString(), StandardCharsets.UTF_8.name());
 
         OctaneClient client = mockOctaneClient("http://octane.example", "1001");
@@ -267,7 +267,7 @@ public class MIAgentResultPublisherTest {
         Run<?, ?> run = mock(FreeStyleBuild.class);
         TaskListener listener = mockListener();
         FilePath workspace = new FilePath(tempFolder.getRoot());
-        FilePath resultRoot = workspace.child(CommonConstants.RESULT_FOLDER);
+        FilePath resultRoot = workspace.child(MIAgentConstants.RESULT_FOLDER);
         FilePath runFolder = resultRoot.child("1242");
         runFolder.mkdirs();
 
@@ -288,7 +288,7 @@ public class MIAgentResultPublisherTest {
         JSONObject manifest = new JSONObject();
         manifest.put("schemaVersion", "1.0");
         manifest.put("runs", runs);
-        resultRoot.child(CommonConstants.MANIFEST_FILE_NAME)
+        resultRoot.child(MIAgentConstants.MANIFEST_FILE_NAME)
                 .write(manifest.toJSONString(), StandardCharsets.UTF_8.name());
 
         OctaneClient client = mockOctaneClient("http://octane.example", "1001");
@@ -315,7 +315,7 @@ public class MIAgentResultPublisherTest {
         Run<?, ?> run = mock(FreeStyleBuild.class);
         TaskListener listener = mockListener();
         FilePath workspace = new FilePath(tempFolder.getRoot());
-        FilePath resultRoot = workspace.child(CommonConstants.RESULT_FOLDER);
+        FilePath resultRoot = workspace.child(MIAgentConstants.RESULT_FOLDER);
         FilePath runFolder = resultRoot.child("2042");
         runFolder.mkdirs();
 
@@ -323,7 +323,7 @@ public class MIAgentResultPublisherTest {
         JSONObject nativeStatus = new JSONObject();
         nativeStatus.put("name", "passed");
         runResult.put("native_status", nativeStatus);
-        runFolder.child(CommonConstants.RUN_STEPS_RESULT_FILE_NAME).write(runResult.toJSONString(), StandardCharsets.UTF_8.name());
+        runFolder.child(MIAgentConstants.RUN_STEPS_RESULT_FILE_NAME).write(runResult.toJSONString(), StandardCharsets.UTF_8.name());
 
         JSONObject runEntry = new JSONObject();
         runEntry.put("runId", "2042");
@@ -333,7 +333,7 @@ public class MIAgentResultPublisherTest {
         JSONObject manifest = new JSONObject();
         manifest.put("schemaVersion", "1.0");
         manifest.put("runs", runs);
-        resultRoot.child(CommonConstants.MANIFEST_FILE_NAME)
+        resultRoot.child(MIAgentConstants.MANIFEST_FILE_NAME)
                 .write(manifest.toJSONString(), StandardCharsets.UTF_8.name());
 
         OctaneClient client = mockOctaneClient("http://octane.example", "1001");
@@ -357,7 +357,7 @@ public class MIAgentResultPublisherTest {
         Run<?, ?> run = mock(FreeStyleBuild.class);
         TaskListener listener = mockListener();
         FilePath workspace = new FilePath(tempFolder.getRoot());
-        FilePath resultRoot = workspace.child(CommonConstants.RESULT_FOLDER);
+        FilePath resultRoot = workspace.child(MIAgentConstants.RESULT_FOLDER);
         FilePath runFolder = resultRoot.child("2099");
         runFolder.mkdirs();
 
@@ -396,7 +396,7 @@ public class MIAgentResultPublisherTest {
         JSONObject manifest = new JSONObject();
         manifest.put("schemaVersion", "1.0");
         manifest.put("runs", runs);
-        resultRoot.child(CommonConstants.MANIFEST_FILE_NAME)
+        resultRoot.child(MIAgentConstants.MANIFEST_FILE_NAME)
                 .write(manifest.toJSONString(), StandardCharsets.UTF_8.name());
 
         OctaneClient client = mockOctaneClient("http://octane.example", "1001");
@@ -432,7 +432,7 @@ public class MIAgentResultPublisherTest {
         Run<?, ?> run = mock(FreeStyleBuild.class);
         TaskListener listener = mockListener();
         FilePath workspace = new FilePath(tempFolder.getRoot());
-        FilePath resultRoot = workspace.child(CommonConstants.RESULT_FOLDER);
+        FilePath resultRoot = workspace.child(MIAgentConstants.RESULT_FOLDER);
         FilePath runFolder = resultRoot.child("2142");
         FilePath imagesFolder = runFolder.child("images");
         runFolder.mkdirs();
@@ -442,7 +442,7 @@ public class MIAgentResultPublisherTest {
         JSONObject nativeStatus = new JSONObject();
         nativeStatus.put("name", "passed");
         runResult.put("native_status", nativeStatus);
-        runFolder.child(CommonConstants.RUN_STEPS_RESULT_FILE_NAME).write(runResult.toJSONString(), StandardCharsets.UTF_8.name());
+        runFolder.child(MIAgentConstants.RUN_STEPS_RESULT_FILE_NAME).write(runResult.toJSONString(), StandardCharsets.UTF_8.name());
         imagesFolder.child("screenshot_s11_1.jpg").write("dummy", StandardCharsets.UTF_8.name());
 
         JSONObject runEntry = new JSONObject();
@@ -453,7 +453,7 @@ public class MIAgentResultPublisherTest {
         JSONObject manifest = new JSONObject();
         manifest.put("schemaVersion", "1.0");
         manifest.put("runs", runs);
-        resultRoot.child(CommonConstants.MANIFEST_FILE_NAME)
+        resultRoot.child(MIAgentConstants.MANIFEST_FILE_NAME)
                 .write(manifest.toJSONString(), StandardCharsets.UTF_8.name());
 
         OctaneClient client = mockOctaneClient("http://octane.example", "1001");
@@ -484,7 +484,7 @@ public class MIAgentResultPublisherTest {
         Run<?, ?> run = mock(FreeStyleBuild.class);
         TaskListener listener = mockListener();
         FilePath workspace = new FilePath(tempFolder.getRoot());
-        FilePath resultRoot = workspace.child(CommonConstants.RESULT_FOLDER);
+        FilePath resultRoot = workspace.child(MIAgentConstants.RESULT_FOLDER);
         FilePath runFolder = resultRoot.child("2242");
         FilePath imagesFolder = runFolder.child("images");
         imagesFolder.mkdirs();
@@ -493,7 +493,7 @@ public class MIAgentResultPublisherTest {
         JSONObject nativeStatus = new JSONObject();
         nativeStatus.put("name", "passed");
         runResult.put("native_status", nativeStatus);
-        runFolder.child(CommonConstants.RUN_STEPS_RESULT_FILE_NAME).write(runResult.toJSONString(), StandardCharsets.UTF_8.name());
+        runFolder.child(MIAgentConstants.RUN_STEPS_RESULT_FILE_NAME).write(runResult.toJSONString(), StandardCharsets.UTF_8.name());
         imagesFolder.child("screenshot_s11_1.jpg").write("img-1", StandardCharsets.UTF_8.name());
         imagesFolder.child("screenshot_s12_2.jpg").write("img-2", StandardCharsets.UTF_8.name());
 
@@ -505,7 +505,7 @@ public class MIAgentResultPublisherTest {
         JSONObject manifest = new JSONObject();
         manifest.put("schemaVersion", "1.0");
         manifest.put("runs", runs);
-        resultRoot.child(CommonConstants.MANIFEST_FILE_NAME)
+        resultRoot.child(MIAgentConstants.MANIFEST_FILE_NAME)
                 .write(manifest.toJSONString(), StandardCharsets.UTF_8.name());
 
         OctaneClient client = mockOctaneClient("http://octane.example", "1001");
@@ -535,7 +535,7 @@ public class MIAgentResultPublisherTest {
         Run<?, ?> run = mock(FreeStyleBuild.class);
         TaskListener listener = mockListener();
         FilePath workspace = new FilePath(tempFolder.getRoot());
-        FilePath resultRoot = workspace.child(CommonConstants.RESULT_FOLDER);
+        FilePath resultRoot = workspace.child(MIAgentConstants.RESULT_FOLDER);
         FilePath runFolder = resultRoot.child("2342");
         FilePath imagesFolder = runFolder.child("images");
         imagesFolder.mkdirs();
@@ -544,7 +544,7 @@ public class MIAgentResultPublisherTest {
         JSONObject nativeStatus = new JSONObject();
         nativeStatus.put("name", "passed");
         runResult.put("native_status", nativeStatus);
-        runFolder.child(CommonConstants.RUN_STEPS_RESULT_FILE_NAME).write(runResult.toJSONString(), StandardCharsets.UTF_8.name());
+        runFolder.child(MIAgentConstants.RUN_STEPS_RESULT_FILE_NAME).write(runResult.toJSONString(), StandardCharsets.UTF_8.name());
         imagesFolder.child("screenshot_s11_1.jpg").write("img-1", StandardCharsets.UTF_8.name());
         imagesFolder.child("screenshot_s11_2.jpg").write("img-2", StandardCharsets.UTF_8.name());
 
@@ -556,7 +556,7 @@ public class MIAgentResultPublisherTest {
         JSONObject manifest = new JSONObject();
         manifest.put("schemaVersion", "1.0");
         manifest.put("runs", runs);
-        resultRoot.child(CommonConstants.MANIFEST_FILE_NAME)
+        resultRoot.child(MIAgentConstants.MANIFEST_FILE_NAME)
                 .write(manifest.toJSONString(), StandardCharsets.UTF_8.name());
 
         OctaneClient client = mockOctaneClient("http://octane.example", "1001");
@@ -591,7 +591,7 @@ public class MIAgentResultPublisherTest {
         Run<?, ?> run = mock(FreeStyleBuild.class);
         TaskListener listener = mockListener();
         FilePath workspace = new FilePath(tempFolder.getRoot());
-        FilePath resultRoot = workspace.child(CommonConstants.RESULT_FOLDER);
+        FilePath resultRoot = workspace.child(MIAgentConstants.RESULT_FOLDER);
         FilePath runFolder = resultRoot.child("2442");
         FilePath imagesFolder = runFolder.child("images");
         runFolder.mkdirs();
@@ -601,7 +601,7 @@ public class MIAgentResultPublisherTest {
         JSONObject nativeStatus = new JSONObject();
         nativeStatus.put("name", "passed");
         runResult.put("native_status", nativeStatus);
-        runFolder.child(CommonConstants.RUN_STEPS_RESULT_FILE_NAME).write(runResult.toJSONString(), StandardCharsets.UTF_8.name());
+        runFolder.child(MIAgentConstants.RUN_STEPS_RESULT_FILE_NAME).write(runResult.toJSONString(), StandardCharsets.UTF_8.name());
         imagesFolder.child("screenshot_s11_1.jpg").write("img-1", StandardCharsets.UTF_8.name());
 
         JSONObject runEntry = new JSONObject();
@@ -612,7 +612,7 @@ public class MIAgentResultPublisherTest {
         JSONObject manifest = new JSONObject();
         manifest.put("schemaVersion", "1.0");
         manifest.put("runs", runs);
-        resultRoot.child(CommonConstants.MANIFEST_FILE_NAME)
+        resultRoot.child(MIAgentConstants.MANIFEST_FILE_NAME)
                 .write(manifest.toJSONString(), StandardCharsets.UTF_8.name());
 
         OctaneClient client = mockOctaneClient("http://octane.example", "1001");
@@ -647,7 +647,7 @@ public class MIAgentResultPublisherTest {
         Run<?, ?> run = mock(FreeStyleBuild.class);
         TaskListener listener = mockListener();
         FilePath workspace = new FilePath(tempFolder.getRoot());
-        FilePath resultRoot = workspace.child(CommonConstants.RESULT_FOLDER);
+        FilePath resultRoot = workspace.child(MIAgentConstants.RESULT_FOLDER);
         resultRoot.mkdirs();
 
         JSONObject runEntry = new JSONObject();
@@ -658,7 +658,7 @@ public class MIAgentResultPublisherTest {
         JSONObject manifest = new JSONObject();
         manifest.put("schemaVersion", "1.0");
         manifest.put("runs", runs);
-        resultRoot.child(CommonConstants.MANIFEST_FILE_NAME)
+        resultRoot.child(MIAgentConstants.MANIFEST_FILE_NAME)
                 .write(manifest.toJSONString(), StandardCharsets.UTF_8.name());
 
         MIAgentResultPublisher publisher = new MIAgentResultPublisher();

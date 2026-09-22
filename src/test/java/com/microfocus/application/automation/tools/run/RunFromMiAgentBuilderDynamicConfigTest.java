@@ -41,17 +41,19 @@ import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.octane.integrations.executor.TestsToRunConverter;
-import com.microfocus.application.automation.tools.mi.CommonConstants;
+import com.microfocus.application.automation.tools.mi.AuTeLlmCredentials;
+import com.microfocus.application.automation.tools.mi.MIAgentConstants;
 import com.microfocus.application.automation.tools.model.LoggedJenkinsRule;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
+import hudson.model.Job;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.Secret;
-import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -59,10 +61,8 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentCaptor;
 
 import java.io.File;
+import java.io.InputStream;
 import java.io.PrintStream;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -76,13 +76,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Verifies the dynamic per-run configuration flow: Octane's resolved {@code au_tester_configuration}
- * only takes effect if {@code RUN_STEP_FILE_PATH} reaches mi-agent as a real process env var, since
- * mi_agent/config.py reads it via argparse before {@code --config_file_path} (conf.json) is loaded.
+ * Verifies the per-run dynamic configuration flow: each run's LLM credential (looked up by
+ * {@code ENDPOINT_LOGICAL_NAME} against an {@link AuTeLlmCredentials}), its adapted
+ * {@code llm_configuration} (vendor fan-out, MODEL_PARAMETERS array-to-object), and its own
+ * {@code OUTPUT_BASE_DIR} all end up in the single JSON document piped to mi-agent over stdin.
+ * There is no {@code conf.json} and no {@code RUN_STEP_FILE_PATH} env var in the current design;
+ * everything the runner needs travels in that one document.
  */
 public class RunFromMiAgentBuilderDynamicConfigTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String CREDENTIAL_ID = "gemini-config";
 
     @Rule
     public LoggedJenkinsRule jenkins = new LoggedJenkinsRule();
@@ -91,51 +95,23 @@ public class RunFromMiAgentBuilderDynamicConfigTest {
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Before
-    public void registerLlmCredentials() {
-        SystemCredentialsProvider.getInstance().getCredentials().add(
-                new StringCredentialsImpl(CredentialsScope.GLOBAL, "LLM_ANALYZER_KEY", "desc", Secret.fromString("secret")));
-        SystemCredentialsProvider.getInstance().getCredentials().add(
-                new StringCredentialsImpl(CredentialsScope.GLOBAL, "LLM_EXECUTOR_KEY", "desc", Secret.fromString("secret")));
+    public void registerLlmCredential() {
+        SystemCredentialsProvider.getInstance().getCredentials().add(new AuTeLlmCredentials(
+                CredentialsScope.GLOBAL, CREDENTIAL_ID, "desc", Secret.fromString("{\"apiKey\":\"secret-value\"}")));
     }
 
     @Test
-    public void executeRunner_passesRunStepFilePathAsEnvVar() throws Exception {
-        File sharedWorkspace = tempFolder.newFolder("shared-workspace");
-        File runnerWorkspace = new File(sharedWorkspace, "runner");
-        assertTrue(runnerWorkspace.mkdir());
-        assertTrue(new File(sharedWorkspace, "mi-agent.exe").createNewFile());
-
-        File runFolder = new File(runnerWorkspace, CommonConstants.RESULT_FOLDER + "\\1042");
-        assertTrue(runFolder.mkdirs());
-        File runStepsFile = new File(runFolder, CommonConstants.RUN_STEPS_FILE_NAME);
-        Files.writeString(runStepsFile.toPath(), "{\"id\":\"1042\"}", StandardCharsets.UTF_8);
-
-        Launcher.ProcStarter procStarter = mockProcStarter();
-        Launcher launcher = mock(Launcher.class);
-        when(launcher.launch()).thenReturn(procStarter);
-
-        invokeExecuteRunner(runFolder, runStepsFile, runnerWorkspace, launcher);
-
-        // The fix: RUN_STEP_FILE_PATH must be a real process env var, not just a value inside conf.json.
-        ArgumentCaptor<Map> envs = ArgumentCaptor.forClass(Map.class);
-        verify(procStarter).envs(envs.capture());
-        assertEquals(runStepsFile.getAbsolutePath(), envs.getValue().get("RUN_STEP_FILE_PATH"));
-
-        String confJson = Files.readString(new File(runnerWorkspace, CommonConstants.CONFIG_FILE_NAME).toPath(), StandardCharsets.UTF_8);
-        assertFalse("conf.json must not carry RUN_STEP_FILE_PATH; mi-agent reads it too late from there.",
-                confJson.contains("RUN_STEP_FILE_PATH"));
-    }
-
-    @Test
-    public void perform_writesEachRunsOwnAuTesterConfiguration() throws Exception {
-        File sharedWorkspace = tempFolder.newFolder("shared-workspace-perform");
+    public void perform_resolvesLlmCredentialAndAdaptsConfigurationInStdinDocument() throws Exception {
+        File sharedWorkspace = tempFolder.newFolder("shared-workspace-dynamic-config");
         assertTrue(new File(sharedWorkspace, "mi-agent.exe").createNewFile());
         File buildWorkspace = new File(sharedWorkspace, "build-workspace");
         assertTrue(buildWorkspace.mkdir());
 
         String convertedTests = "{\"data\":["
-                + "{\"id\":\"2001\",\"au_tester_configuration\":{\"browser\":{\"BROWSER_NAME\":\"Google Chrome\"}}},"
-                + "{\"id\":\"2002\",\"au_tester_configuration\":{\"browser\":{\"BROWSER_NAME\":\"Firefox\"}}}"
+                + "{\"id\":\"2001\",\"au_tester_configuration\":{"
+                + "\"llm_configuration\":{\"ENDPOINT_LOGICAL_NAME\":\"" + CREDENTIAL_ID + "\",\"VENDOR\":\"GEMINI\","
+                + "\"executor_model\":{\"MODEL_PARAMETERS\":[{\"Name\":\"temperature\",\"Value\":\"0.2\"}]}}"
+                + "}}"
                 + "]}";
 
         Launcher.ProcStarter procStarter = mockProcStarter();
@@ -145,34 +121,79 @@ public class RunFromMiAgentBuilderDynamicConfigTest {
         RunFromMiAgentBuilder builder = new RunFromMiAgentBuilder();
         builder.perform(mockBuild(convertedTests), new FilePath(buildWorkspace), launcher, mockListener());
 
-        assertEquals("Google Chrome", readRunSteps(buildWorkspace, "2001")
-                .path("au_tester_configuration").path("browser").path("BROWSER_NAME").asText());
-        assertEquals("Firefox", readRunSteps(buildWorkspace, "2002")
-                .path("au_tester_configuration").path("browser").path("BROWSER_NAME").asText());
+        ArgumentCaptor<InputStream> stdinCaptor = ArgumentCaptor.forClass(InputStream.class);
+        verify(procStarter).stdin(stdinCaptor.capture());
+        JsonNode document = MAPPER.readTree(stdinCaptor.getValue());
 
-        // Each run must launch mi-agent with its own RUN_STEP_FILE_PATH, not a shared/last-wins value.
-        ArgumentCaptor<Map> envs = ArgumentCaptor.forClass(Map.class);
-        verify(procStarter, times(2)).envs(envs.capture());
-        assertTrue(((String) envs.getAllValues().get(0).get("RUN_STEP_FILE_PATH")).contains("2001"));
-        assertTrue(((String) envs.getAllValues().get(1).get("RUN_STEP_FILE_PATH")).contains("2002"));
+        JsonNode llmConfiguration = document.path("run_step").path("au_tester_configuration").path("llm_configuration");
+        assertEquals("GEMINI", llmConfiguration.path("executor_model").path("LLM_EXECUTOR_VENDOR").asText());
+        assertEquals("0.2", llmConfiguration.path("executor_model").path("MODEL_PARAMETERS").path("temperature").asText());
+        assertTrue(document.path("manual_run").path("OUTPUT_BASE_DIR").asText().contains("2001"));
+        assertEquals("secret-value", document.path("credentials").path("apiKey").asText());
     }
 
-    private void invokeExecuteRunner(File runFolder, File runStepsFile, File workspace, Launcher launcher) throws Exception {
-        Method executeRunner = RunFromMiAgentBuilder.class.getDeclaredMethod(
-                "executeRunner", FilePath.class, FilePath.class, FilePath.class, Launcher.class, PrintStream.class, Run.class);
-        executeRunner.setAccessible(true);
-        executeRunner.invoke(new RunFromMiAgentBuilder(),
-                new FilePath(runFolder), new FilePath(runStepsFile), new FilePath(workspace),
-                launcher, new PrintStream(System.out), mock(FreeStyleBuild.class));
+    @Test
+    public void perform_eachRunGetsItsOwnStdinDocumentAndOutputBaseDir() throws Exception {
+        File sharedWorkspace = tempFolder.newFolder("shared-workspace-perform");
+        assertTrue(new File(sharedWorkspace, "mi-agent.exe").createNewFile());
+        File buildWorkspace = new File(sharedWorkspace, "build-workspace");
+        assertTrue(buildWorkspace.mkdir());
+
+        String convertedTests = "{\"data\":["
+                + "{\"id\":\"2001\",\"au_tester_configuration\":{\"llm_configuration\":{\"ENDPOINT_LOGICAL_NAME\":\"" + CREDENTIAL_ID + "\"}}},"
+                + "{\"id\":\"2002\",\"au_tester_configuration\":{\"llm_configuration\":{\"ENDPOINT_LOGICAL_NAME\":\"" + CREDENTIAL_ID + "\"}}}"
+                + "]}";
+
+        Launcher.ProcStarter procStarter = mockProcStarter();
+        Launcher launcher = mock(Launcher.class);
+        when(launcher.launch()).thenReturn(procStarter);
+
+        RunFromMiAgentBuilder builder = new RunFromMiAgentBuilder();
+        builder.perform(mockBuild(convertedTests), new FilePath(buildWorkspace), launcher, mockListener());
+
+        ArgumentCaptor<InputStream> stdinCaptor = ArgumentCaptor.forClass(InputStream.class);
+        verify(procStarter, times(2)).stdin(stdinCaptor.capture());
+
+        JsonNode firstDocument = MAPPER.readTree(stdinCaptor.getAllValues().get(0));
+        JsonNode secondDocument = MAPPER.readTree(stdinCaptor.getAllValues().get(1));
+        assertEquals("2001", firstDocument.path("run_step").path("id").asText());
+        assertEquals("2002", secondDocument.path("run_step").path("id").asText());
+        assertTrue(firstDocument.path("manual_run").path("OUTPUT_BASE_DIR").asText().contains("2001"));
+        assertTrue(secondDocument.path("manual_run").path("OUTPUT_BASE_DIR").asText().contains("2002"));
     }
 
-    private JsonNode readRunSteps(File buildWorkspace, String runId) throws Exception {
-        File file = new File(buildWorkspace, CommonConstants.RESULT_FOLDER + "\\" + runId + "\\" + CommonConstants.RUN_STEPS_FILE_NAME);
-        return MAPPER.readTree(file);
+    @Test
+    public void perform_doesNotWriteConfFileOrRunStepFilePathEnvVar() throws Exception {
+        File sharedWorkspace = tempFolder.newFolder("shared-workspace-no-conf-file");
+        assertTrue(new File(sharedWorkspace, "mi-agent.exe").createNewFile());
+        File buildWorkspace = new File(sharedWorkspace, "build-workspace");
+        assertTrue(buildWorkspace.mkdir());
+
+        String convertedTests = "{\"data\":[{\"id\":\"3001\",\"au_tester_configuration\":"
+                + "{\"llm_configuration\":{\"ENDPOINT_LOGICAL_NAME\":\"" + CREDENTIAL_ID + "\"}}}]}";
+
+        Launcher.ProcStarter procStarter = mockProcStarter();
+        Launcher launcher = mock(Launcher.class);
+        when(launcher.launch()).thenReturn(procStarter);
+
+        RunFromMiAgentBuilder builder = new RunFromMiAgentBuilder();
+        builder.perform(mockBuild(convertedTests), new FilePath(buildWorkspace), launcher, mockListener());
+
+        ArgumentCaptor<Map> envsCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(procStarter).envs(envsCaptor.capture());
+        assertFalse(envsCaptor.getValue().containsKey("RUN_STEP_FILE_PATH"));
+        assertFalse(new File(buildWorkspace, MIAgentConstants.CONFIG_FILE_NAME).exists());
     }
 
+    /**
+     * A real {@link FreeStyleProject} as the mocked build's parent, so
+     * {@code CredentialsProvider.findCredentialById(..., Run, ...)} has a genuine Job/ACL context.
+     */
     private Run<?, ?> mockBuild(String convertedTests) throws Exception {
+        FreeStyleProject project = jenkins.createFreeStyleProject();
         Run<?, ?> build = mock(FreeStyleBuild.class);
+        when(build.getParent()).thenReturn((Job) project);
+
         EnvVars env = new EnvVars();
         env.put(TestsToRunConverter.DEFAULT_TESTS_TO_RUN_CONVERTED_PARAMETER, convertedTests);
         when(build.getEnvironment(any(TaskListener.class))).thenReturn(env);
@@ -189,9 +210,11 @@ public class RunFromMiAgentBuilderDynamicConfigTest {
         Launcher.ProcStarter procStarter = mock(Launcher.ProcStarter.class);
         when(procStarter.cmds(any(ArgumentListBuilder.class))).thenReturn(procStarter);
         when(procStarter.envs(anyMap())).thenReturn(procStarter);
+        when(procStarter.stdin(any(InputStream.class))).thenReturn(procStarter);
         when(procStarter.stdout(any(PrintStream.class))).thenReturn(procStarter);
         when(procStarter.pwd(any(FilePath.class))).thenReturn(procStarter);
         when(procStarter.join()).thenReturn(0);
         return procStarter;
     }
 }
+

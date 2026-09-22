@@ -46,7 +46,9 @@ import com.hp.octane.integrations.dto.scm.SCMRepository;
 import com.hp.octane.integrations.executor.TestsToRunFramework;
 import com.hp.octane.integrations.services.configurationparameters.UftTestRunnerFolderParameter;
 import com.hp.octane.integrations.utils.SdkConstants;
+import com.microfocus.application.automation.tools.mi.MIAgentConstants;
 import com.microfocus.application.automation.tools.mi.MIAgentResultPublisher;
+import com.microfocus.application.automation.tools.mi.MIAgentWorkspaceCleanupPublisher;
 import com.microfocus.application.automation.tools.model.ResultsPublisherModel;
 import com.microfocus.application.automation.tools.octane.actions.UFTTestDetectionPublisher;
 import com.microfocus.application.automation.tools.octane.configuration.SDKBasedLoggerProvider;
@@ -60,8 +62,10 @@ import com.microfocus.application.automation.tools.run.RunFromCodelessBuilder;
 import com.microfocus.application.automation.tools.run.RunFromFileBuilder;
 import com.microfocus.application.automation.tools.run.RunFromMiAgentBuilder;
 import hudson.model.*;
+import hudson.tasks.ArtifactArchiver;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.Builder;
+import hudson.tasks.LogRotator;
 import hudson.triggers.SCMTrigger;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang3.StringUtils;
@@ -446,6 +450,7 @@ public class TestExecutionJobCreatorService {
 		addAutonomousTesterAssignedNode(proj);
 		addTimestamper(proj);
 		addConcurrentBuildFlag(proj);
+		proj.setBuildDiscarder(new LogRotator(-1, MIAgentConstants.MAX_BUILDS_TO_KEEP, -1, -1));
 
 		// Build steps - preflight check, then MI Agent converter + runner
 		proj.getBuildersList().add(new MiAgentPreflightBuilder());
@@ -473,6 +478,31 @@ public class TestExecutionJobCreatorService {
 			miPublisher.setWorkspaceId(discoveryInfo.getWorkspaceId());
 			publishers.add(miPublisher);
 		}
+
+		addMiAgentArtifactArchiverIfNeeded(publishers);
+		addMiAgentWorkspaceCleanupIfNeeded(publishers);
 		return proj;
+	}
+
+	private static void addMiAgentArtifactArchiverIfNeeded(List publishers) {
+		for (Object publisher : publishers) {
+			if (publisher instanceof ArtifactArchiver) {
+				return;
+			}
+		}
+		ArtifactArchiver archiver = new ArtifactArchiver(MIAgentConstants.RESULT_FOLDER + "/${BUILD_NUMBER}/**");
+		archiver.setAllowEmptyArchive(true);
+		archiver.setOnlyIfSuccessful(false);
+		archiver.setFingerprint(false);
+		publishers.add(archiver);
+	}
+
+	private static void addMiAgentWorkspaceCleanupIfNeeded(List publishers) {
+		for (Object publisher : publishers) {
+			if (publisher instanceof MIAgentWorkspaceCleanupPublisher) {
+				return;
+			}
+		}
+		publishers.add(new MIAgentWorkspaceCleanupPublisher());
 	}
 }

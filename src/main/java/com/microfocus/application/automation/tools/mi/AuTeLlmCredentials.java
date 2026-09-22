@@ -36,14 +36,43 @@
  */
 package com.microfocus.application.automation.tools.mi;
 
-public final class CommonConstants {
-    public static final String RESULT_FOLDER = "mi-agent-results";
-    public static final String MANIFEST_FILE_NAME = "manifest.json";
-    public static final String CONFIG_FILE_NAME = "conf.json";
-    public static final String RUN_STEPS_FILE_NAME = "run_steps.json";
-    public static final String RUN_STEPS_RESULT_FILE_NAME = "run_steps_result.json";
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
+import hudson.Extension;
+import hudson.util.Secret;
+import org.kohsuke.stapler.DataBoundConstructor;
 
-    private CommonConstants() {
-        // Prevent instantiation
+/**
+ * A single, named LLM JSON configuration for Autonomous Tester (MI Agent) runs.
+ *
+ * <p>The credential id is the logical name referenced by the {@code octaneLlmCredentialsName} build
+ * parameter; Jenkins already enforces that it is unique within a credentials store.</p>
+ */
+public class AuTeLlmCredentials extends BaseStandardCredentials {
+
+    private static final long serialVersionUID = 1L;
+
+    private final Secret configurationJson;
+
+    @DataBoundConstructor
+    public AuTeLlmCredentials(CredentialsScope scope,
+                              String id,
+                              String description,
+                              Secret configurationJson) {
+        super(scope, id, description);
+        this.configurationJson = configurationJson;
+    }
+
+    public Secret getConfigurationJson() {
+        return configurationJson;
+    }
+
+    @Extension
+    public static class DescriptorImpl extends BaseStandardCredentialsDescriptor {
+
+        @Override
+        public String getDisplayName() {
+            return "Autonomous Tester LLM JSON Configuration";
+        }
     }
 }

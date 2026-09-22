@@ -38,10 +38,15 @@ package com.microfocus.application.automation.tools.run;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.hp.octane.integrations.executor.TestsToRunConverter;
-import com.microfocus.application.automation.tools.mi.CommonConstants;
+import com.microfocus.application.automation.tools.mi.AuTeLlmCredentials;
+import com.microfocus.application.automation.tools.mi.MIAgentConstants;
 import com.microfocus.application.automation.tools.mi.MIAgentBuildAction;
 import com.microfocus.application.automation.tools.mi.MIAgentResultPublisher;
-import hudson.*;
+import com.microfocus.application.automation.tools.settings.MiAgentGlobalConfiguration;
+import hudson.EnvVars;
+import hudson.Extension;
+import hudson.FilePath;
+import hudson.Launcher;
 import hudson.model.AbstractProject;
 import hudson.model.Result;
 import hudson.model.Run;
@@ -49,19 +54,21 @@ import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ArgumentListBuilder;
+import hudson.util.Secret;
 import jenkins.tasks.SimpleBuildStep;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 /**
@@ -69,29 +76,45 @@ import java.util.Collections;
  *
  * <p>The converter ({@code TestsToRunConverterBuilder} with {@code MF_MI_AGENT}) provides a
  * manifest where each item under {@code data[]} is a manual run payload including its
- * {@code run_steps}. This builder materializes one run-step file per run, executes the
- * configured MI Agent runner, and writes a manifest consumed by {@link MIAgentResultPublisher}.</p>
+ * {@code run_steps}. For each run, this builder assembles a single JSON document
+ * ({@code run_step} + {@code manual_run} + {@code credentials}) and pipes it to the configured
+ * MI Agent runner over stdin, then writes a manifest consumed by {@link MIAgentResultPublisher}.</p>
  */
 public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
 
-    private static final String RESULT_FOLDER = CommonConstants.RESULT_FOLDER;
-    private static final String MI_AGENT_EXE =  "mi-agent.exe";
-    private static final String RUN_STEPS_FILE_NAME = CommonConstants.RUN_STEPS_FILE_NAME;
-    private static final String RUN_STEPS_RESULT_FILE_NAME = CommonConstants.RUN_STEPS_RESULT_FILE_NAME;
-    private static final String MANIFEST_FILE_NAME = CommonConstants.MANIFEST_FILE_NAME;
-    private static final String CONF_FILE_NAME = CommonConstants.CONFIG_FILE_NAME;
+    private static final String MI_AGENT_EXE = "mi-agent.exe";
+    private static final String RUN_STEPS_RESULT_FILE_NAME = MIAgentConstants.RUN_STEPS_RESULT_FILE_NAME;
+    private static final String MANIFEST_FILE_NAME = MIAgentConstants.MANIFEST_FILE_NAME;
+    private static final String EXECUTION_RECORDING_ENABLED_ENVIRONMENT_VARIABLE = "EXECUTION_RECORDING_ENABLED";
+
+    private static final String AU_TESTER_CONFIGURATION_FIELD = "au_tester_configuration";
+    private static final String LLM_CONFIGURATION_FIELD = "llm_configuration";
+    private static final String LLM_LOGICAL_NAME_FIELD = "ENDPOINT_LOGICAL_NAME";
+    private static final String VENDOR_FIELD = "VENDOR";
+    private static final String EXECUTOR_MODEL_FIELD = "executor_model";
+    private static final String REPORT_BUILDER_MODEL_FIELD = "report-builder-model";
+    private static final String LLM_EXECUTOR_VENDOR_FIELD = "LLM_EXECUTOR_VENDOR";
+    private static final String LLM_ANALYZER_VENDOR_FIELD = "LLM_ANALYZER_VENDOR";
+    private static final String MODEL_PARAMETERS_FIELD = "MODEL_PARAMETERS";
+    private static final String PARAMETER_NAME_FIELD = "Name";
+    private static final String PARAMETER_VALUE_FIELD = "Value";
+    private static final String RUN_STEP_FIELD = "run_step";
+    private static final String MANUAL_RUN_FIELD = "manual_run";
+    private static final String CREDENTIALS_FIELD = "credentials";
+    private static final String OUTPUT_BASE_DIR_FIELD = "OUTPUT_BASE_DIR";
+
     private static final String[] RUN_STEP_SCALAR_FIELDS = {
-            "type", "workspace_id", "name", "test_name", "order_in_suite_run",
-            "duration", "id", "subtype", "has_attachments"
+            "type", "workspace_id", "name", "test_name", "order_in_suite_run", "duration", "id", "subtype", "has_attachments"
     };
     private static final String[] RUN_STEP_OBJECT_FIELDS = {
-            "au_tester_configuration", "parent_suite", "run_steps", "test", "native_status", "run_by"
+            AU_TESTER_CONFIGURATION_FIELD, "parent_suite", "run_steps", "test", "native_status", "run_by"
     };
 
     private String executorId;
     private String executorLogicalName;
     private String configurationId;
     private String workspaceId;
+
     @DataBoundConstructor
     public RunFromMiAgentBuilder() {
     }
@@ -128,26 +151,12 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
         }
         log.println("[MI Agent] Tagged build as MI Agent run.");
 
-        String converted = resolveConvertedTests(build, listener);
-        if (StringUtils.isBlank(converted)) {
-            log.println("[MI Agent] No MI Agent tests were found.");
+        JSONArray data = resolveConvertedRuns(build, listener);
+        if (data.isEmpty()) {
             return;
         }
 
-        Object parsed = JSONValue.parse(converted);
-        if (!(parsed instanceof JSONObject)) {
-            log.println("[MI Agent][ERROR] Converted tests payload is not a JSON object.");
-            build.setResult(Result.FAILURE);
-            return;
-        }
-
-        JSONArray data = (JSONArray) ((JSONObject) parsed).get("data");
-        if (data == null || data.isEmpty()) {
-            log.println("[MI Agent] Converted tests payload contains no runs.");
-            return;
-        }
-
-        FilePath resultRoot = workspace.child(RESULT_FOLDER);
+        FilePath resultRoot = MIAgentConstants.resultRootForBuild(workspace, build);
         if (resultRoot.exists()) {
             resultRoot.deleteRecursive();
         }
@@ -166,18 +175,19 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
                 continue;
             }
 
+            JSONObject credentials = resolveLlmCredentials(build, log, extractLlmLogicalName(runData), runId);
+
             FilePath runFolder = resultRoot.child(runId);
             runFolder.mkdirs();
-            FilePath runStepsFile = runFolder.child(RUN_STEPS_FILE_NAME);
-            JSONObject runStepsInput = normalizeRunStepsInput(runData);
-            runStepsFile.write(runStepsInput.toJSONString(), "UTF-8");
+            JSONObject runStep = toRunStep(runData);
+            JSONObject configuration = buildAgentConfiguration(runStep, credentials, runFolder.getRemote());
 
-            int exitCode = executeRunner(runFolder, runStepsFile, workspace, launcher, log, build);
+            int exitCode = executeRunner(configuration, build, workspace, launcher, listener, log);
             boolean hasResult = runFolder.child(RUN_STEPS_RESULT_FILE_NAME).exists();
             if (exitCode != 0 || !hasResult) {
                 failures++;
                 if (!hasResult) {
-                    synthesizeFailureResult(runFolder, runStepsInput,
+                    synthesizeFailureResult(runFolder, runStep,
                             "MI Agent exited with code " + exitCode + " and did not produce run_steps_result.json");
                 }
             }
@@ -185,7 +195,6 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
             JSONObject runManifest = new JSONObject();
             runManifest.put("runId", runId);
             runManifest.put("runFolder", runFolder.getRemote());
-            runManifest.put("runStepsFile", RUN_STEPS_FILE_NAME);
             runManifest.put("runStepsResultFile", RUN_STEPS_RESULT_FILE_NAME);
             runManifest.put("exitCode", exitCode);
             runManifest.put("hasResult", runFolder.child(RUN_STEPS_RESULT_FILE_NAME).exists());
@@ -209,29 +218,95 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
         }
     }
 
-    private String resolveConvertedTests(Run<?, ?> build, TaskListener listener) {
+    /**
+     * Reads the converted-tests payload from the build environment and returns its {@code data[]} runs.
+     *
+     * @return the runs to execute, or an empty array when there is nothing to run
+     * @throws IOException when the payload is present but malformed
+     */
+    private JSONArray resolveConvertedRuns(Run<?, ?> build, TaskListener listener) throws IOException {
+        PrintStream log = listener.getLogger();
+        String converted = null;
         try {
             EnvVars env = build.getEnvironment(listener);
             if (env != null) {
-                return env.get(TestsToRunConverter.DEFAULT_TESTS_TO_RUN_CONVERTED_PARAMETER);
+                converted = env.get(TestsToRunConverter.DEFAULT_TESTS_TO_RUN_CONVERTED_PARAMETER);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            listener.getLogger().println("[MI Agent][WARN] Interrupted while reading build environment: " + e.getMessage());
+            log.println("[MI Agent][WARN] Interrupted while reading build environment: " + e.getMessage());
         } catch (IOException e) {
-            listener.getLogger().println("[MI Agent][WARN] Failed to read build environment: " + e.getMessage());
+            log.println("[MI Agent][WARN] Failed to read build environment: " + e.getMessage());
         }
-        return null;
+
+        if (StringUtils.isBlank(converted)) {
+            log.println("[MI Agent] No MI Agent tests were found.");
+            return new JSONArray();
+        }
+
+        Object parsed = JSONValue.parse(converted);
+        if (!(parsed instanceof JSONObject)) {
+            throw new IOException("[MI Agent][ERROR] Converted tests payload is not a JSON object.");
+        }
+
+        Object data = ((JSONObject) parsed).get("data");
+        if (data != null && !(data instanceof JSONArray)) {
+            throw new IOException("[MI Agent][ERROR] Converted tests payload 'data' is not a JSON array.");
+        }
+        if (data == null || ((JSONArray) data).isEmpty()) {
+            log.println("[MI Agent] Converted tests payload contains no runs.");
+            return new JSONArray();
+        }
+        return (JSONArray) data;
     }
 
-    private JSONObject normalizeRunStepsInput(JSONObject runData) {
+    private JSONObject resolveLlmCredentials(Run<?, ?> build,
+                                             PrintStream log,
+                                             String logicalName,
+                                             String runId) throws IOException {
+        if (StringUtils.isBlank(logicalName)) {
+            throw new IOException("[MI Agent][ERROR] Run " + runId + " has no '" + LLM_LOGICAL_NAME_FIELD
+                    + "' in '" + LLM_CONFIGURATION_FIELD + "'. It must name an Autonomous Tester LLM Configuration credential.");
+        }
+
+        AuTeLlmCredentials llmConfig = CredentialsProvider.findCredentialById(
+                logicalName, AuTeLlmCredentials.class, build, Collections.emptyList());
+        if (llmConfig == null) {
+            throw new IOException("[MI Agent][ERROR] No Autonomous Tester LLM Configuration with id '"
+                    + logicalName + "' is available to this job.");
+        }
+
+        Object parsedConfig = JSONValue.parse(Secret.toString(llmConfig.getConfigurationJson()));
+        if (!(parsedConfig instanceof JSONObject)) {
+            throw new IOException("[MI Agent][ERROR] LLM configuration '" + logicalName
+                    + "' must contain a JSON object.");
+        }
+
+        log.println("[MI Agent] Run " + runId + ": LLM configuration '" + logicalName + "' selected.");
+        return (JSONObject) parsedConfig;
+    }
+
+    private String extractLlmLogicalName(JSONObject runData) {
+        Object configuration = runData.get(AU_TESTER_CONFIGURATION_FIELD);
+        if (!(configuration instanceof JSONObject)) {
+            return null;
+        }
+        Object llmConfiguration = ((JSONObject) configuration).get(LLM_CONFIGURATION_FIELD);
+        if (!(llmConfiguration instanceof JSONObject)) {
+            return null;
+        }
+        Object logicalName = ((JSONObject) llmConfiguration).get(LLM_LOGICAL_NAME_FIELD);
+        return logicalName == null ? null : StringUtils.trimToNull(String.valueOf(logicalName));
+    }
+
+    private JSONObject toRunStep(JSONObject runData) {
         JSONObject normalized = new JSONObject();
 
         copyFields(normalized, runData, RUN_STEP_SCALAR_FIELDS, false);
         // Keep nested structures as JSON objects exactly as received (deep copied).
         copyFields(normalized, runData, RUN_STEP_OBJECT_FIELDS, true);
-        normalized.putIfAbsent("run_steps", new JSONObject());
 
+        adaptLlmConfiguration(normalized);
         return normalized;
     }
 
@@ -250,12 +325,86 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
         return deepCopy instanceof JSONObject ? deepCopy : value;
     }
 
-    private int executeRunner(FilePath runFolder,
-                              FilePath runStepsFile,
+    /**
+     * Adapts the Octane {@code llm_configuration} block in place: fans the shared {@code VENDOR} out to
+     * the role-specific vendor keys mi-agent reads, and converts each {@code MODEL_PARAMETERS} name/value
+     * list into a JSON object so it sits on the same leaf-key path {@code browser}/{@code agent} already take.
+     */
+    private void adaptLlmConfiguration(JSONObject runStep) {
+        Object configuration = runStep.get(AU_TESTER_CONFIGURATION_FIELD);
+        if (!(configuration instanceof JSONObject)) {
+            return;
+        }
+        Object llmConfiguration = ((JSONObject) configuration).get(LLM_CONFIGURATION_FIELD);
+        if (!(llmConfiguration instanceof JSONObject)) {
+            return;
+        }
+
+        JSONObject llm = (JSONObject) llmConfiguration;
+        Object vendor = llm.get(VENDOR_FIELD);
+
+        adaptModel(llm, EXECUTOR_MODEL_FIELD, LLM_EXECUTOR_VENDOR_FIELD, vendor);
+        adaptModel(llm, REPORT_BUILDER_MODEL_FIELD, LLM_ANALYZER_VENDOR_FIELD, vendor);
+    }
+
+    private void adaptModel(JSONObject llmConfiguration, String modelField, String vendorField, Object vendor) {
+        Object model = llmConfiguration.get(modelField);
+        if (!(model instanceof JSONObject)) {
+            return;
+        }
+
+        JSONObject modelObject = (JSONObject) model;
+        if (vendor != null) {
+            modelObject.put(vendorField, vendor);
+        }
+
+        Object parameters = modelObject.get(MODEL_PARAMETERS_FIELD);
+        if (parameters instanceof JSONArray) {
+            modelObject.put(MODEL_PARAMETERS_FIELD, toModelParametersObject((JSONArray) parameters));
+        }
+    }
+
+    /**
+     * Converts a Name/Value entry list to a flat JSON object. Entries with a blank name are skipped;
+     * a duplicate name keeps the last value. Values are copied unchanged, never cast.
+     */
+    private JSONObject toModelParametersObject(JSONArray parameters) {
+        JSONObject result = new JSONObject();
+        for (Object entry : parameters) {
+            if (!(entry instanceof JSONObject)) {
+                continue;
+            }
+            JSONObject parameter = (JSONObject) entry;
+            String name = StringUtils.trimToNull(String.valueOf(parameter.get(PARAMETER_NAME_FIELD)));
+            if (name == null) {
+                continue;
+            }
+            result.put(name, parameter.get(PARAMETER_VALUE_FIELD));
+        }
+        return result;
+    }
+
+    /**
+     * Assembles the single stdin document: Octane's per-run {@code run_step} first, then the runtime
+     * values the plugin owns, then {@code credentials} last so nothing may override them.
+     */
+    private JSONObject buildAgentConfiguration(JSONObject runStep, JSONObject credentials, String outputBaseDir) {
+        JSONObject manualRun = new JSONObject();
+        manualRun.put(OUTPUT_BASE_DIR_FIELD, outputBaseDir);
+
+        JSONObject document = new JSONObject();
+        document.put(RUN_STEP_FIELD, runStep);
+        document.put(MANUAL_RUN_FIELD, manualRun);
+        document.put(CREDENTIALS_FIELD, credentials);
+        return document;
+    }
+
+    private int executeRunner(JSONObject configuration,
+                              Run<?, ?> build,
                               FilePath workspace,
                               Launcher launcher,
-                              PrintStream log,
-                              Run<?, ?> build) throws IOException, InterruptedException {
+                              TaskListener listener,
+                              PrintStream log) throws IOException, InterruptedException {
         FilePath sharedRunner = resolveRunnerExecutable(workspace);
         if (sharedRunner == null) {
             throw new IOException("[MI Agent][ERROR] MI Agent executable not found at required shared location: ${WORKSPACE}/../"
@@ -264,12 +413,19 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
 
         ArgumentListBuilder args = new ArgumentListBuilder();
         args.add(sharedRunner.getRemote());
-        FilePath confFile = generateConfFile(workspace, runFolder.getRemote(), build);
-        args.add("--config_file_path=" + confFile.getRemote());
         log.println("[MI Agent] Resolved executable: " + sharedRunner.getRemote());
+
+        EnvVars environment = new EnvVars(build.getEnvironment(listener));
+        environment.put(EXECUTION_RECORDING_ENABLED_ENVIRONMENT_VARIABLE,
+            Boolean.toString(MiAgentGlobalConfiguration.getInstance().isExecutionRecordingEnabled()));
+
+        byte[] stdinBytes = configuration.toJSONString().getBytes(StandardCharsets.UTF_8);
+
         int exitCode = launcher.launch().cmds(args)
-                .envs(Collections.singletonMap("RUN_STEP_FILE_PATH", runStepsFile.getRemote()))
+                .envs(environment)
+                .stdin(new ByteArrayInputStream(stdinBytes))
                 .stdout(log).pwd(workspace).join();
+
         log.println("[MI Agent] Exit code: " + exitCode);
         return exitCode;
     }
@@ -286,49 +442,6 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
         }
 
         return null;
-    }
-
-    private FilePath generateConfFile(FilePath workspace, String outputBaseDir, Run<?, ?> build)
-            throws IOException, InterruptedException {
-        String llmAnalyzerKey = resolveCredentialSecret(build, "LLM_ANALYZER_KEY");
-        String llmExecutorKey = resolveCredentialSecret(build, "LLM_EXECUTOR_KEY");
-
-        JSONObject conf = new JSONObject();
-        conf.put("LLM_EXECUTOR_VENDOR", "GEMINI");
-        conf.put("LLM_EXECUTOR_MODEL", "gemini-2.5-flash");
-        conf.put("LLM_EXECUTOR_TEMPERATURE", 0.2);
-        conf.put("LLM_ANALYZER_VENDOR", "GEMINI");
-        conf.put("LLM_ANALYZER_MODEL", "gemini-2.5-pro");
-        conf.put("LLM_ANALYZER_KEY", llmAnalyzerKey);
-        conf.put("LLM_EXECUTOR_KEY", llmExecutorKey);
-        conf.put("STEP_MULTIPLIER", 3);
-        conf.put("BROWSER_USE_LOGGING_LEVEL", "debug");
-        conf.put("ANONYMIZED_TELEMETRY", false);
-        conf.put("CONVERSATION", true);
-        conf.put("COST_CALCULATION", true);
-        conf.put("EXECUTION_RECORDING_ENABLED", false);
-        conf.put("NO_IMAGES", false);
-        conf.put("MI_DOM_STABILITY_WAIT", 2.0);
-        conf.put("MI_DOM_STABILITY_MIN_WAIT", 0.3);
-        conf.put("MI_AGENT_MODE", "dev");
-        conf.put("VALIDATE_SCHEMA", true);
-        conf.put("OUTPUT_BASE_DIR", outputBaseDir);
-        conf.put("LOG_TO_CONSOLE", 2);
-        conf.put("DISABLE_LOG_REDIRECT", 2);
-        conf.put("AWS_CLUSTER_NAME", "jenkins-mi-agent"); // TODO ask Idan
-
-        FilePath confFile = workspace.child(CONF_FILE_NAME);
-        confFile.write(conf.toJSONString(), "UTF-8");
-        return confFile;
-    }
-
-    private String resolveCredentialSecret(Run<?, ?> build, String credentialId) throws IOException {
-        StringCredentials credentials = CredentialsProvider.findCredentialById(
-                credentialId, StringCredentials.class, build, Collections.emptyList());
-        if (credentials == null) {
-            throw new IOException("[MI Agent][ERROR] Jenkins credential not found for " + credentialId + ".");
-        }
-        return credentials.getSecret().getPlainText();
     }
 
     private void synthesizeFailureResult(FilePath runFolder, JSONObject runStepsInput, String message) throws IOException, InterruptedException {

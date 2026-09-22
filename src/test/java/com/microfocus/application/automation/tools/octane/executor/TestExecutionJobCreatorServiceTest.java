@@ -36,13 +36,17 @@
  */
 package com.microfocus.application.automation.tools.octane.executor;
 
+import com.microfocus.application.automation.tools.mi.MIAgentConstants;
+import com.microfocus.application.automation.tools.mi.MIAgentWorkspaceCleanupPublisher;
 import com.microfocus.application.automation.tools.model.LoggedJenkinsRule;
 import hudson.model.FreeStyleProject;
 import hudson.model.Node;
+import hudson.tasks.ArtifactArchiver;
 import org.junit.Rule;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 import static com.microfocus.application.automation.tools.octane.executor.UftConstants.AUTONOMOUS_TESTER_LABEL;
 import static org.junit.Assert.assertEquals;
@@ -75,10 +79,49 @@ public class TestExecutionJobCreatorServiceTest {
         return proj.getAssignedLabel().matches(node);
     }
 
+    @Test
+    public void addMiAgentArtifactArchiverIfNeeded_archivesOnlyThisBuildsResultsAndIsIdempotent() throws Exception {
+        FreeStyleProject proj = jenkins.createFreeStyleProject("mi-agent-archiver-job");
+
+        invokeAddMiAgentArtifactArchiverIfNeeded(proj);
+        invokeAddMiAgentArtifactArchiverIfNeeded(proj);
+
+        List<ArtifactArchiver> archivers = proj.getPublishersList().getAll(ArtifactArchiver.class);
+        assertEquals(1, archivers.size());
+        ArtifactArchiver archiver = archivers.get(0);
+        assertEquals(MIAgentConstants.RESULT_FOLDER + "/${BUILD_NUMBER}/**", archiver.getArtifacts());
+        assertTrue("Failed runs are the ones most worth debugging, so they must still be archived",
+                archiver.getAllowEmptyArchive() && !archiver.isOnlyIfSuccessful());
+    }
+
+    @Test
+    public void addMiAgentWorkspaceCleanupIfNeeded_addsCleanupPublisherOnceAndIsIdempotent() throws Exception {
+        FreeStyleProject proj = jenkins.createFreeStyleProject("mi-agent-cleanup-job");
+
+        invokeAddMiAgentWorkspaceCleanupIfNeeded(proj);
+        invokeAddMiAgentWorkspaceCleanupIfNeeded(proj);
+
+        assertEquals(1, proj.getPublishersList().getAll(MIAgentWorkspaceCleanupPublisher.class).size());
+    }
+
     private static void invokeAddAutonomousTesterAssignedNode(FreeStyleProject proj) throws Exception {
         Method method = TestExecutionJobCreatorService.class
                 .getDeclaredMethod("addAutonomousTesterAssignedNode", FreeStyleProject.class);
         method.setAccessible(true);
         method.invoke(null, proj);
+    }
+
+    private static void invokeAddMiAgentArtifactArchiverIfNeeded(FreeStyleProject proj) throws Exception {
+        Method method = TestExecutionJobCreatorService.class
+                .getDeclaredMethod("addMiAgentArtifactArchiverIfNeeded", List.class);
+        method.setAccessible(true);
+        method.invoke(null, proj.getPublishersList());
+    }
+
+    private static void invokeAddMiAgentWorkspaceCleanupIfNeeded(FreeStyleProject proj) throws Exception {
+        Method method = TestExecutionJobCreatorService.class
+                .getDeclaredMethod("addMiAgentWorkspaceCleanupIfNeeded", List.class);
+        method.setAccessible(true);
+        method.invoke(null, proj.getPublishersList());
     }
 }
