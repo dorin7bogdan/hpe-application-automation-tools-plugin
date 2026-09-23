@@ -59,6 +59,7 @@ import jenkins.tasks.SimpleBuildStep;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
+import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -66,6 +67,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
@@ -182,13 +184,21 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
             JSONObject runStep = toRunStep(runData);
             JSONObject configuration = buildAgentConfiguration(runStep, credentials, runFolder.getRemote());
 
-            int exitCode = executeRunner(configuration, build, workspace, launcher, listener, log);
+            RunOutcome outcome = executeRunner(configuration, build, workspace, launcher, listener, log);
             boolean hasResult = runFolder.child(RUN_STEPS_RESULT_FILE_NAME).exists();
-            if (exitCode != 0 || !hasResult) {
+
+            if (outcome.exitCode() != 0 || !hasResult) {
                 failures++;
+            }
+
+            if (outcome.exitCode() != 0) {
+                String detailedError = extractMiAgentError(outcome.consoleOutput());
+                String message = detailedError != null ? detailedError
+                        : "MI Agent exited with code " + outcome.exitCode() + " and did not produce " + RUN_STEPS_RESULT_FILE_NAME;
                 if (!hasResult) {
-                    synthesizeFailureResult(runFolder, runStep,
-                            "MI Agent exited with code " + exitCode + " and did not produce run_steps_result.json");
+                    synthesizeFailureResult(runFolder, runStep, message);
+                } else {
+                    annotateResultWithError(runFolder, message);
                 }
             }
 
@@ -196,7 +206,7 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
             runManifest.put("runId", runId);
             runManifest.put("runFolder", runFolder.getRemote());
             runManifest.put("runStepsResultFile", RUN_STEPS_RESULT_FILE_NAME);
-            runManifest.put("exitCode", exitCode);
+            runManifest.put("exitCode", outcome.exitCode());
             runManifest.put("hasResult", runFolder.child(RUN_STEPS_RESULT_FILE_NAME).exists());
             manifestRuns.add(runManifest);
         }
@@ -399,7 +409,7 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
         return document;
     }
 
-    private int executeRunner(JSONObject configuration,
+    private RunOutcome executeRunner(JSONObject configuration,
                               Run<?, ?> build,
                               FilePath workspace,
                               Launcher launcher,
@@ -421,13 +431,31 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
 
         byte[] stdinBytes = configuration.toJSONString().getBytes(StandardCharsets.UTF_8);
 
+        // Tee stdout so its error diagnostic can be recovered after the process exits.
+        ByteArrayOutputStream consoleCapture = new ByteArrayOutputStream();
+        PrintStream teeStream = new PrintStream(new TeeOutputStream(log, consoleCapture), true, StandardCharsets.UTF_8);
+
         int exitCode = launcher.launch().cmds(args)
                 .envs(environment)
                 .stdin(new ByteArrayInputStream(stdinBytes))
-                .stdout(log).pwd(workspace).join();
+                .stdout(teeStream).pwd(workspace).join();
 
         log.println("[MI Agent] Exit code: " + exitCode);
-        return exitCode;
+        return new RunOutcome(exitCode, consoleCapture.toString(StandardCharsets.UTF_8));
+    }
+
+    /** Exit code paired with captured mi-agent console output. */
+    private record RunOutcome(int exitCode, String consoleOutput) {
+    }
+
+    /** Returns mi-agent's last non-blank console line, or {@code null} if none. */
+    private String extractMiAgentError(String output) {
+        String trimmed = StringUtils.trimToNull(output);
+        if (trimmed == null) {
+            return null;
+        }
+        int lastNewline = trimmed.lastIndexOf('\n');
+        return lastNewline < 0 ? trimmed : trimmed.substring(lastNewline + 1).trim();
     }
 
     private FilePath resolveRunnerExecutable(FilePath workspace) throws IOException, InterruptedException {
@@ -464,7 +492,10 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
                 step.put("type", "run_step");
                 step.put("id", source.get("id"));
                 step.put("result", failedStatus);
-                step.put("actual", message);
+                // Only Octane's step 'actual' field is published, so put the message on the first step only.
+                if (failedSteps.isEmpty()) {
+                    step.put("actual", message);
+                }
                 failedSteps.add(step);
             }
         }
@@ -472,13 +503,28 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
         JSONObject result = new JSONObject();
         result.put("type", "run_manual_test");
         result.put("id", runStepsInput.get("id"));
-        result.put("description", message);
         result.put("duration", 0);
         result.put("native_status", failedStatus);
         JSONObject steps = new JSONObject();
         steps.put("data", failedSteps);
         result.put("run_steps", steps);
         runFolder.child(RUN_STEPS_RESULT_FILE_NAME).write(result.toJSONString(), "UTF-8");
+    }
+
+    /** mi-agent still wrote a result despite failing: stamp the diagnostic onto the first step. */
+    private void annotateResultWithError(FilePath runFolder, String message) throws IOException, InterruptedException {
+        FilePath resultFile = runFolder.child(RUN_STEPS_RESULT_FILE_NAME);
+        Object parsed = JSONValue.parse(resultFile.readToString());
+        if (!(parsed instanceof JSONObject result)) {
+            return;
+        }
+        Object runSteps = result.get("run_steps");
+        JSONArray steps = runSteps instanceof JSONObject ? (JSONArray) ((JSONObject) runSteps).get("data") : null;
+        if (steps == null || steps.isEmpty() || !(steps.get(0) instanceof JSONObject firstStep)) {
+            return;
+        }
+        firstStep.put("actual", message);
+        resultFile.write(result.toJSONString(), "UTF-8");
     }
 
     @Extension
