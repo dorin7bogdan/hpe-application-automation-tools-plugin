@@ -35,17 +35,21 @@
  *  ___________________________________________________________________
  */
  using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Security;
 using HpToolsLauncher.Properties;
 using HpToolsLauncher.Utils;
 
 namespace HpToolsLauncher
 {
-    public class McConnectionInfo
+    public class McConnectionInfo : IDisposable
     {
         private const string EQ = "=";
-        private const string SEMI_COLON = ";";
+        private const char EQ_CH = '=';
+        private const char SEMI_COLON_CH = ';';
+        private const char DBL_QUOTE_CH = '"';
         private const string YES = "Yes";
         private const string NO = "No";
         private const string SYSTEM = "System";
@@ -56,11 +60,11 @@ namespace HpToolsLauncher
         private const string CLIENT = "client";
         private const string SECRET = "secret";
         private const string TENANT = "tenant";
+        private const string MASKED = "****";
         private const int ZERO = 0;
         private const int ONE = 1;
         private static readonly char[] SLASH = new char[] { '/' };
         private static readonly char[] COLON = new char[] { ':' };
-        private static readonly char[] DBL_QUOTE = new char[] { '"' };
 
         private const string MOBILEHOSTADDRESS = "MobileHostAddress";
         private const string MOBILEUSESSL = "MobileUseSSL";
@@ -94,10 +98,20 @@ namespace HpToolsLauncher
             ValueEdge = 2
         }
 
-        public struct AuthTokenInfo
+        public sealed class AuthTokenInfo : IDisposable
         {
             public string ClientId { get; set; }
-            public string SecretKey { get; set; }
+            public SecureString SecretKey { get; set; }
+
+            public void Dispose()
+            {
+                ClientId = null;
+                if (SecretKey != null)
+                {
+                    SecretKey.Dispose();
+                    SecretKey = null;
+                }
+            }
         }
 
         private bool _useSSL;
@@ -105,15 +119,15 @@ namespace HpToolsLauncher
         private bool _useProxyAuth;
 
         // if token auth was specified this is populated
-        private AuthTokenInfo _token;
-        private string _execToken;
+        private AuthTokenInfo _token = new AuthTokenInfo();
+        private SecureString _execToken;
         private AuthType _authType = AuthType.UsernamePassword;
         private DigitalLabType _labType = DigitalLabType.UFT;
 
         public string UserName { get; set; }
-        public string Password { get; set; }
+        public SecureString Password { get; set; }
 
-        public string ExecToken
+        public SecureString ExecToken
         {
             get
             {
@@ -121,15 +135,20 @@ namespace HpToolsLauncher
             }
             set
             {
+                var previous = _execToken;
+                _token.Dispose();
                 if (value == null)
                 {
                     _execToken = null;
-                    _token.ClientId = _token.SecretKey = null;
                 }
                 else
                 {
-                    _execToken = value.Trim().Trim(DBL_QUOTE);
+                    _execToken = value.Trim(DBL_QUOTE_CH);
                     _token = ParseExecToken();
+                }
+                if (previous != null && !ReferenceEquals(previous, value))
+                {
+                    previous.Dispose();
                 }
             }
         }
@@ -168,20 +187,20 @@ namespace HpToolsLauncher
         public int ProxyPort { get; set; }
         public bool UseProxyAuth { get { return _useProxyAuth; } set { _useProxyAuth = value; } }
         public string ProxyUserName { get; set; }
-        public string ProxyPassword { get; set; }
+        public SecureString ProxyPassword { get; set; }
 
         public McConnectionInfo()
         {
             HostPort = PORT_8080;
             UserName =
-                ExecToken =
-                Password =
                 HostAddress =
                 TenantId =
                 WorkspaceName =
                 ProxyAddress =
-                ProxyUserName =
-                ProxyPassword = string.Empty;
+                ProxyUserName = string.Empty;
+            ExecToken = new SecureString();
+            Password = new SecureString();
+            ProxyPassword = new SecureString();
         }
 
         public McConnectionInfo(JavaProperties ciParams) : this()
@@ -254,7 +273,7 @@ namespace HpToolsLauncher
                     string mcPassword = ciParams[MOBILEPASSWORD];
                     if (!string.IsNullOrEmpty(mcPassword))
                     {
-                        Password = Encrypter.Decrypt(mcPassword);
+                        Password = Encrypter.DecryptToSecureString(mcPassword);
                     }
                 }
 
@@ -293,7 +312,7 @@ namespace HpToolsLauncher
                     var mcExecToken = ciParams[MOBILEEXECTOKEN];
                     if (!string.IsNullOrEmpty(mcExecToken))
                     {
-                        ExecToken = Encrypter.Decrypt(mcExecToken);
+                        ExecToken = Encrypter.DecryptToSecureString(mcExecToken);
                     }
                 }
 
@@ -368,7 +387,7 @@ namespace HpToolsLauncher
                     string proxyPassword = ciParams[MOBILEPROXYSETTING_PASSWORD];
                     if (!string.IsNullOrEmpty(proxyPassword))
                     {
-                        ProxyPassword = Encrypter.Decrypt(proxyPassword);
+                        ProxyPassword = Encrypter.DecryptToSecureString(proxyPassword);
                     }
                 }
             }
@@ -379,7 +398,8 @@ namespace HpToolsLauncher
         }
 
         /// <summary>
-        /// Parses the execution token and separates into three parts: clientId, secretKey and tenantId
+        /// Parses the execution token and separates into three parts: clientId, secretKey and tenantId.
+        /// The token is parsed over a scratch buffer which is zeroed afterwards, so no fragment of the secret is left on the managed heap.
         /// </summary>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
@@ -393,44 +413,70 @@ namespace HpToolsLauncher
             // key-value pairs are separated with =
 
             // e.g., "client=oauth2-QHxvc8bOSz4lwgMqts2w@microfocus.com; secret=EHJp8ea6jnVNqoLN6HkD; tenant=999999999;"
-            // "client=oauth2-OuV8k3snnGp9vJugC1Zn@microfocus.com; secret=6XSquF1FUD4CyQM7fb0B; tenant=999999999;"
-            // "client=oauth2-OuV8k3snnGp9vJugC1Zn@microfocus.com; secret=6XSquF1FUD7CyQM7fb0B; tenant=999999999;"
             var ret = new AuthTokenInfo();
             if (_execToken.Length == 0) return ret; // empty string was given as token, may semnalize that it wasn't specified
 
-            var tokens = _execToken.Split(SEMI_COLON.ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-
-            if (tokens.Length != 3) throw new ArgumentException(Resources.McInvalidToken);
-            if (!tokens.All(token => token.Contains(EQ)))
-                throw new ArgumentException(string.Format(Resources.McMalformedTokenInvalidKeyValueSeparator, EQ));
-
-            // key-values are separated by =, we need its value, the key is known
-            foreach (var token in tokens)
+            char[] buf = _execToken.ToCharArray();
+            try
             {
-                var parts = token.Split(EQ.ToCharArray());
+                var starts = new List<int>();
+                var ends = new List<int>();
+                int pos = 0;
+                while (pos < buf.Length)
+                {
+                    int end = Array.IndexOf(buf, SEMI_COLON_CH, pos);
+                    if (end < 0) end = buf.Length;
+                    if (end > pos)
+                    {
+                        starts.Add(pos);
+                        ends.Add(end);
+                    }
+                    pos = end + 1;
+                }
 
-                if (parts.Length != 2)
-                    throw new ArgumentException(Resources.McMalformedTokenMissingKeyValuePair);
+                if (starts.Count != 3) throw new ArgumentException(Resources.McInvalidToken);
 
-                var key = parts[0].Trim();
-                var value = parts[1].Trim();
+                for (int i = 0; i < starts.Count; i++)
+                {
+                    if (Array.IndexOf(buf, EQ_CH, starts[i], ends[i] - starts[i]) < 0)
+                        throw new ArgumentException(string.Format(Resources.McMalformedTokenInvalidKeyValueSeparator, EQ));
+                }
 
-                if (CLIENT.EqualsIgnoreCase(key))
+                // key-values are separated by =, we need its value, the key is known
+                for (int i = 0; i < starts.Count; i++)
                 {
-                    ret.ClientId = value;
+                    int start = starts[i], end = ends[i];
+                    int eq = Array.IndexOf(buf, EQ_CH, start, end - start);
+
+                    if (Array.IndexOf(buf, EQ_CH, eq + 1, end - eq - 1) >= 0)
+                        throw new ArgumentException(Resources.McMalformedTokenMissingKeyValuePair);
+
+                    int keyStart = start, keyEnd = eq;
+                    buf.TrimRange(ref keyStart, ref keyEnd, char.IsWhiteSpace);
+                    int valStart = eq + 1, valEnd = end;
+                    buf.TrimRange(ref valStart, ref valEnd, char.IsWhiteSpace);
+
+                    if (buf.EqualsIgnoreCase(keyStart, keyEnd - keyStart, CLIENT))
+                    {
+                        ret.ClientId = new string(buf, valStart, valEnd - valStart);
+                    }
+                    else if (buf.EqualsIgnoreCase(keyStart, keyEnd - keyStart, SECRET))
+                    {
+                        ret.SecretKey = buf.ToSecureString(valStart, valEnd - valStart);
+                    }
+                    else if (buf.EqualsIgnoreCase(keyStart, keyEnd - keyStart, TENANT))
+                    {
+                        TenantId = new string(buf, valStart, valEnd - valStart);
+                    }
+                    else
+                    {
+                        throw new ArgumentException(string.Format(Resources.McMalformedTokenInvalidKey, new string(buf, keyStart, keyEnd - keyStart)));
+                    }
                 }
-                else if (SECRET.EqualsIgnoreCase(key))
-                {
-                    ret.SecretKey = value;
-                }
-                else if (TENANT.EqualsIgnoreCase(key))
-                {
-                    TenantId = value;
-                }
-                else
-                {
-                    throw new ArgumentException(string.Format(Resources.McMalformedTokenInvalidKey, key));
-                }
+            }
+            finally
+            {
+                Array.Clear(buf, 0, buf.Length);
             }
 
             _authType = AuthType.AuthToken;
@@ -452,13 +498,13 @@ namespace HpToolsLauncher
             string strUserNameOrClientId = string.Empty;
             if (MobileAuthType == AuthType.AuthToken)
             {
-                strUserNameOrClientId = string.Format("ClientId: {0}", _token.ClientId);
+                strUserNameOrClientId = string.Format("ClientId: {0}", _token.ClientId.IsNullOrEmpty() ? string.Empty : MASKED);
             }
             else if (MobileAuthType == AuthType.UsernamePassword)
             {
                 strUserNameOrClientId = string.Format("Username: {0}", UserName);
             }
-            string strTenantId = TenantId.IsNullOrWhiteSpace() ? string.Empty : string.Format(", TenantId: {0}", TenantId);
+            string strTenantId = TenantId.IsNullOrWhiteSpace() ? string.Empty : string.Format(", TenantId: {0}", MASKED);
             string strProxy = string.Format("UseProxy: {0}", UseProxyAsInt == ONE ? YES : NO);
             if (UseProxy)
             {
@@ -478,6 +524,26 @@ namespace HpToolsLauncher
                 }
             }
             return string.Format("HostAddress: {0}, Port: {1}, AuthType: {2}, {3}{4}, {5}, {6}", HostAddress, HostPort, MobileAuthType, strUserNameOrClientId, strTenantId, strUseSsl, strProxy);
+        }
+
+        public void Dispose()
+        {
+            _token.Dispose();
+            if (_execToken != null)
+            {
+                _execToken.Dispose();
+                _execToken = null;
+            }
+            if (Password != null)
+            {
+                Password.Dispose();
+                Password = null;
+            }
+            if (ProxyPassword != null)
+            {
+                ProxyPassword.Dispose();
+                ProxyPassword = null;
+            }
         }
     }
 
