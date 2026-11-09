@@ -38,7 +38,10 @@ package com.microfocus.application.automation.tools.run;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.hp.octane.integrations.executor.TestsToRunConverter;
+import com.microfocus.application.automation.tools.mi.AuTeAplsLicenseCredentials;
 import com.microfocus.application.automation.tools.mi.AuTeConfigurationStore;
+import com.microfocus.application.automation.tools.mi.AuTeFolderCredentials;
+import com.microfocus.application.automation.tools.mi.AuTeJsonCredentials;
 import com.microfocus.application.automation.tools.mi.AuTeLlmCredentials;
 import com.microfocus.application.automation.tools.mi.MIAgentConstants;
 import com.microfocus.application.automation.tools.mi.MIAgentBuildAction;
@@ -55,7 +58,6 @@ import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ArgumentListBuilder;
-import hudson.util.Secret;
 import jenkins.tasks.SimpleBuildStep;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
@@ -72,7 +74,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 
 /**
  * Build step that executes Autonomous Tester (AuTe) runs from the converted tests payload.
@@ -80,8 +81,8 @@ import java.util.Collections;
  * <p>The converter ({@code TestsToRunConverterBuilder} with {@code MF_MI_AGENT}) provides a
  * manifest where each item under {@code data[]} is a manual run payload including its
  * {@code run_steps}. For each run, this builder pipes one JSON document to mi-agent.exe over stdin:
- * {@code CONFIGURATION} holds the shared space default configuration, the LLM endpoint resolved from Jenkins
- * credentials and the run output directory; {@code RUN_TEST} holds the run payload unchanged.
+ * {@code CONFIGURATION} holds the shared space default configuration, the LLM endpoint and APLS license
+ * resolved from Jenkins folder credentials and the run output directory; {@code RUN_TEST} holds the run payload unchanged.
  * A manifest consumed by {@link MIAgentResultPublisher} is written at the end.</p>
  */
 public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
@@ -96,6 +97,7 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
     private static final String CONFIGURATION_BLOCK = "CONFIGURATION";
     private static final String RUN_TEST_BLOCK = "RUN_TEST";
     private static final String LLM_ENDPOINT_BLOCK = "LLM_ENDPOINT";
+    private static final String APLS_LICENSE_BLOCK = "APLS_LICENSE";
     private static final String ENVIRONMENT_BLOCK = "ENVIRONMENT";
     private static final String OUTPUT_DIR_FIELD = "OUTPUT_DIR";
     private static final String EXECUTION_RECORDING_ENABLED = "EXECUTION_RECORDING_ENABLED";
@@ -177,8 +179,9 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
             RunOutcome outcome;
             try {
                 String llmLogicalName = extractLlmLogicalName(runData);
-                JSONObject llmEndpoint = resolveLlmCredentials(build, log, llmLogicalName, runId);
-                JSONObject stdinDocument = buildStdinDocument(defaultConfiguration, llmEndpoint, runData, runFolder);
+                JSONObject llmEndpoint = resolveLlmEndpoint(build, log, runId, llmLogicalName);
+                JSONObject aplsLicense = resolveAplsLicense(build, log, runId);
+                JSONObject stdinDocument = buildStdinDocument(defaultConfiguration, llmEndpoint, aplsLicense, runData, runFolder);
                 outcome = executeRunner(stdinDocument, build, workspace, launcher, listener, log);
             } catch (IOException e) {
                 log.println(e.getMessage());
@@ -261,30 +264,33 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
         return (JSONArray) data;
     }
 
-    private JSONObject resolveLlmCredentials(Run<?, ?> build,
-                                             PrintStream log,
-                                             String logicalName,
-                                             String runId) throws IOException {
+    /** Resolves the LLM endpoint named by the run (or the Autonomous Tester settings default). */
+    private JSONObject resolveLlmEndpoint(Run<?, ?> build, PrintStream log, String runId, String logicalName) throws IOException {
         if (StringUtils.isBlank(logicalName)) {
             throw new IOException("[AuTe][ERROR] Run %s has no '%s' in '%s' and no default is set in the Autonomous Tester settings. It must name an Autonomous Tester LLM Configuration credential."
                 .formatted(runId, ENDPOINT_PARAM_NAME_FIELD, LLM_MODELS_FIELD));
         }
+        return readFolderCredentialsJson(build, log, runId, AuTeLlmCredentials.class, logicalName);
+    }
 
-        AuTeLlmCredentials llmConfig = CredentialsProvider.findCredentialById(
-                logicalName, AuTeLlmCredentials.class, build, Collections.emptyList());
-        if (llmConfig == null) {
-            throw new IOException("[AuTe][ERROR] No Autonomous Tester LLM Configuration with id '%s' is available to this job."
-                .formatted(logicalName));
+    /** Resolves the APLS license named in the Autonomous Tester settings; the run fails when no name is set. */
+    private JSONObject resolveAplsLicense(Run<?, ?> build, PrintStream log, String runId) throws IOException {
+        String logicalName = MiAgentGlobalConfiguration.getInstance().getAplsLicenseParamName();
+        if (StringUtils.isBlank(logicalName)) {
+            throw new IOException("[AuTe][ERROR] Run %s: no APLS license parameter name is set in the Autonomous Tester settings. It must name an Autonomous Tester APLS License Configuration credential."
+                .formatted(runId));
         }
+        return readFolderCredentialsJson(build, log, runId, AuTeAplsLicenseCredentials.class, logicalName);
+    }
 
-        Object parsedConfig = JSONValue.parse(Secret.toString(llmConfig.getConfigurationJson()));
-        if (!(parsedConfig instanceof JSONObject)) {
-            throw new IOException("[AuTe][ERROR] LLM configuration '%s' must contain a JSON object."
-                .formatted(logicalName));
-        }
-
-        log.println("[AuTe] Run %s: LLM configuration '%s' selected.".formatted(runId, logicalName));
-        return (JSONObject) parsedConfig;
+    /** Finds credential {@code id} of {@code type} in the job's folders and returns its JSON object. */
+    private JSONObject readFolderCredentialsJson(Run<?, ?> build, PrintStream log, String runId,
+                                                 Class<? extends AuTeJsonCredentials> type, String id) throws IOException {
+        AuTeFolderCredentials match = AuTeFolderCredentials.get(build.getParent(), type, id);
+        CredentialsProvider.track(build, match.credentials());
+        log.println("[AuTe] Run %s: credential '%s' selected from folder '%s'."
+                .formatted(runId, id, match.folder().getFullName()));
+        return match.credentials().readJson();
     }
 
     /** Octane value first, then the Jenkins global default; null when neither is set. */
@@ -315,21 +321,35 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
                 .formatted(file.getRemote()));
         }
         String content = file.readToString();
-        if (!(JSONValue.parse(content) instanceof JSONObject)) {
+        Object parsed = JSONValue.parse(content);
+        if (!(parsed instanceof JSONObject)) {
             throw new IOException("[AuTe][ERROR] Shared space default configuration at %s must contain a JSON object."
                 .formatted(file.getRemote()));
+        }
+        JSONObject config = (JSONObject) parsed;
+        if (!(config.get(LLM_MODELS_FIELD) instanceof JSONObject)) {
+            throw new IOException("[AuTe][ERROR] Shared space default configuration at %s must contain an '%s' JSON object."
+                .formatted(file.getRemote(), LLM_MODELS_FIELD));
         }
         return content;
     }
 
     private JSONObject buildStdinDocument(String defaultConfiguration,
                                           JSONObject llmEndpoint,
+                                          JSONObject aplsLicense,
                                           JSONObject runData,
                                           FilePath runFolder) {
         // Parsed per run so each run gets its own copy of the default configuration
         JSONObject config = (JSONObject) JSONValue.parse(defaultConfiguration);
         config.put(LLM_ENDPOINT_BLOCK, llmEndpoint);
-        JSONObject environment = (JSONObject) config.get(ENVIRONMENT_BLOCK);
+        config.put(APLS_LICENSE_BLOCK, aplsLicense);
+        JSONObject environment;
+        if (config.get(ENVIRONMENT_BLOCK) instanceof JSONObject) {
+            environment = (JSONObject) config.get(ENVIRONMENT_BLOCK);
+        } else {
+            environment = new JSONObject();
+            config.put(ENVIRONMENT_BLOCK, environment);
+        }
         environment.put(OUTPUT_DIR_FIELD, runFolder.getRemote());
         environment.put(EXECUTION_RECORDING_ENABLED, false);
 

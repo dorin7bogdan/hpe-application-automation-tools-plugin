@@ -68,7 +68,7 @@ public class AuTeConfigurationStoreTest {
         Path root = temporary.getRoot().toPath();
         Path file = AuTeConfigurationStore.ensureTemplate(root, "connection", "1001");
         JSONObject template = (JSONObject) JSONValue.parse(Files.readString(file));
-        assertEquals(Set.of("BROWSER", "AGENT", "LLM_MODELS", "APLS_LICENSE", "ENVIRONMENT"), template.keySet());
+        assertEquals(Set.of("BROWSER", "AGENT", "LLM_MODELS", "ENVIRONMENT"), template.keySet());
         for (Object section : template.values()) {
             assertEquals(new JSONObject(), section);
         }
@@ -110,7 +110,7 @@ public class AuTeConfigurationStoreTest {
         Files.delete(file);
 
         AuTeConfigurationStore.ensureTemplate(root, "connection", "1001");
-        assertEquals(5, ((JSONObject) JSONValue.parse(Files.readString(file))).size());
+        assertEquals(4, ((JSONObject) JSONValue.parse(Files.readString(file))).size());
         assertEquals("Administrator notes", Files.readString(documentation));
     }
 
@@ -125,7 +125,7 @@ public class AuTeConfigurationStoreTest {
             };
             var results = executor.invokeAll(Collections.nCopies(12, create));
             for (var result : results) {
-                assertEquals(5, ((JSONObject) JSONValue.parse(Files.readString(result.get()))).size());
+                assertEquals(4, ((JSONObject) JSONValue.parse(Files.readString(result.get()))).size());
             }
         } finally {
             executor.shutdownNow();

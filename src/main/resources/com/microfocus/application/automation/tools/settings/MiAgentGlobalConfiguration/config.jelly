@@ -50,5 +50,9 @@
                  description="Default value used when a run does not specify ENDPOINT_PARAM_NAME.">
             <f:textbox value="${instance.endpointParamName}"/>
         </f:entry>
+        <f:entry title="APLS license parameter name" field="aplsLicenseParamName"
+                 description="Id of the Autonomous Tester APLS License JSON Configuration credential in the AuTe job folder. Required: builds fail when it is not set.">
+            <f:textbox value="${instance.aplsLicenseParamName}"/>
+        </f:entry>
     </f:section>
 </j:jelly>

@@ -50,6 +50,7 @@ public class MiAgentGlobalConfiguration extends GlobalConfiguration implements S
     private int maxBuildsToKeep = 50;
     private int maxDaysToKeep = 7;
     private String endpointParamName;
+    private String aplsLicenseParamName;
 
     public MiAgentGlobalConfiguration() {
         load();
@@ -94,6 +95,17 @@ public class MiAgentGlobalConfiguration extends GlobalConfiguration implements S
     @DataBoundSetter
     public void setEndpointParamName(String endpointParamName) {
         this.endpointParamName = Util.fixEmptyAndTrim(endpointParamName);
+        save();
+    }
+
+    /** Id of the folder-scoped Autonomous Tester APLS License JSON Configuration credential. */
+    public String getAplsLicenseParamName() {
+        return aplsLicenseParamName;
+    }
+
+    @DataBoundSetter
+    public void setAplsLicenseParamName(String aplsLicenseParamName) {
+        this.aplsLicenseParamName = Util.fixEmptyAndTrim(aplsLicenseParamName);
         save();
     }
 }

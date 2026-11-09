@@ -36,20 +36,28 @@
  */
 package com.microfocus.application.automation.tools.run;
 
+import com.cloudbees.hudson.plugins.folder.Folder;
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
+import com.cloudbees.plugins.credentials.domains.Domain;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.octane.integrations.executor.TestsToRunConverter;
+import com.microfocus.application.automation.tools.mi.AuTeAplsLicenseCredentials;
 import com.microfocus.application.automation.tools.mi.AuTeLlmCredentials;
 import com.microfocus.application.automation.tools.mi.MIAgentConstants;
 import com.microfocus.application.automation.tools.model.LoggedJenkinsRule;
+import com.microfocus.application.automation.tools.settings.MiAgentGlobalConfiguration;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Job;
+import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.ArgumentListBuilder;
@@ -69,10 +77,14 @@ import java.nio.file.Files;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -86,8 +98,9 @@ public class RunFromMiAgentBuilderDynamicConfigTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String CREDENTIAL_ID = "gemini-config";
+    private static final String APLS_CREDENTIAL_ID = "apls-license";
     private static final String DEFAULT_CONFIGURATION = "{\"BROWSER\":{\"BROWSER_NAME\":\"chrome\"},\"AGENT\":{},"
-            + "\"LLM_MODELS\":{},\"APLS_LICENSE\":{},\"ENVIRONMENT\":{\"LOG_LEVEL\":\"DEBUG\",\"OUTPUT_DIR\":\"C:\\\\admin\"}}";
+            + "\"LLM_MODELS\":{},\"ENVIRONMENT\":{\"LOG_LEVEL\":\"DEBUG\",\"OUTPUT_DIR\":\"C:\\\\admin\"}}";
 
     @Rule
     public LoggedJenkinsRule jenkins = new LoggedJenkinsRule();
@@ -111,10 +124,16 @@ public class RunFromMiAgentBuilderDynamicConfigTest {
         }
     }
 
+    private Folder spaceFolder;
+    private int jobCounter;
+
     @Before
-    public void registerLlmCredential() {
-        SystemCredentialsProvider.getInstance().getCredentials().add(new AuTeLlmCredentials(
-                CredentialsScope.GLOBAL, CREDENTIAL_ID, "desc", Secret.fromString("{\"apiKey\":\"secret-value\"}")));
+    public void registerCredentials() throws Exception {
+        spaceFolder = jenkins.jenkins.createProject(Folder.class, "aute-space-a");
+        addFolderCredential(spaceFolder, CREDENTIAL_ID, "{\"apiKey\":\"secret-value\"}");
+        addFolderCredential(spaceFolder, new AuTeAplsLicenseCredentials(CredentialsScope.GLOBAL, APLS_CREDENTIAL_ID,
+                "desc", Secret.fromString("{\"AUTOPASS_HOST\":\"apls.example\",\"AUTOPASS_TOKEN\":\"apls-token\"}")));
+        MiAgentGlobalConfiguration.getInstance().setAplsLicenseParamName(APLS_CREDENTIAL_ID);
     }
 
     @Test
@@ -142,6 +161,8 @@ public class RunFromMiAgentBuilderDynamicConfigTest {
 
         JsonNode config = document.path("CONFIGURATION");
         assertEquals("secret-value", config.path("LLM_ENDPOINT").path("apiKey").asText());
+        assertEquals("apls.example", config.path("APLS_LICENSE").path("AUTOPASS_HOST").asText());
+        assertEquals("apls-token", config.path("APLS_LICENSE").path("AUTOPASS_TOKEN").asText());
         assertEquals("chrome", config.path("BROWSER").path("BROWSER_NAME").asText());
         assertEquals("DEBUG", config.path("ENVIRONMENT").path("LOG_LEVEL").asText());
         assertEquals(runFolder.getAbsolutePath(), config.path("ENVIRONMENT").path("OUTPUT_DIR").asText());
@@ -225,6 +246,127 @@ public class RunFromMiAgentBuilderDynamicConfigTest {
         builder.perform(mockBuild(convertedTests), new FilePath(buildWorkspace), mock(Launcher.class), mockListener());
     }
 
+    @Test
+    public void perform_failsWhenDefaultConfigurationHasNoLlmModelsBlock() throws Exception {
+        File buildWorkspace = newBuildWorkspace("shared-workspace-no-llm-models");
+        Files.writeString(new File(buildWorkspace, "default-configuration.json").toPath(),
+                "{\"BROWSER\":{},\"AGENT\":{},\"ENVIRONMENT\":{}}");
+        Launcher launcher = mock(Launcher.class);
+
+        try {
+            new RunFromMiAgentBuilder().perform(mockBuild("{\"data\":[{\"id\":\"3002\"}]}"),
+                    new FilePath(buildWorkspace), launcher, mockListener());
+            fail("Expected IOException for a configuration without an LLM_MODELS block");
+        } catch (IOException e) {
+            assertTrue(e.getMessage().contains("must contain an 'LLM_MODELS' JSON object"));
+        }
+        verify(launcher, never()).launch();
+    }
+
+    /** ENVIRONMENT is optional in the file; Jenkins creates it to pass the run's output folder. */
+    @Test
+    public void perform_createsEnvironmentBlockWhenDefaultConfigurationHasNone() throws Exception {
+        File buildWorkspace = newBuildWorkspace("shared-workspace-no-environment");
+        Files.writeString(new File(buildWorkspace, "default-configuration.json").toPath(), "{\"LLM_MODELS\":{}}");
+        Launcher.ProcStarter procStarter = mockProcStarter();
+        Launcher launcher = mock(Launcher.class);
+        when(launcher.launch()).thenReturn(procStarter);
+        String convertedTests = "{\"data\":[{\"id\":\"3003\",\"au_tester_configuration\":"
+                + "{\"LLM_MODELS\":{\"ENDPOINT_PARAM_NAME\":\"" + CREDENTIAL_ID + "\"}}}]}";
+
+        new RunFromMiAgentBuilder().perform(mockBuild(convertedTests), new FilePath(buildWorkspace), launcher, mockListener());
+
+        ArgumentCaptor<InputStream> stdinCaptor = ArgumentCaptor.forClass(InputStream.class);
+        verify(procStarter).stdin(stdinCaptor.capture());
+        JsonNode environment = MAPPER.readTree(stdinCaptor.getValue()).path("CONFIGURATION").path("ENVIRONMENT");
+        assertEquals(runFolder(buildWorkspace, "3003").getAbsolutePath(), environment.path("OUTPUT_DIR").asText());
+        assertFalse(environment.path("EXECUTION_RECORDING_ENABLED").asBoolean(true));
+    }
+
+    /** Without an APLS license name in the Autonomous Tester settings, mi-agent is not launched and the build fails. */
+    @Test
+    public void perform_failsWhenAplsLicenseNameIsNotSet() throws Exception {
+        MiAgentGlobalConfiguration.getInstance().setAplsLicenseParamName(null);
+
+        assertRunRejected("apls-unset", "no APLS license parameter name is set");
+    }
+
+    @Test
+    public void perform_failsWhenAplsLicenseCredentialIsNotInTheJobFolders() throws Exception {
+        Folder otherSpace = jenkins.jenkins.createProject(Folder.class, "aute-space-b");
+        addFolderCredential(otherSpace, new AuTeAplsLicenseCredentials(CredentialsScope.GLOBAL, "other-apls",
+                "desc", Secret.fromString("{}")));
+        MiAgentGlobalConfiguration.getInstance().setAplsLicenseParamName("other-apls");
+
+        assertRunRejected("apls-missing", "No 'Autonomous Tester APLS License JSON Configuration' credential with id 'other-apls'");
+    }
+
+    private void assertRunRejected(String workspaceName, String expectedError) throws Exception {
+        File buildWorkspace = newBuildWorkspace(workspaceName);
+        Launcher launcher = mock(Launcher.class);
+        String convertedTests = "{\"data\":[{\"id\":\"6001\",\"au_tester_configuration\":"
+                + "{\"LLM_MODELS\":{\"ENDPOINT_PARAM_NAME\":\"" + CREDENTIAL_ID + "\"}}}]}";
+        Run<?, ?> build = mockBuild(convertedTests);
+
+        new RunFromMiAgentBuilder().perform(build, new FilePath(buildWorkspace), launcher, mockListener());
+
+        verify(launcher, never()).launch();
+        verify(build).setResult(Result.FAILURE);
+        JsonNode result = MAPPER.readTree(new File(runFolder(buildWorkspace, "6001"), "run_steps_result.json"));
+        assertTrue(result.path("description").asText().contains(expectedError));
+    }
+
+    /** Nearest folder wins, parent folders are inherited, global and other shared-space credentials are ignored. */
+    @Test
+    public void perform_resolvesLlmCredentialsFromTheJobFoldersOnly() throws Exception {
+        Folder team = spaceFolder.createProject(Folder.class, "team");
+        Folder otherSpace = jenkins.jenkins.createProject(Folder.class, "aute-space-b");
+        addFolderCredential(team, CREDENTIAL_ID, "{\"apiKey\":\"team-value\"}");
+        addFolderCredential(spaceFolder, "space-only", "{\"apiKey\":\"space-value\"}");
+        addFolderCredential(otherSpace, "other-space", "{\"apiKey\":\"other-value\"}");
+        SystemCredentialsProvider.getInstance().getCredentials().add(new AuTeLlmCredentials(
+                CredentialsScope.GLOBAL, "global-only", "desc", Secret.fromString("{\"apiKey\":\"global-value\"}")));
+
+        assertEquals("team-value", runAndReadApiKey(team, CREDENTIAL_ID));
+        assertEquals("space-value", runAndReadApiKey(team, "space-only"));
+        assertNull(runAndReadApiKey(team, "global-only"));
+        assertNull(runAndReadApiKey(team, "other-space"));
+    }
+
+    /** Returns the apiKey sent to the agent, or null when the run was rejected before launching it. */
+    private String runAndReadApiKey(Folder folder, String credentialId) throws Exception {
+        File buildWorkspace = newBuildWorkspace("llm-" + folder.getName() + "-" + credentialId);
+        Launcher.ProcStarter procStarter = mockProcStarter();
+        Launcher launcher = mock(Launcher.class);
+        when(launcher.launch()).thenReturn(procStarter);
+        String convertedTests = "{\"data\":[{\"id\":\"5001\",\"au_tester_configuration\":"
+                + "{\"LLM_MODELS\":{\"ENDPOINT_PARAM_NAME\":\"" + credentialId + "\"}}}]}";
+
+        new RunFromMiAgentBuilder().perform(mockBuild(convertedTests, folder),
+                new FilePath(buildWorkspace), launcher, mockListener());
+
+        ArgumentCaptor<InputStream> stdinCaptor = ArgumentCaptor.forClass(InputStream.class);
+        verify(procStarter, atMost(1)).stdin(stdinCaptor.capture());
+        if (stdinCaptor.getAllValues().isEmpty()) {
+            return null;
+        }
+        return MAPPER.readTree(stdinCaptor.getValue()).path("CONFIGURATION").path("LLM_ENDPOINT").path("apiKey").asText();
+    }
+
+    private static void addFolderCredential(Folder folder, String id, String json) throws IOException {
+        addFolderCredential(folder, new AuTeLlmCredentials(CredentialsScope.GLOBAL, id, "desc", Secret.fromString(json)));
+    }
+
+    private static void addFolderCredential(Folder folder, Credentials credentials) throws IOException {
+        for (CredentialsStore store : CredentialsProvider.lookupStores(folder)) {
+            if (store.getContext() == folder) {
+                store.addCredentials(Domain.global(), credentials);
+                return;
+            }
+        }
+        throw new AssertionError("Folder credentials store not found for " + folder.getFullName());
+    }
+
     private File newBuildWorkspace(String name) throws Exception {
         File sharedWorkspace = tempFolder.newFolder(name);
         File installation = tempFolder.newFolder(name + "-installation");
@@ -238,12 +380,13 @@ public class RunFromMiAgentBuilderDynamicConfigTest {
         return buildWorkspace;
     }
 
-    /**
-     * A real {@link FreeStyleProject} as the mocked build's parent, so
-     * {@code CredentialsProvider.findCredentialById(..., Run, ...)} has a genuine Job/ACL context.
-     */
+    /** A real {@link FreeStyleProject} in a folder as the mocked build's parent, so the folder credentials lookup has a genuine context. */
     private Run<?, ?> mockBuild(String convertedTests) throws Exception {
-        FreeStyleProject project = jenkins.createFreeStyleProject();
+        return mockBuild(convertedTests, spaceFolder);
+    }
+
+    private Run<?, ?> mockBuild(String convertedTests, Folder folder) throws Exception {
+        FreeStyleProject project = folder.createProject(FreeStyleProject.class, "aute-job-" + (++jobCounter));
         Run<?, ?> build = mock(FreeStyleBuild.class);
         when(build.getParent()).thenReturn((Job) project);
 

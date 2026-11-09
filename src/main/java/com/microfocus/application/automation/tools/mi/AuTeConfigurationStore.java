@@ -62,7 +62,6 @@ public final class AuTeConfigurationStore {
               "BROWSER": {},
               "AGENT": {},
               "LLM_MODELS": {},
-              "APLS_LICENSE": {},
               "ENVIRONMENT": {}
             }
             """;

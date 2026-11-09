@@ -141,7 +141,7 @@ public class RunFromMiAgentBuilderTest {
         builder.setExecutorLogicalName("mi-agent-executor");
         builder.setConfigurationId("2002");
         builder.setWorkspaceId("2001");
-        Files.writeString(new File(tempFolder.getRoot(), "default-configuration.json").toPath(), "{}");
+        Files.writeString(new File(tempFolder.getRoot(), "default-configuration.json").toPath(), "{\"LLM_MODELS\":{}}");
 
         builder.perform(build, new FilePath(tempFolder.getRoot()), mock(Launcher.class), listener);
 

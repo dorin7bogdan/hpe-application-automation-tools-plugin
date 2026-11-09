@@ -46,6 +46,8 @@ import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.executor.DiscoveryInfo;
 import com.hp.octane.integrations.dto.executor.impl.TestingToolType;
+import com.hp.octane.integrations.services.configurationparameters.UftTestRunnerFolderParameter;
+import com.cloudbees.hudson.plugins.folder.Folder;
 import com.microfocus.application.automation.tools.mi.MIAgentWorkspaceCleanupPublisher;
 import com.microfocus.application.automation.tools.model.LoggedJenkinsRule;
 import hudson.FilePath;
@@ -77,6 +79,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -120,7 +123,7 @@ public class TestExecutionJobCreatorServiceTest {
         assertTrue(Files.isRegularFile(jenkins.jenkins.getRootDir().toPath()
             .resolve("aute-config/aute-lifecycle/1001/default-configuration.json")));
         var template = AuTeConfigurationStore.ensureTemplate("aute-lifecycle", "1001");
-        assertEquals(5, ((net.minidev.json.JSONObject) net.minidev.json.JSONValue.parse(Files.readString(template))).size());
+        assertEquals(4, ((net.minidev.json.JSONObject) net.minidev.json.JSONValue.parse(Files.readString(template))).size());
         Files.writeString(template, "{\"administrator\":true}");
         assertNotNull(createAuTeJob("2"));
         assertEquals("{\"administrator\":true}", Files.readString(template));
@@ -267,6 +270,29 @@ public class TestExecutionJobCreatorServiceTest {
         when(info.getExecutorLogicalName()).thenReturn("logical-" + id);
         when(info.getWorkspaceId()).thenReturn("2001");
         return TestExecutionJobCreatorService.createExecutor(info);
+    }
+
+    @Test
+    public void createExecutor_createsJobsInOneFolderPerConnectionAndSharedSpace() throws Exception {
+        FreeStyleProject first = createAuTeJob("11");
+        FreeStyleProject second = createAuTeJob("12");
+
+        assertTrue(first.getParent() instanceof Folder);
+        Folder folder = (Folder) first.getParent();
+        assertSame("Runners of the same shared space share the folder", folder, second.getParent());
+        assertEquals("AuTe-aute-lifecycle-1001", folder.getFullName());
+        assertEquals("AuTe - shared space 1001", folder.getDisplayName());
+        assertTrue(folder.getDescription().contains("http://octane.example"));
+    }
+
+    @Test
+    public void createExecutor_createsAuTeFolderInsideUftTestRunnerFolder() throws Exception {
+        jenkins.jenkins.createProject(Folder.class, "uft-runners");
+        connection.addParameter(UftTestRunnerFolderParameter.create("uft-runners"));
+
+        FreeStyleProject project = createAuTeJob("13");
+
+        assertEquals("uft-runners/AuTe-aute-lifecycle-1001/" + project.getName(), project.getFullName());
     }
 
     @Test

@@ -37,7 +37,6 @@
 package com.microfocus.application.automation.tools.mi;
 
 import com.cloudbees.plugins.credentials.CredentialsScope;
-import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import hudson.Extension;
 import hudson.util.Secret;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -45,30 +44,22 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /**
  * A single, named LLM JSON configuration for Autonomous Tester (MI Agent) runs.
  *
- * <p>The credential id is the logical name referenced by the {@code octaneLlmCredentialsName} build
- * parameter; Jenkins already enforces that it is unique within a credentials store.</p>
+ * <p>The credential id is the logical name referenced by {@code ENDPOINT_PARAM_NAME}.</p>
  */
-public class AuTeLlmCredentials extends BaseStandardCredentials {
+public class AuTeLlmCredentials extends AuTeJsonCredentials {
 
     private static final long serialVersionUID = 1L;
-
-    private final Secret configurationJson;
 
     @DataBoundConstructor
     public AuTeLlmCredentials(CredentialsScope scope,
                               String id,
                               String description,
                               Secret configurationJson) {
-        super(scope, id, description);
-        this.configurationJson = configurationJson;
-    }
-
-    public Secret getConfigurationJson() {
-        return configurationJson;
+        super(scope, id, description, configurationJson);
     }
 
     @Extension
-    public static class DescriptorImpl extends BaseStandardCredentialsDescriptor {
+    public static class DescriptorImpl extends FolderOnlyDescriptor {
 
         @Override
         public String getDisplayName() {

@@ -39,6 +39,7 @@ package com.microfocus.application.automation.tools.octane.executor;
 import antlr.ANTLRException;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.hp.octane.integrations.OctaneClient;
+import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.executor.DiscoveryInfo;
 import com.hp.octane.integrations.dto.executor.impl.TestingToolType;
@@ -426,6 +427,25 @@ public class TestExecutionJobCreatorService {
 		proj.setConcurrentBuild(true);
 	}
 
+	static synchronized Folder getOrCreateAuTeFolder(String configurationId, String spaceId, String octaneUrl) throws IOException {
+		Folder parent = getParentFolder(configurationId);
+		String name = AUTE_FOLDER_NAME_PREFIX + configurationId + "-" + spaceId;
+
+		Item existing = parent == null ? Jenkins.get().getItem(name) : parent.getItem(name);
+		if (existing instanceof Folder folder) {
+			return folder;
+		}
+
+		Folder folder = parent == null
+				? Jenkins.get().createProject(Folder.class, name)
+				: parent.createProject(Folder.class, name);
+		folder.setDisplayName("AuTe - shared space " + spaceId);
+		folder.setDescription("Autonomous Tester jobs for Software Delivery Management %s, shared space %s."
+				.formatted(octaneUrl, spaceId));
+		logger.info("Created Autonomous Tester folder " + folder.getFullName());
+		return folder;
+	}
+
 	/**
 	 * Creates an execution job dedicated to the MI Agent (Autonomous-Tester / AuTe) runner.
 	 * <p>
@@ -439,13 +459,15 @@ public class TestExecutionJobCreatorService {
 		if (client == null) {
 			throw new IOException("Octane connection not found for AuTe job creation");
 		}
-		String spaceId = client.getConfigurationService().getConfiguration().getSharedSpace();
+		OctaneConfiguration octaneConfiguration = client.getConfigurationService().getConfiguration();
+		String spaceId = octaneConfiguration.getSharedSpace();
 		AuTeConfigurationStore.ensureTemplate(configurationId, spaceId);
 		String projectName = String.format("%s-%s-%s",
 				AUTE_EXECUTION_JOB_MIDDLE_NAME_WITH_TEST_RUNNERS_NEW,
 				discoveryInfo.getExecutorId(),
 				discoveryInfo.getExecutorLogicalName().substring(0, 5));
-		FreeStyleProject proj = createProject(discoveryInfo.getConfigurationId(), projectName);
+		Folder auteFolder = getOrCreateAuTeFolder(configurationId, spaceId, octaneConfiguration.getUrl());
+		FreeStyleProject proj = auteFolder.createProject(FreeStyleProject.class, projectName);
 
 		proj.setDescription(String.format(
 				"This job was created by the OpenText Application Automation Tools plugin for running Autonomous Tester (AuTe) tests. It is associated with Software Delivery Management test runner #%s.",
