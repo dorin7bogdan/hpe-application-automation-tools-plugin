@@ -316,19 +316,21 @@ public class RunFromMiAgentBuilderDynamicConfigTest {
         assertTrue(result.path("description").asText().contains(expectedError));
     }
 
-    /** Nearest folder wins, parent folders are inherited, global and other shared-space credentials are ignored. */
+    /** Only the job's immediate folder is searched; parent, global, and sibling credentials are ignored. */
     @Test
-    public void perform_resolvesLlmCredentialsFromTheJobFoldersOnly() throws Exception {
+    public void perform_resolvesLlmCredentialsOnlyFromTheImmediateJobFolder() throws Exception {
         Folder team = spaceFolder.createProject(Folder.class, "team");
         Folder otherSpace = jenkins.jenkins.createProject(Folder.class, "aute-space-b");
         addFolderCredential(team, CREDENTIAL_ID, "{\"apiKey\":\"team-value\"}");
+        addFolderCredential(team, new AuTeAplsLicenseCredentials(CredentialsScope.GLOBAL, APLS_CREDENTIAL_ID,
+            "desc", Secret.fromString("{\"AUTOPASS_HOST\":\"apls.example\",\"AUTOPASS_TOKEN\":\"apls-token\"}")));
         addFolderCredential(spaceFolder, "space-only", "{\"apiKey\":\"space-value\"}");
         addFolderCredential(otherSpace, "other-space", "{\"apiKey\":\"other-value\"}");
         SystemCredentialsProvider.getInstance().getCredentials().add(new AuTeLlmCredentials(
                 CredentialsScope.GLOBAL, "global-only", "desc", Secret.fromString("{\"apiKey\":\"global-value\"}")));
 
         assertEquals("team-value", runAndReadApiKey(team, CREDENTIAL_ID));
-        assertEquals("space-value", runAndReadApiKey(team, "space-only"));
+        assertNull(runAndReadApiKey(team, "space-only"));
         assertNull(runAndReadApiKey(team, "global-only"));
         assertNull(runAndReadApiKey(team, "other-space"));
     }

@@ -49,27 +49,25 @@ import java.io.IOException;
 /**
  * An {@link AuTeJsonCredentials} together with the folder whose credentials store holds it.
  *
- * <p>AuTe jobs live in one folder per shared space, so AuTe credentials are looked up only in
- * folder stores. The Jenkins global and user stores are ignored, which keeps the shared spaces
- * isolated from each other.</p>
+ * <p>AuTe jobs are created directly in one folder per shared space. Only that folder's store is
+ * searched; ancestor, Jenkins global, and user stores are ignored.</p>
  */
 public record AuTeFolderCredentials(AbstractFolder<?> folder, AuTeJsonCredentials credentials) {
 
     /**
-     * Searches the folders of {@code job}, nearest folder first, for a credential of {@code type} with {@code id}.
+     * Searches only the immediate parent folder of {@code job} for a credential of {@code type} with {@code id}.
      *
      * @throws IOException when no folder of the job holds it
      */
     public static AuTeFolderCredentials get(Job<?, ?> job, Class<? extends AuTeJsonCredentials> type, String id) throws IOException {
-        // lookupStores walks from the job up to Jenkins, so the nearest store comes first.
+        // lookupStores includes ancestors; only the immediate folder is a tenant boundary.
         for (CredentialsStore store : CredentialsProvider.lookupStores(job)) {
-            if (!(store.getContext() instanceof AbstractFolder<?> folder)) {
-                continue;
-            }
-            for (Domain domain : store.getDomains()) {
-                for (Credentials credentials : store.getCredentials(domain)) {
-                    if (type.isInstance(credentials) && id.equals(((AuTeJsonCredentials) credentials).getId())) {
-                        return new AuTeFolderCredentials(folder, (AuTeJsonCredentials) credentials);
+            if (store.getContext() instanceof AbstractFolder<?> folder && folder == job.getParent()) {
+                for (Domain domain : store.getDomains()) {
+                    for (Credentials credentials : store.getCredentials(domain)) {
+                        if (type.isInstance(credentials) && id.equals(((AuTeJsonCredentials) credentials).getId())) {
+                            return new AuTeFolderCredentials(folder, (AuTeJsonCredentials) credentials);
+                        }
                     }
                 }
             }
