@@ -74,6 +74,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Build step that executes Autonomous Tester (AuTe) runs from the converted tests payload.
@@ -103,8 +109,12 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
     private static final String EXECUTION_RECORDING_ENABLED = "EXECUTION_RECORDING_ENABLED";
 
     private static final String SKIPPED_NATIVE_STATUS_ID = "list_node.run_native_status.skipped";
+    private static final String RUN_NATIVE_STATUS_PREFIX = "list_node.run_native_status.";
     private static final String SKIPPED_STEP_MESSAGE = "This run step was skipped";
     private static final String ERROR_PREFIX = "ErrorCode: ";
+
+    private static final String TEST_DIVIDER = "-".repeat(80);
+    private static final String SUMMARY_DIVIDER = "=".repeat(80);
 
     private String executorId;
     private String executorLogicalName;
@@ -161,6 +171,8 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
         resultRoot.mkdirs();
 
         JSONArray manifestRuns = new JSONArray();
+        Map<String, Integer> statusCounts = new LinkedHashMap<>();
+        List<String> testResults = new ArrayList<>();
         int failures = 0;
         for (Object o : data) {
             if (!(o instanceof JSONObject)) {
@@ -173,10 +185,14 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
                 continue;
             }
 
+            String testName = StringUtils.firstNonBlank(runData.getAsString("test_name"), runData.getAsString("name"), "Run " + runId);
+            log.println(TEST_DIVIDER);
+            log.println("Running test: %s (run %s)".formatted(testName, runId));
+
             FilePath runFolder = resultRoot.child(runId);
             runFolder.mkdirs();
 
-            RunOutcome outcome;
+            RunOutcome outcome = null;
             try {
                 String llmLogicalName = extractLlmLogicalName(runData);
                 JSONObject llmEndpoint = resolveLlmEndpoint(build, log, runId, llmLogicalName);
@@ -187,12 +203,9 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
                 log.println(e.getMessage());
                 synthesizeSkippedResult(runFolder, runData, e.getMessage());
                 failures++;
-                manifestRuns.add(buildRunManifestEntry(runId, runFolder));
-                continue;
             }
 
-            boolean hasResult = runFolder.child(RUN_STEPS_RESULT_FILE_NAME).exists();
-            if (!hasResult) {
+            if (outcome != null && !runFolder.child(RUN_STEPS_RESULT_FILE_NAME).exists()) {
                 String detailedError = extractMiAgentError(outcome.consoleOutput());
                 String runErrorMessage = detailedError != null ? detailedError
                         : "Autonomous Tester exited with code %s and did not produce %s"
@@ -203,6 +216,20 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
             }
 
             manifestRuns.add(buildRunManifestEntry(runId, runFolder));
+
+            String status = readRunStatus(runFolder);
+            log.println("Test result: %s".formatted(status));
+            statusCounts.merge(status, 1, Integer::sum);
+            testResults.add("%s : %s (run %s)".formatted(status, testName, runId));
+        }
+
+        if (!testResults.isEmpty()) {
+            log.println(SUMMARY_DIVIDER);
+            log.println("Run status: total tests: %s, %s".formatted(testResults.size(), statusCounts.entrySet().stream()
+                    .map(entry -> "%s: %s".formatted(entry.getKey().toLowerCase(Locale.ROOT), entry.getValue()))
+                    .collect(Collectors.joining(", "))));
+            testResults.forEach(log::println);
+            log.println(SUMMARY_DIVIDER);
         }
 
         JSONObject manifest = new JSONObject();
@@ -389,6 +416,19 @@ public class RunFromMiAgentBuilder extends Builder implements SimpleBuildStep {
 
     /** Exit code paired with captured mi-agent console output. */
     private record RunOutcome(int exitCode, String consoleOutput) {
+    }
+
+    /** Native status of the run result, e.g. {@code Passed}; {@code Failed} when missing, as the publisher reports it. */
+    private String readRunStatus(FilePath runFolder) throws IOException, InterruptedException {
+        if (JSONValue.parse(runFolder.child(RUN_STEPS_RESULT_FILE_NAME).readToString()) instanceof JSONObject result
+                && result.get("native_status") instanceof JSONObject status) {
+            String id = StringUtils.firstNonBlank(status.getAsString("id"), status.getAsString("logical_name"));
+            if (StringUtils.startsWith(id, RUN_NATIVE_STATUS_PREFIX)) {
+                return StringUtils.capitalize(id.substring(RUN_NATIVE_STATUS_PREFIX.length()).replace('_', ' '));
+            }
+            return StringUtils.defaultIfBlank(status.getAsString("name"), "Failed");
+        }
+        return "Failed";
     }
 
     private FilePath resolveRunnerExecutable(FilePath workspace) throws IOException, InterruptedException {

@@ -323,6 +323,24 @@ public class RunFromMiAgentBuilderTest {
         throw new AssertionError("Expected IOException");
     }
 
+    @Test
+    public void readRunStatus_returnsReadableNativeStatusOrFailed() throws Exception {
+        Method readStatus = RunFromMiAgentBuilder.class.getDeclaredMethod("readRunStatus", FilePath.class);
+        readStatus.setAccessible(true);
+        RunFromMiAgentBuilder builder = new RunFromMiAgentBuilder();
+
+        assertEquals("Passed", readStatus.invoke(builder, runFolderWithResult("{\"native_status\":{\"id\":\"list_node.run_native_status.passed\"}}")));
+        assertEquals("Not completed", readStatus.invoke(builder, runFolderWithResult("{\"native_status\":{\"logical_name\":\"list_node.run_native_status.not_completed\"}}")));
+        assertEquals("Failed", readStatus.invoke(builder, runFolderWithResult("{\"native_status\":{\"name\":\"Failed\"}}")));
+        assertEquals("Failed", readStatus.invoke(builder, runFolderWithResult("{\"id\":\"1\"}")));
+    }
+
+    private FilePath runFolderWithResult(String json) throws Exception {
+        FilePath folder = new FilePath(tempFolder.newFolder());
+        folder.child("run_steps_result.json").write(json, "UTF-8");
+        return folder;
+    }
+
     private Run<?, ?> mockBuild(String convertedTests, MIAgentBuildAction existingAction) throws Exception {
         Run<?, ?> build = mock(FreeStyleBuild.class);
         when(build.getNumber()).thenReturn(42);
