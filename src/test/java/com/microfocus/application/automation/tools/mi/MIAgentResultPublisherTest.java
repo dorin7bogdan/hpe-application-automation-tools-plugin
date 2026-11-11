@@ -863,15 +863,47 @@ public class MIAgentResultPublisherTest {
         assertFalse(runUpdate.containsKey("execution_results"));
     }
 
+    @Test
+    public void perform_resultWithDuration_addsDurationToRunUpdate() throws Exception {
+        JSONObject runUpdate = publishRunResult(
+                "{\"native_status\":{\"name\":\"passed\"},\"duration\":42}", mockResponse(200, "{\"data\":[]}"));
+
+        assertEquals(42, ((Number) runUpdate.get("duration")).intValue());
+    }
+
+    @Test
+    public void perform_resultWithZeroDuration_stillSendsDuration() throws Exception {
+        JSONObject runUpdate = publishRunResult(
+                "{\"native_status\":{\"name\":\"passed\"},\"duration\":0}", mockResponse(200, "{\"data\":[]}"));
+
+        assertTrue(runUpdate.containsKey("duration"));
+        assertEquals(0, ((Number) runUpdate.get("duration")).intValue());
+    }
+
+    @Test
+    public void perform_resultWithoutDuration_omitsDuration() throws Exception {
+        JSONObject runUpdate = publishRunResult(
+                "{\"native_status\":{\"name\":\"passed\"}}", mockResponse(200, "{\"data\":[]}"));
+
+        assertFalse(runUpdate.containsKey("duration"));
+        assertEquals("list_node.run_native_status.passed",
+                ((JSONObject) runUpdate.get("native_status")).getAsString("id"));
+    }
+
     /** Publishes one run whose result contains execution_results and returns the body of its run update. */
     private JSONObject publishRunWithExecutionResults(OctaneResponse metadataResponse) throws Exception {
+        return publishRunResult(
+                "{\"native_status\":{\"name\":\"passed\"},\"execution_results\":" + EXECUTION_RESULTS + "}",
+                metadataResponse);
+    }
+
+    /** Publishes one run with the given run_steps_result.json content and returns the body of its run update. */
+    private JSONObject publishRunResult(String runResultJson, OctaneResponse metadataResponse) throws Exception {
         FilePath workspace = new FilePath(tempFolder.getRoot());
         FilePath resultRoot = MIAgentConstants.resultRoot(workspace);
         FilePath runFolder = resultRoot.child("7001");
         runFolder.mkdirs();
-        runFolder.child(MIAgentConstants.RUN_STEPS_RESULT_FILE_NAME).write(
-                "{\"native_status\":{\"name\":\"passed\"},\"execution_results\":" + EXECUTION_RESULTS + "}",
-                StandardCharsets.UTF_8.name());
+        runFolder.child(MIAgentConstants.RUN_STEPS_RESULT_FILE_NAME).write(runResultJson, StandardCharsets.UTF_8.name());
 
         JSONObject runEntry = new JSONObject();
         runEntry.put("runId", "7001");

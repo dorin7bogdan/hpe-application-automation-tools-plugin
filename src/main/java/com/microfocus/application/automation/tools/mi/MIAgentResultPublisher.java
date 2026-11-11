@@ -112,6 +112,7 @@ public class MIAgentResultPublisher extends Recorder implements SimpleBuildStep,
     private static final String RUN_NATIVE_STATUS_PREFIX = "list_node.run_native_status.";
     private static final String RUN_ID_PARAMETER = "runId";
     private static final String EXECUTION_RESULTS_FIELD = "execution_results";
+    private static final String DURATION_FIELD = "duration";
     private static final String EXECUTION_RESULTS_METADATA_QUERY = "\"entity_name='run_manual';name='execution_results'\"";
     private static final int MAX_UPDATE_ATTEMPTS = 3;
     private static final long RETRY_DELAY_MS = 1000L;
@@ -290,7 +291,7 @@ public class MIAgentResultPublisher extends Recorder implements SimpleBuildStep,
                 continue;
             }
             try {
-                updateRunStatus(runId, RUN_NATIVE_STATUS_PREFIX + "skipped", reason, null, ctx, log);
+                updateRunStatus(runId, RUN_NATIVE_STATUS_PREFIX + "skipped", reason, null, null, ctx, log);
                 published++;
             } catch (InterruptedException e) {
                 throw e;
@@ -426,9 +427,10 @@ public class MIAgentResultPublisher extends Recorder implements SimpleBuildStep,
         Object executionResults = executionResultsFieldDefined
                 ? runData.runResult().get(EXECUTION_RESULTS_FIELD)
                 : null;
+        Object duration = runData.runResult().get(DURATION_FIELD);
 
         try {
-            updateRunStatus(runData.runId(), overallStatusId, runDescription, executionResults, ctx, log);
+            updateRunStatus(runData.runId(), overallStatusId, runDescription, executionResults, duration, ctx, log);
         } catch (InterruptedException e) {
             throw e;
         } catch (Exception e) {
@@ -500,7 +502,7 @@ public class MIAgentResultPublisher extends Recorder implements SimpleBuildStep,
     }
 
     private void updateRunStatus(String runId, String statusId, String description, Object executionResults,
-                                 PublishContext ctx, PrintStream log) throws IOException, InterruptedException {
+                                 Object duration, PublishContext ctx, PrintStream log) throws IOException, InterruptedException {
         JSONObject payload = new JSONObject();
         JSONObject status = new JSONObject();
         status.put("type", "list_node");
@@ -512,8 +514,11 @@ public class MIAgentResultPublisher extends Recorder implements SimpleBuildStep,
         if (executionResults != null) {
             payload.put(EXECUTION_RESULTS_FIELD, executionResults);
         }
+        if (duration != null) {
+            payload.put(DURATION_FIELD, duration);
+        }
 
-        log.println("updateRunStatus: statusId=" + statusId);
+        log.println("updateRunStatus: statusId=" + statusId + (duration != null ? ", duration=" + duration : ""));
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/runs/%s", ctx.baseUrl(), ctx.sharedSpaceId(), ctx.workspaceId(), runId);
         OctaneResponse response = executeJsonRequest(HttpMethod.PUT, url, payload.toJSONString(), ctx.client(), log);
         assertSuccess(response, "Update run status failed for run " + runId);
