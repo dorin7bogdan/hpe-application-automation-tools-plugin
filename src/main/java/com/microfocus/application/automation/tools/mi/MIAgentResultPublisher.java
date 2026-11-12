@@ -518,7 +518,9 @@ public class MIAgentResultPublisher extends Recorder implements SimpleBuildStep,
             payload.put(DURATION_FIELD, duration);
         }
 
-        log.println("updateRunStatus: statusId=" + statusId + (duration != null ? ", duration=" + duration : ""));
+        log.println("updateRunStatus: statusId=" + statusId + (duration instanceof Number durationMillis
+                ? ", duration=" + (durationMillis.doubleValue() / 1000.0) + " seconds"
+                : duration != null ? ", duration=" + duration + " ms" : ""));
         String url = String.format("%s/api/shared_spaces/%s/workspaces/%s/runs/%s", ctx.baseUrl(), ctx.sharedSpaceId(), ctx.workspaceId(), runId);
         OctaneResponse response = executeJsonRequest(HttpMethod.PUT, url, payload.toJSONString(), ctx.client(), log);
         assertSuccess(response, "Update run status failed for run " + runId);
